@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7796371073973417323}
   - component: {fileID: 4331400473733151392}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Glow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -108,7 +108,7 @@ GameObject:
   - component: {fileID: 7858605565926253390}
   - component: {fileID: 6293948082149797181}
   - component: {fileID: 131239443772402099}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -199,7 +199,7 @@ GameObject:
   - component: {fileID: 9173908003566597019}
   - component: {fileID: 8787320391187853216}
   - component: {fileID: 8285455700329415670}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Stalker
   m_TagString: Untagged
   m_Icon: {fileID: 0}
