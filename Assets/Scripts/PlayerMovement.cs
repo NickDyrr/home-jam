@@ -4,12 +4,16 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// WASD / arrow-key movement on the XZ plane, relative to the camera's yaw.
 /// Uses a CharacterController so the player collides with greybox walls.
+/// Drives the Animator's Speed parameter (0..1) from movement input.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float turnSpeed = 720f;
+    [SerializeField] private Animator animator;
+
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
     private CharacterController controller;
     private Transform cam;
@@ -18,6 +22,12 @@ public class PlayerMovement : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         if (Camera.main != null) cam = Camera.main.transform;
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+    }
+
+    private void OnDisable()
+    {
+        if (animator != null) animator.SetFloat(SpeedHash, 0f);
     }
 
     private void Update()
@@ -43,6 +53,8 @@ public class PlayerMovement : MonoBehaviour
             Quaternion look = Quaternion.LookRotation(move, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
         }
+
+        if (animator != null) animator.SetFloat(SpeedHash, move.magnitude, 0.08f, Time.deltaTime);
     }
 
     private static Vector2 ReadInput()
