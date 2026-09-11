@@ -263,6 +263,6 @@ MonoBehaviour:
   speedPerSecondOutside: 0.06
   maxSpeed: 6.5
   turnSpeed: 360
-  catchRadius: 0.9
+  catchRadius: 1.3
   retreatSeconds: 2.5
   retreatSpeed: 5

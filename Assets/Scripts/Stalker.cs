@@ -12,7 +12,7 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float speedPerSecondOutside = 0.06f;
     [SerializeField] private float maxSpeed = 6.5f;
     [SerializeField] private float turnSpeed = 360f;
-    [SerializeField] private float catchRadius = 0.9f;
+    [SerializeField] private float catchRadius = 1.3f;
     [SerializeField] private float retreatSeconds = 2.5f;
     [SerializeField] private float retreatSpeed = 5f;
 
