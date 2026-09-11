@@ -18863,6 +18863,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 5
+  runSpeed: 8.5
   turnSpeed: 720
   animator: {fileID: 0}
 --- !u!143 &1091352694
@@ -18937,7 +18938,7 @@ MonoBehaviour:
   kickRecover: 10
   flashSeconds: 0.06
   faceCursorSeconds: 0.45
-  armedSeconds: 3
+  armedSeconds: 2
   armedBlendSeconds: 0.25
   aimHoldSeconds: 0.7
   aimBlendIn: 0.06
