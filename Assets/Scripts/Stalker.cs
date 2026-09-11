@@ -1,13 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// The thing outside. Walks toward whoever is slowest: a following survivor
-/// if there is one, otherwise the player. Speed ramps with time spent outside.
+/// The thing outside. Stands dormant in the dark until the player or an
+/// escorted survivor comes within aggroRadius, then hunts whichever of them
+/// is nearest. Gives up and goes dormant again if the nearest one gets past
+/// loseRadius. Speed ramps with time spent outside.
 /// Never seen clearly; it is a silhouette with a cold glow.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class Stalker : MonoBehaviour
 {
+    public enum State { Dormant, Hunting, Retreating }
+
+    [Header("Awareness")]
+    [SerializeField] private float aggroRadius = 14f;
+    [SerializeField] private float loseRadius = 22f;
+
+    [Header("Movement")]
     [SerializeField] private float baseSpeed = 4f;
     [SerializeField] private float speedPerSecondOutside = 0.06f;
     [SerializeField] private float maxSpeed = 6.5f;
@@ -15,6 +24,14 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float catchRadius = 1.3f;
     [SerializeField] private float retreatSeconds = 2.5f;
     [SerializeField] private float retreatSpeed = 5f;
+
+    [Header("Glow")]
+    [SerializeField] private Light glow;
+    [SerializeField] private float dormantGlow = 0.35f;
+    [SerializeField] private float huntingGlow = 1.6f;
+    [SerializeField] private float glowLerp = 4f;
+
+    public State CurrentState { get; private set; } = State.Dormant;
 
     private CharacterController controller;
     private Transform player;
@@ -26,33 +43,53 @@ public class Stalker : MonoBehaviour
         controller = GetComponent<CharacterController>();
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
+        if (glow == null) glow = GetComponentInChildren<Light>();
+        if (glow != null) glow.intensity = dormantGlow;
     }
 
     private void Update()
     {
         if (player == null) return;
 
-        Vector3 move;
+        Vector3 move = Vector3.zero;
 
-        if (Time.time < retreatUntil)
+        switch (CurrentState)
         {
-            move = retreatDir * retreatSpeed;
-        }
-        else
-        {
-            Transform target = PickTarget();
-            Vector3 to = target.position - transform.position;
-            to.y = 0f;
-
-            if (to.magnitude <= catchRadius)
+            case State.Dormant:
             {
-                Catch(target);
-                return;
+                Transform t = Nearest(out float dist);
+                if (t != null && dist <= aggroRadius)
+                    CurrentState = State.Hunting;
+                break;
             }
 
-            float outside = StalkerDirector.Instance != null ? StalkerDirector.Instance.TimeOutside : 0f;
-            float speed = Mathf.Min(maxSpeed, baseSpeed + outside * speedPerSecondOutside);
-            move = to.normalized * speed;
+            case State.Hunting:
+            {
+                Transform t = Nearest(out float dist);
+                if (t == null || dist > loseRadius)
+                {
+                    CurrentState = State.Dormant;
+                    break;
+                }
+
+                if (dist <= catchRadius)
+                {
+                    Catch(t);
+                    break;
+                }
+
+                Vector3 to = t.position - transform.position;
+                to.y = 0f;
+                float outside = StalkerDirector.Instance != null ? StalkerDirector.Instance.TimeOutside : 0f;
+                float speed = Mathf.Min(maxSpeed, baseSpeed + outside * speedPerSecondOutside);
+                move = to.normalized * speed;
+                break;
+            }
+
+            case State.Retreating:
+                if (Time.time >= retreatUntil) CurrentState = State.Hunting;
+                else move = retreatDir * retreatSpeed;
+                break;
         }
 
         Vector3 velocity = move;
@@ -65,19 +102,36 @@ public class Stalker : MonoBehaviour
             Quaternion look = Quaternion.LookRotation(flat.normalized, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
         }
+
+        if (glow != null)
+        {
+            float want = CurrentState == State.Dormant ? dormantGlow : huntingGlow;
+            glow.intensity = Mathf.Lerp(glow.intensity, want, 1f - Mathf.Exp(-glowLerp * Time.deltaTime));
+        }
     }
 
-    private Transform PickTarget()
+    /// <summary>Nearest of: the player, any survivor currently following. Flat distance.</summary>
+    private Transform Nearest(out float distance)
     {
-        Survivor best = null;
-        float bestDist = float.MaxValue;
+        Transform best = null;
+        float bestSq = float.MaxValue;
+
+        Consider(player, ref best, ref bestSq);
         foreach (Survivor s in Survivor.All)
-        {
-            if (s.CurrentState != Survivor.State.Following) continue;
-            float d = (s.transform.position - transform.position).sqrMagnitude;
-            if (d < bestDist) { bestDist = d; best = s; }
-        }
-        return best != null ? best.transform : player;
+            if (s.CurrentState == Survivor.State.Following)
+                Consider(s.transform, ref best, ref bestSq);
+
+        distance = best != null ? Mathf.Sqrt(bestSq) : float.MaxValue;
+        return best;
+    }
+
+    private void Consider(Transform t, ref Transform best, ref float bestSq)
+    {
+        if (t == null) return;
+        Vector3 d = t.position - transform.position;
+        d.y = 0f;
+        float sq = d.sqrMagnitude;
+        if (sq < bestSq) { bestSq = sq; best = t; }
     }
 
     private void Catch(Transform target)
@@ -86,10 +140,11 @@ public class Stalker : MonoBehaviour
         if (s != null)
         {
             s.Taken();
-            retreatDir = (transform.position - player.position);
+            retreatDir = transform.position - player.position;
             retreatDir.y = 0f;
             retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
             retreatUntil = Time.time + retreatSeconds;
+            CurrentState = State.Retreating;
             return;
         }
 

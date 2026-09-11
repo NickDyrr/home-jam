@@ -2018,7 +2018,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StalkerDirector
   stalkerPrefab: {fileID: 8598736513714724454, guid: a486da59af8a5814da112009c84144c3, type: 3}
-  spawnDelay: 4
+  spawnDelay: 0.5
   spawnDistance: 22
   respawnDelay: 1.2
   respawnPoint: {x: 0, y: 1.1, z: 0}

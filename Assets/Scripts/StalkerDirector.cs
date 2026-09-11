@@ -3,21 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Owns the pressure. Tracks how long the player has been outside, spawns the
-/// stalker at the edge of the dark after a delay, removes it when the player
-/// gets home, and handles the player being caught.
+/// Owns the pressure. When the player leaves home, a group of stalkers is
+/// scattered through the dark. They stand dormant until something comes near.
+/// They all vanish when the player gets home. Tracks time outside for the
+/// speed ramp, and handles the player being caught.
 ///
 /// Being caught does NOT reload the scene. Survivors already home stay home.
-/// The player respawns inside, any survivor being escorted is lost, and the
-/// stalker goes away until the player steps out again.
+/// The player respawns inside, any survivor being escorted is lost.
 /// </summary>
 public class StalkerDirector : MonoBehaviour
 {
     public static StalkerDirector Instance { get; private set; }
 
+    [Header("Spawning")]
     [SerializeField] private GameObject stalkerPrefab;
-    [SerializeField] private float spawnDelay = 4f;
-    [SerializeField] private float spawnDistance = 22f;
+    [SerializeField] private int stalkerCount = 4;
+    [SerializeField] private float spawnDelay = 0.5f;
+    [SerializeField] private float minFromHome = 12f;
+    [SerializeField] private float maxFromHome = 34f;
+    [SerializeField] private float minFromPlayer = 10f;
+    [SerializeField] private float minBetween = 8f;
+
+    [Header("Caught")]
     [SerializeField] private float respawnDelay = 1.2f;
     [SerializeField] private Vector3 respawnPoint = new Vector3(0f, 1.1f, 0f);
 
@@ -28,7 +35,7 @@ public class StalkerDirector : MonoBehaviour
     public int TimesCaught { get; private set; }
 
     private Transform player;
-    private GameObject stalker;
+    private readonly List<GameObject> stalkers = new List<GameObject>();
     private bool playerOutside;
     private bool respawning;
 
@@ -53,7 +60,7 @@ public class StalkerDirector : MonoBehaviour
         if (isHome)
         {
             TimeOutside = 0f;
-            Despawn();
+            DespawnAll();
         }
     }
 
@@ -63,32 +70,57 @@ public class StalkerDirector : MonoBehaviour
 
         TimeOutside += Time.deltaTime;
 
-        if (stalker == null && TimeOutside >= spawnDelay)
-            Spawn();
+        if (stalkers.Count == 0 && TimeOutside >= spawnDelay)
+            SpawnGroup();
     }
 
-    private void Spawn()
+    private void SpawnGroup()
     {
         if (stalkerPrefab == null || player == null) return;
 
-        // Somewhere out in the dark, biased away from home so it comes from behind.
-        Vector3 awayFromHome = player.position;
-        awayFromHome.y = 0f;
-        Vector3 dir = awayFromHome.sqrMagnitude > 1f ? awayFromHome.normalized : Random.insideUnitSphere;
-        dir.y = 0f;
-        dir = (dir + Random.insideUnitSphere * 0.6f);
-        dir.y = 0f;
-        dir.Normalize();
+        Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero;
+        home.y = 0f;
 
-        Vector3 pos = player.position + dir * spawnDistance;
-        pos.y = 1.1f;
-        stalker = Instantiate(stalkerPrefab, pos, Quaternion.identity);
+        for (int i = 0; i < stalkerCount; i++)
+        {
+            if (!TryPickSpot(home, out Vector3 pos)) continue;
+            pos.y = 1.1f;
+            stalkers.Add(Instantiate(stalkerPrefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)));
+        }
     }
 
-    private void Despawn()
+    private bool TryPickSpot(Vector3 home, out Vector3 pos)
     {
-        if (stalker != null) Destroy(stalker);
-        stalker = null;
+        Vector3 p = player.position; p.y = 0f;
+
+        for (int attempt = 0; attempt < 30; attempt++)
+        {
+            Vector2 dir = Random.insideUnitCircle.normalized;
+            float r = Random.Range(minFromHome, maxFromHome);
+            pos = home + new Vector3(dir.x, 0f, dir.y) * r;
+
+            if ((pos - p).sqrMagnitude < minFromPlayer * minFromPlayer) continue;
+
+            bool tooClose = false;
+            foreach (GameObject s in stalkers)
+            {
+                Vector3 sp = s.transform.position; sp.y = 0f;
+                if ((pos - sp).sqrMagnitude < minBetween * minBetween) { tooClose = true; break; }
+            }
+            if (tooClose) continue;
+
+            return true;
+        }
+
+        pos = Vector3.zero;
+        return false;
+    }
+
+    private void DespawnAll()
+    {
+        foreach (GameObject s in stalkers)
+            if (s != null) Destroy(s);
+        stalkers.Clear();
     }
 
     public void PlayerCaught()
@@ -113,7 +145,7 @@ public class StalkerDirector : MonoBehaviour
 
         yield return new WaitForSeconds(seconds);
 
-        Despawn();
+        DespawnAll();
         TimeOutside = 0f;
 
         if (player != null)
