@@ -6,7 +6,10 @@ using UnityEngine.InputSystem;
 /// The one gun. Six rounds, slow reload, ammo only comes from survivors who
 /// make it home. Left click fires toward the mouse cursor; the player snaps
 /// to face the shot. A hit stuns and knocks back a stalker; it never kills.
-/// Recoil kick and muzzle flash are procedural on the gun socket.
+///
+/// Animation: a click fires the Animator's "Shoot" trigger (upper-body aim
+/// pose). On top of that, a procedural recoil rocks both arms and the gun
+/// socket, applied in LateUpdate after the animator has posed the rig.
 /// </summary>
 public class Pistol : MonoBehaviour
 {
@@ -24,6 +27,7 @@ public class Pistol : MonoBehaviour
     [SerializeField] private float knockback = 7f;
 
     [Header("Rig")]
+    [SerializeField] private Animator animator;
     [SerializeField] private Transform gunSocket;
     [SerializeField] private Transform muzzle;
     [SerializeField] private Light muzzleLight;
@@ -32,6 +36,8 @@ public class Pistol : MonoBehaviour
     [Header("Kick")]
     [SerializeField] private float kickAngle = 24f;
     [SerializeField] private float kickBack = 0.07f;
+    [SerializeField] private float armKickAngle = 14f;
+    [SerializeField] private float chestKickAngle = 4f;
     [SerializeField] private float kickRecover = 10f;
     [SerializeField] private float flashSeconds = 0.06f;
     [SerializeField] private float faceCursorSeconds = 0.45f;
@@ -39,6 +45,8 @@ public class Pistol : MonoBehaviour
     public int Loaded { get; private set; }
     public int Reserve { get; private set; }
     public bool IsReloading { get; private set; }
+
+    private static readonly int ShootHash = Animator.StringToHash("Shoot");
 
     private PlayerMovement movement;
     private Camera cam;
@@ -49,6 +57,7 @@ public class Pistol : MonoBehaviour
     private Vector3 aimDir;
     private Quaternion socketBaseRot;
     private Vector3 socketBasePos;
+    private Transform rUpperArm, lUpperArm, rLowerArm, lLowerArm, chest;
 
     private void Awake()
     {
@@ -57,6 +66,18 @@ public class Pistol : MonoBehaviour
         cam = Camera.main;
         Loaded = magazineSize;
         Reserve = startReserve;
+
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+        if (animator != null && animator.isHuman)
+        {
+            rUpperArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            lUpperArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            rLowerArm = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
+            lLowerArm = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
+            chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+            if (chest == null) chest = animator.GetBoneTransform(HumanBodyBones.Spine);
+        }
+
         if (gunSocket != null)
         {
             socketBaseRot = gunSocket.localRotation;
@@ -89,8 +110,21 @@ public class Pistol : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Recoil kick applied after the animator has posed the hand.
+        // Recoil, applied after the animator has posed the rig this frame.
         kick = Mathf.Lerp(kick, 0f, 1f - Mathf.Exp(-kickRecover * Time.deltaTime));
+        if (kick < 0.001f) kick = 0f;
+
+        if (kick > 0f)
+        {
+            Vector3 axis = transform.right;                       // pitch axis, character space
+            float arm = armKickAngle * kick;
+            if (chest != null)     chest.rotation     = Quaternion.AngleAxis(-chestKickAngle * kick, axis) * chest.rotation;
+            if (rUpperArm != null) rUpperArm.rotation = Quaternion.AngleAxis(-arm, axis) * rUpperArm.rotation;
+            if (lUpperArm != null) lUpperArm.rotation = Quaternion.AngleAxis(-arm, axis) * lUpperArm.rotation;
+            if (rLowerArm != null) rLowerArm.rotation = Quaternion.AngleAxis(-arm * 0.5f, axis) * rLowerArm.rotation;
+            if (lLowerArm != null) lLowerArm.rotation = Quaternion.AngleAxis(-arm * 0.5f, axis) * lLowerArm.rotation;
+        }
+
         if (gunSocket != null)
         {
             gunSocket.localRotation = socketBaseRot * Quaternion.Euler(-kickAngle * kick, 0f, 0f);
@@ -105,6 +139,7 @@ public class Pistol : MonoBehaviour
         aimDir = AimDirection();
         faceUntil = Time.time + faceCursorSeconds;
         transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
+        if (animator != null) animator.SetTrigger(ShootHash);
 
         if (Loaded <= 0)
         {
