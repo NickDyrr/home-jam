@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -9,6 +10,9 @@ using UnityEngine;
 public class Survivor : MonoBehaviour
 {
     public enum State { Waiting, Following, Settling, Home }
+
+    /// <summary>Every live survivor in the scene.</summary>
+    public static readonly List<Survivor> All = new List<Survivor>();
 
     [SerializeField] private float noticeRadius = 2.5f;
     [SerializeField] private float followDistance = 1.6f;
@@ -27,6 +31,16 @@ public class Survivor : MonoBehaviour
         controller = GetComponent<CharacterController>();
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
+    }
+
+    private void OnEnable()  { All.Add(this); }
+    private void OnDisable() { All.Remove(this); }
+
+    /// <summary>The stalker got this one. Unrealized value, gone.</summary>
+    public void Taken()
+    {
+        Debug.Log($"Survivor '{name}' was taken.");
+        Destroy(gameObject);
     }
 
     private void Update()
