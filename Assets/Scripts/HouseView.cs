@@ -2,14 +2,23 @@ using UnityEngine;
 
 /// <summary>
 /// Swaps the house between its outside look and its inside look.
-/// Outside: full walls and a roof (exteriorRoot). Inside: the cutaway
-/// greybox you can see into. Collision never changes; only renderers do.
+/// Outside: the cabin exterior (exteriorRoot) is shown and the interior's
+/// renderers are hidden so nothing pokes through the cabin walls.
+/// Inside: the reverse. Colliders never change; only what is rendered.
 /// Listens to HomeZone so it flips on the same frame as the camera nudge.
 /// </summary>
 public class HouseView : MonoBehaviour
 {
     [SerializeField] private GameObject exteriorRoot;
-    [SerializeField] private GameObject interiorOnlyRoot;   // optional: things only shown inside (e.g. furniture props)
+    [SerializeField] private GameObject interiorOnlyRoot;
+
+    private Renderer[] interiorRenderers;
+
+    private void Awake()
+    {
+        if (interiorOnlyRoot != null)
+            interiorRenderers = interiorOnlyRoot.GetComponentsInChildren<Renderer>(true);
+    }
 
     private void OnEnable()
     {
@@ -30,6 +39,7 @@ public class HouseView : MonoBehaviour
     private void Apply(bool playerIsHome)
     {
         if (exteriorRoot != null) exteriorRoot.SetActive(!playerIsHome);
-        if (interiorOnlyRoot != null) interiorOnlyRoot.SetActive(playerIsHome);
+        if (interiorRenderers != null)
+            foreach (Renderer r in interiorRenderers) r.enabled = playerIsHome;
     }
 }
