@@ -1283,6 +1283,7 @@ GameObject:
   - component: {fileID: 1091352694}
   - component: {fileID: 1091352693}
   - component: {fileID: 1091352698}
+  - component: {fileID: 1091352699}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1382,6 +1383,23 @@ MonoBehaviour:
   aimHoldSeconds: 0.7
   aimBlendIn: 0.06
   aimBlendOut: 0.3
+--- !u!114 &1091352699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1091352692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
+  stride: 0.7
+  sideOffset: 0.14
+  printSize: 0.34
+  tint: {r: 0.55, g: 0.62, b: 0.76, a: 1}
+  teleportThreshold: 3
 --- !u!1 &1166676190
 GameObject:
   m_ObjectHideFlags: 0
@@ -1592,6 +1610,7 @@ GameObject:
   - component: {fileID: 1230791216}
   - component: {fileID: 1230791215}
   - component: {fileID: 1230791214}
+  - component: {fileID: 1230791219}
   m_Layer: 0
   m_Name: Survivor3
   m_TagString: Untagged
@@ -1713,6 +1732,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1230791219
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1230791213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
+  stride: 0.6
+  sideOffset: 0.14
+  printSize: 0.3
+  tint: {r: 0.55, g: 0.62, b: 0.76, a: 1}
+  teleportThreshold: 3
 --- !u!1 &1290370355
 GameObject:
   m_ObjectHideFlags: 0
@@ -1816,6 +1852,7 @@ GameObject:
   - component: {fileID: 1346367322}
   - component: {fileID: 1346367321}
   - component: {fileID: 1346367320}
+  - component: {fileID: 1346367325}
   m_Layer: 0
   m_Name: Survivor1
   m_TagString: Untagged
@@ -1937,6 +1974,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1346367325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1346367319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
+  stride: 0.6
+  sideOffset: 0.14
+  printSize: 0.3
+  tint: {r: 0.55, g: 0.62, b: 0.76, a: 1}
+  teleportThreshold: 3
 --- !u!1 &1423177504
 GameObject:
   m_ObjectHideFlags: 0
@@ -3411,7 +3465,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6bd0f9ebe0ec5194eab6755d149cd560, type: 2}
+  - {fileID: 2100000, guid: 86682d1e0a4ebf345b95847c42a552f3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3476,6 +3530,56 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 10, y: 1, z: 10}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1854981620
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1854981622}
+  - component: {fileID: 1854981621}
+  m_Layer: 0
+  m_Name: Footprints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1854981621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1854981620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fea47e6528b75149b65df6304d641f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintManager
+  printMaterial: {fileID: 2100000, guid: d74deabad412df046959f9050d3c6c20, type: 2}
+  poolSize: 600
+  lifetime: 90
+  groundY: 0.012
+  startCutoff: 0.45
+  endCutoff: 1
+--- !u!4 &1854981622
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1854981620}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -3785,6 +3889,7 @@ GameObject:
   - component: {fileID: 2000472046}
   - component: {fileID: 2000472045}
   - component: {fileID: 2000472044}
+  - component: {fileID: 2000472049}
   m_Layer: 0
   m_Name: Survivor2
   m_TagString: Untagged
@@ -3906,6 +4011,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2000472049
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000472043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
+  stride: 0.6
+  sideOffset: 0.14
+  printSize: 0.3
+  tint: {r: 0.55, g: 0.62, b: 0.76, a: 1}
+  teleportThreshold: 3
 --- !u!1 &2063043982
 GameObject:
   m_ObjectHideFlags: 0
@@ -4032,3 +4154,4 @@ SceneRoots:
   - {fileID: 1884612188}
   - {fileID: 2000472048}
   - {fileID: 1230791218}
+  - {fileID: 1854981622}

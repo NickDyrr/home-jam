@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 4800324309293694598}
   - component: {fileID: 9173908003566597019}
   - component: {fileID: 8787320391187853216}
+  - component: {fileID: 8285455700329415670}
   m_Layer: 0
   m_Name: Stalker
   m_TagString: Untagged
@@ -259,6 +260,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1284792e6bac61f43a8c264b446166bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Stalker
+  aggroRadius: 14
+  loseRadius: 22
   baseSpeed: 4
   speedPerSecondOutside: 0.06
   maxSpeed: 6.5
@@ -266,3 +269,26 @@ MonoBehaviour:
   catchRadius: 1.3
   retreatSeconds: 2.5
   retreatSpeed: 5
+  stunSeconds: 3
+  knockbackDamping: 6
+  glow: {fileID: 0}
+  dormantGlow: 0.35
+  huntingGlow: 1.6
+  glowLerp: 4
+--- !u!114 &8285455700329415670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8598736513714724454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
+  stride: 0.95
+  sideOffset: 0.18
+  printSize: 0.5
+  tint: {r: 0.3, g: 0.34, b: 0.46, a: 1}
+  teleportThreshold: 3
