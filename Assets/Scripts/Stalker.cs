@@ -5,12 +5,13 @@ using UnityEngine;
 /// escorted survivor comes within aggroRadius, then hunts whichever of them
 /// is nearest. Gives up and goes dormant again if the nearest one gets past
 /// loseRadius. Speed ramps with time spent outside.
+/// A pistol hit stuns it and knocks it back; it never dies.
 /// Never seen clearly; it is a silhouette with a cold glow.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class Stalker : MonoBehaviour
 {
-    public enum State { Dormant, Hunting, Retreating }
+    public enum State { Dormant, Hunting, Retreating, Stunned }
 
     [Header("Awareness")]
     [SerializeField] private float aggroRadius = 14f;
@@ -25,6 +26,10 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float retreatSeconds = 2.5f;
     [SerializeField] private float retreatSpeed = 5f;
 
+    [Header("Hit")]
+    [SerializeField] private float stunSeconds = 3f;
+    [SerializeField] private float knockbackDamping = 6f;
+
     [Header("Glow")]
     [SerializeField] private Light glow;
     [SerializeField] private float dormantGlow = 0.35f;
@@ -37,6 +42,8 @@ public class Stalker : MonoBehaviour
     private Transform player;
     private float retreatUntil;
     private Vector3 retreatDir;
+    private float stunUntil;
+    private Vector3 knock;
 
     private void Awake()
     {
@@ -90,6 +97,12 @@ public class Stalker : MonoBehaviour
                 if (Time.time >= retreatUntil) CurrentState = State.Hunting;
                 else move = retreatDir * retreatSpeed;
                 break;
+
+            case State.Stunned:
+                knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * Time.deltaTime));
+                move = knock;
+                if (Time.time >= stunUntil) CurrentState = State.Hunting;
+                break;
         }
 
         Vector3 velocity = move;
@@ -97,7 +110,7 @@ public class Stalker : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
 
         Vector3 flat = move; flat.y = 0f;
-        if (flat.sqrMagnitude > 0.001f)
+        if (CurrentState != State.Stunned && flat.sqrMagnitude > 0.001f)
         {
             Quaternion look = Quaternion.LookRotation(flat.normalized, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
@@ -105,9 +118,23 @@ public class Stalker : MonoBehaviour
 
         if (glow != null)
         {
-            float want = CurrentState == State.Dormant ? dormantGlow : huntingGlow;
+            float want;
+            if (CurrentState == State.Stunned)
+                want = huntingGlow * (0.4f + 0.6f * Mathf.Abs(Mathf.Sin(Time.time * 40f))); // flicker
+            else
+                want = CurrentState == State.Dormant ? dormantGlow : huntingGlow;
             glow.intensity = Mathf.Lerp(glow.intensity, want, 1f - Mathf.Exp(-glowLerp * Time.deltaTime));
         }
+    }
+
+    /// <summary>Pistol hit. Knocked back along the shot, stunned for a few seconds.</summary>
+    public void Hit(Vector3 impulse)
+    {
+        knock = impulse;
+        knock.y = 0f;
+        stunUntil = Time.time + stunSeconds;
+        CurrentState = State.Stunned;
+        if (glow != null) glow.intensity = huntingGlow * 2f;
     }
 
     /// <summary>Nearest of: the player, any survivor currently following. Flat distance.</summary>

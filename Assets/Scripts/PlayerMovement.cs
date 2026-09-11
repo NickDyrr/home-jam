@@ -13,6 +13,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float turnSpeed = 720f;
     [SerializeField] private Animator animator;
 
+    /// <summary>While true, something else (the pistol) owns the facing direction.</summary>
+    public bool FacingLocked { get; set; }
+
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
     private CharacterController controller;
@@ -48,7 +51,7 @@ public class PlayerMovement : MonoBehaviour
         velocity.y = controller.isGrounded ? -1f : -9.81f;
         controller.Move(velocity * Time.deltaTime);
 
-        if (move.sqrMagnitude > 0.001f)
+        if (!FacingLocked && move.sqrMagnitude > 0.001f)
         {
             Quaternion look = Quaternion.LookRotation(move, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);

@@ -3,7 +3,8 @@ using UnityEngine;
 /// <summary>
 /// Counts survivors who made it home and turns on one reward per arrival.
 /// Rewards are the children of rewardsRoot, activated in order.
-/// Each survivor settles next to the reward they unlocked.
+/// Each survivor settles next to the reward they unlocked, and adds ammo
+/// to the pistol's reserve. Rewards land only here, never on pickup.
 /// </summary>
 public class Home : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class Home : MonoBehaviour
 
     [SerializeField] private Transform rewardsRoot;
     [SerializeField] private Vector3 fallbackSettleSpot = new Vector3(0f, 0f, 1f);
+    [SerializeField] private int ammoPerSurvivor = 6;
 
     public int SurvivorsHome { get; private set; }
 
@@ -39,6 +41,8 @@ public class Home : MonoBehaviour
     {
         int index = SurvivorsHome;
         SurvivorsHome++;
+
+        if (Pistol.Instance != null) Pistol.Instance.AddReserve(ammoPerSurvivor);
 
         Vector3 spot = transform.TransformPoint(fallbackSettleSpot);
 
