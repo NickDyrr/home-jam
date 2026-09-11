@@ -2,22 +2,25 @@ using UnityEngine;
 
 /// <summary>
 /// Waits in the dark. When the player gets close it follows, slower than the player.
-/// The moment it is inside the HomeZone it stops and reports to Home.
+/// The moment it is inside the HomeZone it counts as home and walks to its
+/// settle spot, then stops for good.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class Survivor : MonoBehaviour
 {
-    public enum State { Waiting, Following, Home }
+    public enum State { Waiting, Following, Settling, Home }
 
     [SerializeField] private float noticeRadius = 2.5f;
     [SerializeField] private float followDistance = 1.6f;
     [SerializeField] private float moveSpeed = 3.5f;
     [SerializeField] private float turnSpeed = 540f;
+    [SerializeField] private float settleTolerance = 0.25f;
 
     public State CurrentState { get; private set; } = State.Waiting;
 
     private CharacterController controller;
     private Transform player;
+    private Vector3 settleSpot;
 
     private void Awake()
     {
@@ -47,9 +50,20 @@ public class Survivor : MonoBehaviour
 
                 if (HomeZone.Instance != null && HomeZone.Instance.Contains(transform.position))
                 {
-                    CurrentState = State.Home;
-                    if (Home.Instance != null) Home.Instance.SurvivorArrived(this);
+                    CurrentState = State.Settling;
+                    settleSpot = Home.Instance != null
+                        ? Home.Instance.SurvivorArrived(this)
+                        : transform.position;
                 }
+                break;
+
+            case State.Settling:
+                Vector3 toSpot = settleSpot - transform.position;
+                toSpot.y = 0f;
+                if (toSpot.magnitude > settleTolerance)
+                    move = toSpot.normalized;
+                else
+                    CurrentState = State.Home;
                 break;
 
             case State.Home:
