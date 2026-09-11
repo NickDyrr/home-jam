@@ -1003,6 +1003,9 @@ MonoBehaviour:
   faceCursorSeconds: 0.45
   armedSeconds: 3
   armedBlendSeconds: 0.25
+  aimHoldSeconds: 0.7
+  aimBlendIn: 0.06
+  aimBlendOut: 0.3
 --- !u!1 &1166676190
 GameObject:
   m_ObjectHideFlags: 0

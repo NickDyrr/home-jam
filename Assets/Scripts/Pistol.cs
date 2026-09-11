@@ -10,8 +10,9 @@ using UnityEngine.InputSystem;
 /// Animation: a click fires the Animator's "Shoot" trigger (upper-body aim
 /// pose) and marks her Armed; the base walk blends between the normal walk
 /// and the pistol walk on "Armed", which fades out a few seconds after the
-/// last shot. On top of that, a procedural recoil rocks the arms and the
-/// gun socket, applied in LateUpdate after the animator has posed the rig.
+/// last shot. The aim layer's weight is driven here (up on a shot, down
+/// after) so the layer is fully silent when not shooting. On top of that,
+/// a procedural recoil rocks the arms and the gun socket in LateUpdate.
 /// </summary>
 public class Pistol : MonoBehaviour
 {
@@ -48,6 +49,10 @@ public class Pistol : MonoBehaviour
     [Tooltip("Seconds after the last shot before she drops back to the normal walk.")]
     [SerializeField] private float armedSeconds = 3f;
     [SerializeField] private float armedBlendSeconds = 0.25f;
+    [Tooltip("How long the aim pose (upper-body layer) stays up after a shot.")]
+    [SerializeField] private float aimHoldSeconds = 0.7f;
+    [SerializeField] private float aimBlendIn = 0.06f;
+    [SerializeField] private float aimBlendOut = 0.3f;
 
     public int Loaded { get; private set; }
     public int Reserve { get; private set; }
@@ -63,6 +68,8 @@ public class Pistol : MonoBehaviour
     private float flashUntil;
     private float faceUntil;
     private float lastShotTime = -999f;
+    private float aimWeight;
+    private int aimLayer = -1;
     private Vector3 aimDir;
     private Quaternion socketBaseRot;
     private Vector3 socketBasePos;
@@ -77,14 +84,20 @@ public class Pistol : MonoBehaviour
         Reserve = startReserve;
 
         if (animator == null) animator = GetComponentInChildren<Animator>();
-        if (animator != null && animator.isHuman)
+        if (animator != null)
         {
-            rUpperArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
-            lUpperArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
-            rLowerArm = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
-            lLowerArm = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
-            chest = animator.GetBoneTransform(HumanBodyBones.Chest);
-            if (chest == null) chest = animator.GetBoneTransform(HumanBodyBones.Spine);
+            aimLayer = animator.GetLayerIndex("UpperBody");
+            if (aimLayer >= 0) animator.SetLayerWeight(aimLayer, 0f);
+
+            if (animator.isHuman)
+            {
+                rUpperArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                lUpperArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+                rLowerArm = animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
+                lLowerArm = animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);
+                chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+                if (chest == null) chest = animator.GetBoneTransform(HumanBodyBones.Spine);
+            }
         }
 
         if (gunSocket != null)
@@ -116,11 +129,22 @@ public class Pistol : MonoBehaviour
 
         if (Time.time >= flashUntil) SetFlash(false);
 
-        // Armed stance fades out a few seconds after the last shot.
         if (animator != null)
         {
-            float armed = Time.time - lastShotTime < armedSeconds ? 1f : 0f;
+            // Armed stance fades out a few seconds after the last shot.
+            float since = Time.time - lastShotTime;
+            float armed = since < armedSeconds ? 1f : 0f;
             animator.SetFloat(ArmedHash, armed, armedBlendSeconds, Time.deltaTime);
+
+            // Aim layer weight: quick in, slower out, silent otherwise.
+            if (aimLayer >= 0)
+            {
+                bool aiming = since < aimHoldSeconds;
+                float target = aiming ? 1f : 0f;
+                float rate = aiming ? aimBlendIn : aimBlendOut;
+                aimWeight = Mathf.MoveTowards(aimWeight, target, Time.deltaTime / Mathf.Max(0.01f, rate));
+                animator.SetLayerWeight(aimLayer, aimWeight);
+            }
         }
     }
 
