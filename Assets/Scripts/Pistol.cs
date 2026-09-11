@@ -8,8 +8,10 @@ using UnityEngine.InputSystem;
 /// to face the shot. A hit stuns and knocks back a stalker; it never kills.
 ///
 /// Animation: a click fires the Animator's "Shoot" trigger (upper-body aim
-/// pose). On top of that, a procedural recoil rocks both arms and the gun
-/// socket, applied in LateUpdate after the animator has posed the rig.
+/// pose) and marks her Armed; the base walk blends between the normal walk
+/// and the pistol walk on "Armed", which fades out a few seconds after the
+/// last shot. On top of that, a procedural recoil rocks the arms and the
+/// gun socket, applied in LateUpdate after the animator has posed the rig.
 /// </summary>
 public class Pistol : MonoBehaviour
 {
@@ -42,11 +44,17 @@ public class Pistol : MonoBehaviour
     [SerializeField] private float flashSeconds = 0.06f;
     [SerializeField] private float faceCursorSeconds = 0.45f;
 
+    [Header("Stance")]
+    [Tooltip("Seconds after the last shot before she drops back to the normal walk.")]
+    [SerializeField] private float armedSeconds = 3f;
+    [SerializeField] private float armedBlendSeconds = 0.25f;
+
     public int Loaded { get; private set; }
     public int Reserve { get; private set; }
     public bool IsReloading { get; private set; }
 
     private static readonly int ShootHash = Animator.StringToHash("Shoot");
+    private static readonly int ArmedHash = Animator.StringToHash("Armed");
 
     private PlayerMovement movement;
     private Camera cam;
@@ -54,6 +62,7 @@ public class Pistol : MonoBehaviour
     private float nextFireTime;
     private float flashUntil;
     private float faceUntil;
+    private float lastShotTime = -999f;
     private Vector3 aimDir;
     private Quaternion socketBaseRot;
     private Vector3 socketBasePos;
@@ -106,6 +115,13 @@ public class Pistol : MonoBehaviour
             transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
 
         if (Time.time >= flashUntil) SetFlash(false);
+
+        // Armed stance fades out a few seconds after the last shot.
+        if (animator != null)
+        {
+            float armed = Time.time - lastShotTime < armedSeconds ? 1f : 0f;
+            animator.SetFloat(ArmedHash, armed, armedBlendSeconds, Time.deltaTime);
+        }
     }
 
     private void LateUpdate()
@@ -139,6 +155,7 @@ public class Pistol : MonoBehaviour
         aimDir = AimDirection();
         faceUntil = Time.time + faceCursorSeconds;
         transform.rotation = Quaternion.LookRotation(aimDir, Vector3.up);
+        lastShotTime = Time.time;
         if (animator != null) animator.SetTrigger(ShootHash);
 
         if (Loaded <= 0)

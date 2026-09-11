@@ -203,8 +203,8 @@ Transform:
   m_GameObject: {fileID: 165116252}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.06, y: 0, z: 0}
-  m_LocalScale: {x: 0.63636315, y: 0.63636315, z: 0.63636315}
+  m_LocalPosition: {x: 0.18181814, y: 0, z: 0}
+  m_LocalScale: {x: 0.36363629, y: 0.18181814, z: 0.18181814}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 229732277}
@@ -233,8 +233,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 229732276}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.5, y: 0.55, z: 0}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: -0.48455477, y: 0.5704, z: -0.0035527085}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -989,15 +989,20 @@ MonoBehaviour:
   range: 22
   shotRadius: 0.45
   knockback: 7
+  animator: {fileID: 0}
   gunSocket: {fileID: 873761024}
   muzzle: {fileID: 229732277}
   muzzleLight: {fileID: 1967599020}
   muzzleFlash: {fileID: 165116252}
   kickAngle: 24
   kickBack: 0.07
+  armKickAngle: 14
+  chestKickAngle: 4
   kickRecover: 10
   flashSeconds: 0.06
   faceCursorSeconds: 0.45
+  armedSeconds: 3
+  armedBlendSeconds: 0.25
 --- !u!1 &1166676190
 GameObject:
   m_ObjectHideFlags: 0
@@ -3200,8 +3205,8 @@ Light:
   serializedVersion: 13
   m_Type: 2
   m_Color: {r: 1, g: 0.85, b: 0.55, a: 1}
-  m_Intensity: 8
-  m_Range: 5
+  m_Intensity: 2.5
+  m_Range: 3
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
