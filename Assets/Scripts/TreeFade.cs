@@ -4,7 +4,8 @@ using UnityEngine;
 /// Lets a tree fade toward transparent while it blocks the camera's view of
 /// the player. Swaps to the transparent material set while faded and back
 /// to the opaque set when fully solid again, so unfaded trees stay cheap.
-/// Driven by TreeOcclusionFader; do not tick this yourself.
+/// The renderer may live on a child (the model). Driven by
+/// TreeOcclusionFader; do not tick this yourself.
 /// </summary>
 public class TreeFade : MonoBehaviour
 {
@@ -25,7 +26,7 @@ public class TreeFade : MonoBehaviour
 
     private void Awake()
     {
-        rend = GetComponent<Renderer>();
+        rend = GetComponentInChildren<Renderer>();
         mpb = new MaterialPropertyBlock();
         if (opaqueMaterials == null || opaqueMaterials.Length == 0) opaqueMaterials = rend.sharedMaterials;
         baseColors = new Color[opaqueMaterials.Length];
