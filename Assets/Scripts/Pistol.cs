@@ -47,7 +47,7 @@ public class Pistol : MonoBehaviour
 
     [Header("Stance")]
     [Tooltip("Seconds after the last shot before she drops back to the normal walk.")]
-    [SerializeField] private float armedSeconds = 2f;
+    [SerializeField] private float armedSeconds = 1f;
     [SerializeField] private float armedBlendSeconds = 0.25f;
     [Tooltip("How long the aim pose (upper-body layer) stays up after a shot.")]
     [SerializeField] private float aimHoldSeconds = 0.7f;
