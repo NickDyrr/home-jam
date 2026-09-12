@@ -1,45 +1,125 @@
 using UnityEngine;
 
 /// <summary>
-/// Swaps the house between its outside look and its inside look.
-/// Outside: the cabin exterior (exteriorRoot) is shown and the interior's
-/// renderers are hidden so nothing pokes through the cabin walls.
-/// Inside: the reverse. Colliders never change; only what is rendered.
-/// Listens to HomeZone so it flips on the same frame as the camera nudge.
+/// Owns which build of the house is showing, and swaps it between its outside
+/// look and its inside look.
+///
+/// Each level is one look for the house: an exterior shown while the player is
+/// outside, an interior whose renderers show only while inside (colliders on it
+/// never change), and a set of level-only objects (colliders, door, lights,
+/// home-zone boxes) that are active only while that level is current. Reward
+/// lights move to the level's spots so they land inside whichever room is
+/// current. Listens to HomeZone so the inside/outside flip happens on the same
+/// frame as the camera nudge.
 /// </summary>
 public class HouseView : MonoBehaviour
 {
-    [SerializeField] private GameObject exteriorRoot;
-    [SerializeField] private GameObject interiorOnlyRoot;
+    [System.Serializable]
+    public class Level
+    {
+        public string name = "Level";
+        public GameObject exteriorRoot;
+        public GameObject interiorRoot;
+        [Tooltip("Active only while this level is current: colliders, door, lights, zone boxes.")]
+        public GameObject[] levelOnly;
+        [Tooltip("House-local positions for the reward lights, in order. Leave empty to keep them where they are.")]
+        public Vector3[] rewardSpots;
+    }
 
-    private Renderer[] interiorRenderers;
+    public static HouseView Instance { get; private set; }
+
+    [SerializeField] private Level[] levels;
+    [SerializeField] private Transform rewardsRoot;
+
+    public int CurrentLevel { get; private set; }
+    public int LevelCount => levels != null ? levels.Length : 0;
+    public bool CanUpgrade => levels != null && CurrentLevel < levels.Length - 1;
+
+    private bool playerIsHome = true;
 
     private void Awake()
     {
-        if (interiorOnlyRoot != null)
-            interiorRenderers = interiorOnlyRoot.GetComponentsInChildren<Renderer>(true);
+        Instance = this;
+        if (rewardsRoot == null) rewardsRoot = transform.Find("Rewards");
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     private void OnEnable()
     {
-        HomeZone.PlayerHomeChanged += Apply;
+        HomeZone.PlayerHomeChanged += OnHomeChanged;
     }
 
     private void OnDisable()
     {
-        HomeZone.PlayerHomeChanged -= Apply;
+        HomeZone.PlayerHomeChanged -= OnHomeChanged;
     }
 
     private void Start()
     {
-        bool home = HomeZone.Instance == null || HomeZone.Instance.PlayerIsHome;
-        Apply(home);
+        playerIsHome = HomeZone.Instance == null || HomeZone.Instance.PlayerIsHome;
+        SetLevel(CurrentLevel);
     }
 
-    private void Apply(bool playerIsHome)
+    private void OnHomeChanged(bool isHome)
     {
-        if (exteriorRoot != null) exteriorRoot.SetActive(!playerIsHome);
-        if (interiorRenderers != null)
-            foreach (Renderer r in interiorRenderers) r.enabled = playerIsHome;
+        playerIsHome = isHome;
+        Apply();
+    }
+
+    /// <summary>Go up one level, if there is one.</summary>
+    public void Upgrade()
+    {
+        if (CanUpgrade) SetLevel(CurrentLevel + 1);
+    }
+
+    /// <summary>Switches the house to the given level. Works in the editor too.</summary>
+    public void SetLevel(int level)
+    {
+        if (levels == null || levels.Length == 0) return;
+        CurrentLevel = Mathf.Clamp(level, 0, levels.Length - 1);
+
+        for (int i = 0; i < levels.Length; i++)
+        {
+            bool current = i == CurrentLevel;
+            Level l = levels[i];
+            if (l.levelOnly != null)
+                foreach (GameObject go in l.levelOnly)
+                    if (go != null) go.SetActive(current);
+            if (!current)
+            {
+                if (l.exteriorRoot != null) l.exteriorRoot.SetActive(false);
+                if (l.interiorRoot != null) l.interiorRoot.SetActive(false);
+            }
+        }
+
+        Level cur = levels[CurrentLevel];
+        if (rewardsRoot != null && cur.rewardSpots != null && cur.rewardSpots.Length > 0)
+        {
+            for (int i = 0; i < rewardsRoot.childCount && i < cur.rewardSpots.Length; i++)
+                rewardsRoot.GetChild(i).localPosition = cur.rewardSpots[i];
+        }
+
+        if (HomeZone.Instance != null) HomeZone.Instance.Refresh();
+        Apply();
+    }
+
+    private void Apply()
+    {
+        if (levels == null || levels.Length == 0) return;
+        Level cur = levels[CurrentLevel];
+
+        if (cur.exteriorRoot != null) cur.exteriorRoot.SetActive(!playerIsHome);
+        if (cur.interiorRoot != null)
+        {
+            // The interior object stays active so its colliders keep working;
+            // only what is rendered changes.
+            cur.interiorRoot.SetActive(true);
+            foreach (Renderer r in cur.interiorRoot.GetComponentsInChildren<Renderer>(true))
+                r.enabled = playerIsHome;
+        }
     }
 }

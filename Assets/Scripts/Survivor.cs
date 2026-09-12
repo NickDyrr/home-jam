@@ -61,6 +61,15 @@ public class Survivor : MonoBehaviour
         Destroy(gameObject);
     }
 
+    /// <summary>Already home, but the house changed shape: walk to a new spot.</summary>
+    public void Resettle(Vector3 spot)
+    {
+        if (CurrentState != State.Home && CurrentState != State.Settling) return;
+        settleSpot = spot;
+        running = false;
+        CurrentState = State.Settling;
+    }
+
     private void Update()
     {
         if (player == null) return;

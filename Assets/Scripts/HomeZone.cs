@@ -2,10 +2,12 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Axis-aligned volume covering the house interior. Answers "is this point home?"
-/// and tracks whether the player is inside. Everything else asks this.
+/// Volume covering the house interior. Answers "is this point home?" and
+/// tracks whether the player is inside. Everything else asks this.
+/// The volume is the union of every active BoxCollider on this object and its
+/// children, so an L-shaped room is two boxes, and each house level keeps its
+/// own boxes under here and toggles them. Call Refresh after toggling.
 /// </summary>
-[RequireComponent(typeof(BoxCollider))]
 public class HomeZone : MonoBehaviour
 {
     public static HomeZone Instance { get; private set; }
@@ -15,14 +17,13 @@ public class HomeZone : MonoBehaviour
 
     public bool PlayerIsHome { get; private set; } = true;
 
-    private BoxCollider box;
+    private BoxCollider[] boxes;
     private Transform player;
 
     private void Awake()
     {
         Instance = this;
-        box = GetComponent<BoxCollider>();
-        box.isTrigger = true;
+        Refresh();
 
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
@@ -33,9 +34,19 @@ public class HomeZone : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
+    /// <summary>Re-collects the active boxes. Call after a level change.</summary>
+    public void Refresh()
+    {
+        boxes = GetComponentsInChildren<BoxCollider>(false);
+        foreach (BoxCollider b in boxes) b.isTrigger = true;
+    }
+
     public bool Contains(Vector3 worldPos)
     {
-        return box.bounds.Contains(worldPos);
+        if (boxes == null) Refresh();
+        foreach (BoxCollider b in boxes)
+            if (b.bounds.Contains(worldPos)) return true;
+        return false;
     }
 
     private void Update()
