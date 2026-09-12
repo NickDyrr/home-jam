@@ -198,11 +198,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c7a1bcc3fd6bd044b58c7a47e35034b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FootprintEmitter
-  stride: 0.95
-  sideOffset: 0.18
-  printSize: 0.5
-  tint: {r: 0.3, g: 0.34, b: 0.46, a: 1}
+  stride: 1.15
+  sideOffset: 0.3
+  printSize: 0.8
+  tint: {r: 0.42, g: 0.5, b: 0.68, a: 1}
   teleportThreshold: 3
+  printMaterial: {fileID: 2100000, guid: 8e5b441304f0b8c4ea3e5fb876aab79b, type: 2}
 --- !u!1001 &837325004488048884
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -229,7 +230,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 89e82a6886bb664429239059afd7d5d3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.4820832
+      value: -0.9979168
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 89e82a6886bb664429239059afd7d5d3, type: 3}
       propertyPath: m_LocalPosition.z

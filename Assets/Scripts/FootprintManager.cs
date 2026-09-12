@@ -81,8 +81,11 @@ public class FootprintManager : MonoBehaviour
         }
     }
 
-    /// <summary>Stamp one print. dir is the walking direction (flat). left picks the mirrored mesh.</summary>
-    public void Stamp(Vector3 pos, Vector3 dir, bool left, float size, Color tint)
+    /// <summary>
+    /// Stamp one print. dir is the walking direction (flat). left picks the
+    /// mirrored mesh. material overrides the default print look (null = boot).
+    /// </summary>
+    public void Stamp(Vector3 pos, Vector3 dir, bool left, float size, Color tint, Material material = null)
     {
         if (HomeZone.Instance != null && HomeZone.Instance.Contains(pos)) return;
         if (dir.sqrMagnitude < 0.0001f) dir = Vector3.forward;
@@ -91,6 +94,8 @@ public class FootprintManager : MonoBehaviour
         Print p = pool[next];
         next = (next + 1) % pool.Length;
 
+        Material want = material != null ? material : printMaterial;
+        if (p.r.sharedMaterial != want) p.r.sharedMaterial = want;
         p.t.position = new Vector3(pos.x, groundY, pos.z);
         p.t.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
         p.t.localScale = Vector3.one * size;

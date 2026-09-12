@@ -13,6 +13,8 @@ public class FootprintEmitter : MonoBehaviour
     [SerializeField] private Color tint = new Color(0.55f, 0.62f, 0.76f, 1f);
     [Tooltip("Ignore moves bigger than this in one frame (teleports, respawns).")]
     [SerializeField] private float teleportThreshold = 3f;
+    [Tooltip("Print look for this walker. Leave empty for the manager's default (a boot).")]
+    [SerializeField] private Material printMaterial;
 
     private Vector3 lastPrintPos;
     private Vector3 lastPos;
@@ -50,7 +52,7 @@ public class FootprintEmitter : MonoBehaviour
         lastPrintPos = pos;
 
         Vector3 side = Vector3.Cross(Vector3.up, dir) * (leftNext ? -sideOffset : sideOffset);
-        FootprintManager.Instance.Stamp(pos + side, dir, leftNext, printSize, tint);
+        FootprintManager.Instance.Stamp(pos + side, dir, leftNext, printSize, tint, printMaterial);
         leftNext = !leftNext;
     }
 }
