@@ -39,10 +39,16 @@ public class Snowfall : MonoBehaviour
         CullOverHouse();
     }
 
+    /// <summary>When set (by the intro), the snow follows this point instead of the player.</summary>
+    public static Vector3? FollowOverride;
+
     private void Follow()
     {
-        if (player == null) return;
-        transform.position = player.position + Vector3.up * heightAbovePlayer;
+        Vector3 anchor;
+        if (FollowOverride.HasValue) anchor = FollowOverride.Value;
+        else if (player != null) anchor = player.position;
+        else return;
+        transform.position = anchor + Vector3.up * heightAbovePlayer;
     }
 
     /// <summary>Removes flakes whose ground footprint lies inside the home, at any height.</summary>

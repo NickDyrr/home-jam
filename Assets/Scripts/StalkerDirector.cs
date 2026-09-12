@@ -72,6 +72,11 @@ public class StalkerDirector : MonoBehaviour
     /// <summary>True once everyone is home; nothing spawns any more.</summary>
     public bool Retired { get; private set; }
 
+    /// <summary>Set by the intro while it owns the scene: no spawning.</summary>
+    public static bool Suppressed;
+
+    public GameObject StalkerPrefab => stalkerPrefab;
+
     /// <summary>Stalkers only walk at night. By day the woods are empty.</summary>
     public static bool IsNight => DayNightCycle.Instance == null || DayNightCycle.Instance.Daylight < 0.3f;
 
@@ -84,7 +89,7 @@ public class StalkerDirector : MonoBehaviour
 
     private void Update()
     {
-        if (!playerOutside || respawning || Retired) return;
+        if (!playerOutside || respawning || Retired || Suppressed) return;
 
         TimeOutside += Time.deltaTime;
 

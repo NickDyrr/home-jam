@@ -22,6 +22,7 @@ public class GameHUD : MonoBehaviour
 
     private void OnGUI()
     {
+        if (Intro.Playing) return;
         if (label == null) Build();
         float x = 20f, y = 16f;
 
