@@ -13,5 +13,6 @@ public static class GameBoot
         var systems = new GameObject("GameSystems");
         systems.AddComponent<Dread>();
         systems.AddComponent<GameHUD>();
+        systems.AddComponent<Intro>();
     }
 }

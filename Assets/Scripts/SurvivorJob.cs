@@ -30,6 +30,21 @@ public static class HomeBonuses
     /// <summary>Watchman: stalkers give up the chase sooner.</summary>
     public static float StalkerLoseMultiplier => Has(SurvivorJob.Watchman) ? 0.7f : 1f;
 
+    /// <summary>What they say when the player finally reaches them.</summary>
+    public static string Greeting(SurvivorJob job)
+    {
+        switch (job)
+        {
+            case SurvivorJob.Hunter:     return "Three nights I kept this fire. Let's go.";
+            case SurvivorJob.Soldier:    return "Stay behind me. No. In front. Just move.";
+            case SurvivorJob.Scout:      return "I saw your light from the ridge. So did they.";
+            case SurvivorJob.Cook:       return "Is the house still standing? Then there's soup.";
+            case SurvivorJob.Firekeeper: return "Don't let it go out. Never let it go out.";
+            case SurvivorJob.Watchman:   return "They circle. They always circle. Walk, don't run.";
+            default:                     return "You came.";
+        }
+    }
+
     public static string Describe(SurvivorJob job)
     {
         switch (job)

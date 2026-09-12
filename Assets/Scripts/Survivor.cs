@@ -108,7 +108,10 @@ public class Survivor : MonoBehaviour
         {
             case State.Waiting:
                 if (toPlayer.magnitude <= noticeRadius)
+                {
                     CurrentState = State.Following;
+                    FloatingText.Show(transform.position + Vector3.up * 2.5f, HomeBonuses.Greeting(job), 4.5f);
+                }
                 break;
 
             case State.Following:

@@ -152,3 +152,11 @@ Everything above the cut line: walk out, escort home, be afraid, watch the house
 **Loss is permanent.** A taken survivor's camp fire goes out and the pool shrinks. Everyone home with nobody lost = win; everyone accounted for otherwise = the house stops growing. Both end with a message over the house and the woods go quiet.
 
 **Upgrades** stay free at the workbench for now.
+
+## Story (Sep 12)
+
+**Intro (black screen, one line at a time, any key skips; edit in Intro.cs):**
+The pass closed in October. The village burned the week after. / We ran for the trees when they came. The tall quiet ones. They only walk after dark. / I found the old cabin. They stop at the door. I don't know why. Maybe it's the hearth. / The others are still out there in the snow, keeping their fires lit so someone will find them. / Someone should. Bring them home.
+*Light finds them. Light finds you. Be back before dark.*
+
+Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when they are home (HomeBonuses.Describe). The end message comes from Home.CheckEnd.
