@@ -15,7 +15,11 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float runSpeed = 8.5f;
     [SerializeField] private float turnSpeed = 720f;
+    [Tooltip("Running wakes dormant stalkers within this distance.")]
+    [SerializeField] private float runNoiseRadius = 14f;
     [SerializeField] private Animator animator;
+
+    private float nextNoise;
 
     /// <summary>While true, something else (the pistol) owns the facing direction.</summary>
     public bool FacingLocked { get; set; }
@@ -25,6 +29,9 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>While true (listening), input is ignored and she stands still.</summary>
     public bool MovementLocked { get; set; }
+
+    /// <summary>A stalker has hold of her. Set by the stalker for the grab window.</summary>
+    public bool Grabbed { get; set; }
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int RunHash = Animator.StringToHash("Run");
@@ -47,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        Vector2 input = MovementLocked ? Vector2.zero : ReadInput();
+        Vector2 input = (MovementLocked || Grabbed) ? Vector2.zero : ReadInput();
         Keyboard kb = Keyboard.current;
         bool shift = kb != null && kb.leftShiftKey.isPressed;
 
@@ -63,6 +70,13 @@ public class PlayerMovement : MonoBehaviour
         bool armed = Pistol.Instance != null && Pistol.Instance.IsArmed;
         IsRunning = shift && !armed && move.sqrMagnitude > 0.001f;
         float speed = IsRunning ? runSpeed : moveSpeed;
+
+        // Running is loud: dormant stalkers within earshot wake up.
+        if (IsRunning && Time.time >= nextNoise)
+        {
+            nextNoise = Time.time + 0.5f;
+            Stalker.Noise(transform.position, runNoiseRadius);
+        }
 
         // Simple gravity so the controller stays grounded.
         Vector3 velocity = move * speed;

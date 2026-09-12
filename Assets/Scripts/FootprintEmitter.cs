@@ -54,5 +54,11 @@ public class FootprintEmitter : MonoBehaviour
         Vector3 side = Vector3.Cross(Vector3.up, dir) * (leftNext ? -sideOffset : sideOffset);
         FootprintManager.Instance.Stamp(pos + side, dir, leftNext, printSize, tint, printMaterial);
         leftNext = !leftNext;
+
+        if (AudioManager.Instance != null)
+        {
+            bool heavy = printSize > 0.5f;
+            AudioManager.Instance.Play(heavy ? AudioManager.Instance.StepHeavy : AudioManager.Instance.Step, pos, heavy ? 0.8f : 0.35f, heavy ? 30f : 18f, Random.Range(0.9f, 1.1f));
+        }
     }
 }

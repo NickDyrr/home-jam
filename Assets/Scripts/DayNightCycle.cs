@@ -37,6 +37,10 @@ public class DayNightCycle : MonoBehaviour
     public float TimeOfDay { get; private set; }
     /// <summary>0 at night, 1 in full day.</summary>
     public float Daylight { get; private set; }
+    public float CycleSeconds => cycleSeconds;
+
+    /// <summary>Multiplier on ambient light, driven by the lantern (dark when it is off at night).</summary>
+    public static float AmbientScale = 1f;
 
     /// <summary>Fires once each morning as daylight comes up.</summary>
     public static event System.Action Dawn;
@@ -100,7 +104,7 @@ public class DayNightCycle : MonoBehaviour
         Color ambient = Color.Lerp(nightAmbient, dayAmbient, day);
         Color fog = Color.Lerp(nightFog, dayFog, day);
         fog = Color.Lerp(fog, sunsetColor * 0.8f, edge * 0.35f);
-        RenderSettings.ambientLight = ambient;
+        RenderSettings.ambientLight = ambient * AmbientScale;
         RenderSettings.fogColor = fog;
         if (mainCamera != null && mainCamera.clearFlags == CameraClearFlags.SolidColor)
             mainCamera.backgroundColor = fog;

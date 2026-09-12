@@ -46,8 +46,13 @@ public class StalkerDirector : MonoBehaviour
         if (p != null) player = p.transform;
     }
 
-    private void OnEnable()  { HomeZone.PlayerHomeChanged += OnPlayerHomeChanged; }
-    private void OnDisable() { HomeZone.PlayerHomeChanged -= OnPlayerHomeChanged; }
+    /// <summary>Dawns survived. Each one adds a stalker to the woods.</summary>
+    public int Nights { get; private set; }
+
+    private void OnEnable()  { HomeZone.PlayerHomeChanged += OnPlayerHomeChanged; DayNightCycle.Dawn += OnDawn; }
+    private void OnDisable() { HomeZone.PlayerHomeChanged -= OnPlayerHomeChanged; DayNightCycle.Dawn -= OnDawn; }
+
+    private void OnDawn() { Nights++; }
 
     private void OnDestroy()
     {
@@ -100,7 +105,8 @@ public class StalkerDirector : MonoBehaviour
         Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero;
         home.y = 0f;
 
-        for (int i = 0; i < stalkerCount; i++)
+        int count = stalkerCount + Nights;
+        for (int i = 0; i < count; i++)
         {
             if (!TryPickSpot(home, out Vector3 pos)) continue;
             pos.y = 1.1f;

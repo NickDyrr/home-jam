@@ -11,7 +11,7 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class Stalker : MonoBehaviour
 {
-    public enum State { Dormant, Hunting, Retreating, Stunned }
+    public enum State { Dormant, Hunting, Retreating, Stunned, Grabbing }
 
     /// <summary>Every live stalker in the scene.</summary>
     public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
@@ -32,6 +32,13 @@ public class Stalker : MonoBehaviour
     [Header("Hit")]
     [SerializeField] private float stunSeconds = 3f;
     [SerializeField] private float knockbackDamping = 6f;
+
+    [Header("Grab")]
+    [Tooltip("Seconds it holds the player before she is taken. A pistol hit in that window breaks the grab.")]
+    [SerializeField] private float grabSeconds = 2.2f;
+
+    private float grabUntil;
+    private PlayerMovement grabbedMovement;
 
     [Header("Animation (optional)")]
     [SerializeField] private Animator animator;
@@ -71,7 +78,26 @@ public class Stalker : MonoBehaviour
     /// <summary>Something screamed nearby. A dormant stalker wakes and hunts.</summary>
     public void Alert()
     {
-        if (CurrentState == State.Dormant) CurrentState = State.Hunting;
+        if (CurrentState != State.Dormant) return;
+        Wake();
+    }
+
+    /// <summary>A noise at a point (a shot, running feet, a scream) wakes dormant stalkers within radius.</summary>
+    public static void Noise(Vector3 pos, float radius)
+    {
+        float sq = radius * radius;
+        foreach (Stalker s in All)
+        {
+            Vector3 d = s.transform.position - pos; d.y = 0f;
+            if (d.sqrMagnitude <= sq) s.Alert();
+        }
+    }
+
+    private void Wake()
+    {
+        CurrentState = State.Hunting;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(AudioManager.Instance.Growl, transform.position, 0.9f, 40f, Random.Range(0.85f, 1.1f));
     }
 
     private void Update()
@@ -84,9 +110,12 @@ public class Stalker : MonoBehaviour
         {
             case State.Dormant:
             {
+                // The lantern is what they see. Lit, she is noticed from far off; dark, they must stumble into her.
                 Transform t = Nearest(out float dist);
-                if (t != null && dist <= aggroRadius)
-                    CurrentState = State.Hunting;
+                float reach = aggroRadius;
+                if (t == player) reach *= Lantern.IsOn ? 1.6f : 0.45f;
+                if (t != null && dist <= reach)
+                    Wake();
                 break;
             }
 
@@ -123,6 +152,20 @@ public class Stalker : MonoBehaviour
                 move = knock;
                 if (Time.time >= stunUntil) CurrentState = State.Hunting;
                 break;
+
+            case State.Grabbing:
+            {
+                // Holding her. Face her; if the time runs out she is taken.
+                Vector3 toP = player.position - transform.position; toP.y = 0f;
+                if (toP.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(toP.normalized, Vector3.up);
+                if (Time.time >= grabUntil)
+                {
+                    ReleasePlayer();
+                    CurrentState = State.Dormant;
+                    if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
+                }
+                break;
+            }
         }
 
         Vector3 velocity = move;
@@ -153,9 +196,10 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    /// <summary>Pistol hit. Knocked back along the shot, stunned for a few seconds.</summary>
+    /// <summary>Pistol hit. Knocked back along the shot, stunned for a few seconds. Breaks a grab.</summary>
     public void Hit(Vector3 impulse)
     {
+        if (CurrentState == State.Grabbing) ReleasePlayer();
         knock = impulse;
         knock.y = 0f;
         stunUntil = Time.time + stunSeconds;
@@ -202,6 +246,24 @@ public class Stalker : MonoBehaviour
             return;
         }
 
-        if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
+        // The player: grab her. She has a moment to put a round in it.
+        if (CurrentState == State.Grabbing) return;
+        CurrentState = State.Grabbing;
+        grabUntil = Time.time + grabSeconds;
+        grabbedMovement = player.GetComponent<PlayerMovement>();
+        if (grabbedMovement != null) grabbedMovement.Grabbed = true;
+        if (animator != null) animator.SetTrigger(AttackHash);
+        if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Growl, transform.position, 1f, 40f, 0.7f);
+    }
+
+    private void ReleasePlayer()
+    {
+        if (grabbedMovement != null) grabbedMovement.Grabbed = false;
+        grabbedMovement = null;
+    }
+
+    private void OnDestroy()
+    {
+        ReleasePlayer();
     }
 }

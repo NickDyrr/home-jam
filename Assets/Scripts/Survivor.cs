@@ -208,6 +208,7 @@ public class Survivor : MonoBehaviour
         running = false;
         calmTimer = 0f;
         Debug.Log($"Survivor '{name}' panics.");
+        if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Yell, transform.position, 1f, 40f, Random.Range(0.9f, 1.15f));
         // The scream carries. Dormant stalkers nearby wake up.
         float sq = screamRadius * screamRadius;
         foreach (Stalker s in Stalker.All)

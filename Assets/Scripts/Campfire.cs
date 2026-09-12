@@ -30,6 +30,14 @@ public class Campfire : MonoBehaviour
     private void OnEnable()  { All.Add(this); }
     private void OnDisable() { All.Remove(this); }
 
+    private AudioSource crackle;
+
+    private void Start()
+    {
+        var audio = AudioManager.Ensure();
+        crackle = audio.Loop(audio.Crackle, transform, 0.7f);
+    }
+
     private void Update()
     {
         if (IsOut || fire == null) return;
@@ -61,6 +69,7 @@ public class Campfire : MonoBehaviour
         IsOut = true;
         if (flicker != null) flicker.enabled = false;
         if (fire != null) fire.enabled = false;
+        if (crackle != null) crackle.Stop();
         foreach (Renderer r in GetComponentsInChildren<Renderer>())
         {
             var mpb = new MaterialPropertyBlock();

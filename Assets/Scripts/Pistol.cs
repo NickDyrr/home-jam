@@ -195,6 +195,8 @@ public class Pistol : MonoBehaviour
         Loaded--;
         nextFireTime = Time.time + fireCooldown;
         kick = 1f;
+        if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Gunshot, transform.position, 1f, 200f, Random.Range(0.95f, 1.05f));
+        Stalker.Noise(transform.position, 32f);   // a shot carries
         flashUntil = Time.time + flashSeconds;
         SetFlash(true);
 
