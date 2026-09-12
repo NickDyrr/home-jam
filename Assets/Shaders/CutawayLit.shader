@@ -12,11 +12,14 @@ Shader "HOME/Cutaway Lit"
         _BumpScale("Normal Scale", Float) = 1
         _Smoothness("Smoothness", Range(0,1)) = 0.2
         _Metallic("Metallic", Range(0,1)) = 0
-        _ClipMinY("Cutaway Min Y (world)", Float) = 0.35
+        _ClipMinYA("Cutaway Min Y for boxes 0-3 (world)", Vector) = (0.35,0.35,0.35,0.35)
+        _ClipMinYB("Cutaway Min Y for boxes 4-5 (world)", Vector) = (0.35,0.35,0,0)
         _ClipBox0("Cutaway Box 0 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
         _ClipBox1("Cutaway Box 1 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
         _ClipBox2("Cutaway Box 2 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
         _ClipBox3("Cutaway Box 3 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
+        _ClipBox4("Cutaway Box 4 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
+        _ClipBox5("Cutaway Box 5 (xmin, zmin, xmax, zmax)", Vector) = (0,0,0,0)
     }
 
     SubShader
@@ -36,23 +39,26 @@ Shader "HOME/Cutaway Lit"
             half _BumpScale;
             half _Smoothness;
             half _Metallic;
-            float _ClipMinY;
+            float4 _ClipMinYA;
+            float4 _ClipMinYB;
             float4 _ClipBox0;
             float4 _ClipBox1;
             float4 _ClipBox2;
             float4 _ClipBox3;
+            float4 _ClipBox4;
+            float4 _ClipBox5;
         CBUFFER_END
 
-        bool InBox(float3 p, float4 b)
+        bool InBox(float3 p, float4 b, float minY)
         {
-            return p.x > b.x && p.z > b.y && p.x < b.z && p.z < b.w;
+            return p.y > minY && p.x > b.x && p.z > b.y && p.x < b.z && p.z < b.w;
         }
 
         void Cutaway(float3 positionWS)
         {
-            if (positionWS.y > _ClipMinY &&
-                (InBox(positionWS, _ClipBox0) || InBox(positionWS, _ClipBox1) ||
-                 InBox(positionWS, _ClipBox2) || InBox(positionWS, _ClipBox3)))
+            if (InBox(positionWS, _ClipBox0, _ClipMinYA.x) || InBox(positionWS, _ClipBox1, _ClipMinYA.y) ||
+                InBox(positionWS, _ClipBox2, _ClipMinYA.z) || InBox(positionWS, _ClipBox3, _ClipMinYA.w) ||
+                InBox(positionWS, _ClipBox4, _ClipMinYB.x) || InBox(positionWS, _ClipBox5, _ClipMinYB.y))
                 clip(-1);
         }
         ENDHLSL

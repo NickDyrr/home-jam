@@ -6,11 +6,12 @@ using UnityEngine;
 ///
 /// Each level is one look for the house: an exterior shown while the player is
 /// outside, an interior whose renderers show only while inside (colliders on it
-/// never change), and a set of level-only objects (colliders, door, lights,
-/// home-zone boxes) that are active only while that level is current. Reward
-/// lights move to the level's spots so they land inside whichever room is
-/// current. Listens to HomeZone so the inside/outside flip happens on the same
-/// frame as the camera nudge.
+/// never change), an optional upstairs that shows only once the player has
+/// climbed above upstairsShowHeight, and a set of level-only objects
+/// (colliders, door, lights, home-zone boxes) that are active only while that
+/// level is current. Reward lights move to the level's spots so they land
+/// inside whichever room is current. Listens to HomeZone so the inside/outside
+/// flip happens on the same frame as the camera nudge.
 /// </summary>
 public class HouseView : MonoBehaviour
 {
@@ -20,6 +21,9 @@ public class HouseView : MonoBehaviour
         public string name = "Level";
         public GameObject exteriorRoot;
         public GameObject interiorRoot;
+        [Tooltip("Optional upper floor. Shown only while the player is home and above upstairsShowHeight.")]
+        public GameObject upstairsRoot;
+        public float upstairsShowHeight = 1.2f;
         [Tooltip("Active only while this level is current: colliders, door, lights, zone boxes.")]
         public GameObject[] levelOnly;
         [Tooltip("House-local positions for the reward lights, in order. Leave empty to keep them where they are.")]
@@ -36,11 +40,15 @@ public class HouseView : MonoBehaviour
     public bool CanUpgrade => levels != null && CurrentLevel < levels.Length - 1;
 
     private bool playerIsHome = true;
+    private bool playerUpstairs;
+    private Transform player;
 
     private void Awake()
     {
         Instance = this;
         if (rewardsRoot == null) rewardsRoot = transform.Find("Rewards");
+        GameObject p = GameObject.FindWithTag("Player");
+        if (p != null) player = p.transform;
     }
 
     private void OnDestroy()
@@ -62,6 +70,20 @@ public class HouseView : MonoBehaviour
     {
         playerIsHome = HomeZone.Instance == null || HomeZone.Instance.PlayerIsHome;
         SetLevel(CurrentLevel);
+    }
+
+    private void Update()
+    {
+        if (player == null || levels == null || levels.Length == 0) return;
+        Level cur = levels[CurrentLevel];
+        if (cur.upstairsRoot == null) return;
+
+        bool up = player.position.y >= cur.upstairsShowHeight;
+        if (up != playerUpstairs)
+        {
+            playerUpstairs = up;
+            Apply();
+        }
     }
 
     private void OnHomeChanged(bool isHome)
@@ -93,6 +115,7 @@ public class HouseView : MonoBehaviour
             {
                 if (l.exteriorRoot != null) l.exteriorRoot.SetActive(false);
                 if (l.interiorRoot != null) l.interiorRoot.SetActive(false);
+                if (l.upstairsRoot != null) l.upstairsRoot.SetActive(false);
             }
         }
 
@@ -121,5 +144,7 @@ public class HouseView : MonoBehaviour
             foreach (Renderer r in cur.interiorRoot.GetComponentsInChildren<Renderer>(true))
                 r.enabled = playerIsHome;
         }
+        if (cur.upstairsRoot != null)
+            cur.upstairsRoot.SetActive(playerIsHome && playerUpstairs);
     }
 }
