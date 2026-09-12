@@ -130,11 +130,11 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _ClipBox0: {r: -2.06, g: -0.85, b: 5.09, a: -0.55}
-    - _ClipBox1: {r: -7.4, g: -6.77, b: -2.06, a: -6.47}
-    - _ClipBox2: {r: -7.4, g: -6.77, b: -7.09, a: 1.04}
-    - _ClipBox3: {r: -2.85, g: 1.04, b: -2.55, a: 2.47}
-    - _ClipBox4: {r: -5.8, g: -2.55, b: -3.3, a: -0.8}
+    - _ClipBox0: {r: -4.75, g: -0.74, b: 1.45, a: -0.44}
+    - _ClipBox1: {r: 1.15, g: -7.6, b: 1.45, a: -0.44}
+    - _ClipBox2: {r: 1.15, g: -7.9, b: 4.45, a: -7.59}
+    - _ClipBox3: {r: -4.75, g: -0.74, b: -4.45, a: 4.6}
+    - _ClipBox4: {r: -0.55, g: 0.8, b: 1.2, a: 3.4}
     - _ClipBox5: {r: 0, g: 0, b: 0, a: 0}
     - _ClipMinYA: {r: 2.95, g: 2.95, b: 2.95, a: 2.95}
     - _ClipMinYB: {r: 2.5, g: 0, b: 0, a: 0}
