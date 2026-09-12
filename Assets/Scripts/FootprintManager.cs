@@ -64,6 +64,7 @@ public class FootprintManager : MonoBehaviour
 
     private void Update()
     {
+        if (pool == null) return;   // lost on a script reload during play
         float now = Time.time;
         for (int i = 0; i < pool.Length; i++)
         {
