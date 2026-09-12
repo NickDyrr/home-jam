@@ -38,6 +38,10 @@ public class DayNightCycle : MonoBehaviour
     /// <summary>0 at night, 1 in full day.</summary>
     public float Daylight { get; private set; }
 
+    /// <summary>Fires once each morning as daylight comes up.</summary>
+    public static event System.Action Dawn;
+    private bool wasDay;
+
     private void Awake()
     {
         Instance = this;
@@ -77,6 +81,9 @@ public class DayNightCycle : MonoBehaviour
         float day = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.12f, 0.28f, elevation));
         float edge = 4f * day * (1f - day);   // peaks at dawn and dusk
         Daylight = day;
+        bool isDay = day > 0.5f;
+        if (isDay && !wasDay && Application.isPlaying) Dawn?.Invoke();
+        wasDay = isDay;
 
         if (sun != null)
         {

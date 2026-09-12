@@ -221,7 +221,7 @@ public class Pistol : MonoBehaviour
     private IEnumerator Reload()
     {
         IsReloading = true;
-        yield return new WaitForSeconds(reloadSeconds);
+        yield return new WaitForSeconds(reloadSeconds * HomeBonuses.ReloadMultiplier);
         int need = magazineSize - Loaded;
         int take = Mathf.Min(need, Reserve);
         Loaded += take;

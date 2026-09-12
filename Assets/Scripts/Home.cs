@@ -4,12 +4,15 @@ using UnityEngine;
 /// <summary>
 /// Counts survivors who made it home and turns on one reward per arrival.
 /// Rewards are the children of rewardsRoot, activated in order.
-/// Each survivor settles next to the reward they unlocked, and adds ammo
-/// to the pistol's reserve. Rewards land only here, never on pickup.
+/// Each survivor settles next to the reward they unlocked, adds ammo to the
+/// pistol's reserve, and brings their job's bonus (see HomeBonuses). Rewards
+/// land only here, never on pickup.
 ///
-/// At each survivor threshold in upgradeAtSurvivors the house goes up a
-/// level (see HouseView). Survivors already home walk to their reward's new
-/// spot so nobody is left standing in the snow where a wall used to be.
+/// Survivors lost to the dark are gone for good. When everyone still alive is
+/// home the game is won; when everyone left outside is lost, the house stops
+/// growing. At each survivor threshold in upgradeAtSurvivors the house goes
+/// up a level (see HouseView); survivors already home walk to their reward's
+/// new spot.
 /// </summary>
 public class Home : MonoBehaviour
 {
@@ -26,12 +29,16 @@ public class Home : MonoBehaviour
     [SerializeField] private bool debugUpgradeKey = true;
 
     public int SurvivorsHome { get; private set; }
+    public int SurvivorsLost { get; private set; }
+    public int SurvivorsTotal { get; private set; }
+    public bool Won { get; private set; }
 
     private readonly List<Survivor> arrivals = new List<Survivor>();
 
     private void Awake()
     {
         Instance = this;
+        HomeBonuses.Reset();
         if (rewardsRoot == null) rewardsRoot = transform.Find("Rewards");
 
         if (rewardsRoot != null)
@@ -40,6 +47,14 @@ public class Home : MonoBehaviour
                 child.gameObject.SetActive(false);
         }
     }
+
+    private void Start()
+    {
+        SurvivorsTotal = Survivor.All.Count;
+    }
+
+    private void OnEnable()  { DayNightCycle.Dawn += OnDawn; }
+    private void OnDisable() { DayNightCycle.Dawn -= OnDawn; }
 
     private void OnDestroy()
     {
@@ -55,6 +70,16 @@ public class Home : MonoBehaviour
     }
 #endif
 
+    private void OnDawn()
+    {
+        int rounds = HomeBonuses.AmmoPerDawn;
+        if (rounds > 0 && Pistol.Instance != null)
+        {
+            Pistol.Instance.AddReserve(rounds);
+            FloatingText.Show(transform.position + Vector3.up * 3f, $"Dawn. The hunter left {rounds} rounds.", 4f);
+        }
+    }
+
     /// <summary>
     /// Registers an arrival and returns the world-space floor point where the
     /// survivor should go stand. Y is ignored by the caller.
@@ -66,6 +91,8 @@ public class Home : MonoBehaviour
         arrivals.Add(survivor);
 
         if (Pistol.Instance != null) Pistol.Instance.AddReserve(ammoPerSurvivor);
+        HomeBonuses.Add(survivor.Job);
+        FloatingText.Show(survivor.transform.position + Vector3.up * 2.6f, HomeBonuses.Describe(survivor.Job), 5f);
 
         if (rewardsRoot != null && index < rewardsRoot.childCount)
             rewardsRoot.GetChild(index).gameObject.SetActive(true);
@@ -75,12 +102,38 @@ public class Home : MonoBehaviour
         // Upgrade first, so this survivor's spot is computed for the new room.
         if (HouseView.Instance != null && HouseView.Instance.CanUpgrade)
         {
-            int next = HouseView.Instance.CurrentLevel;   // index into thresholds for the next level
+            int next = HouseView.Instance.CurrentLevel;
             if (upgradeAtSurvivors != null && next < upgradeAtSurvivors.Length && SurvivorsHome >= upgradeAtSurvivors[next])
                 Upgrade();
         }
 
+        CheckEnd();
         return SpotFor(index);
+    }
+
+    /// <summary>A survivor out there was taken. Their camp is dark now.</summary>
+    public void SurvivorLost(Survivor survivor)
+    {
+        SurvivorsLost++;
+        FloatingText.Show(transform.position + Vector3.up * 3f, $"{survivor.name} is gone. {SurvivorsTotal - SurvivorsHome - SurvivorsLost} still out there.", 5f);
+        CheckEnd();
+    }
+
+    private void CheckEnd()
+    {
+        if (Won || SurvivorsTotal <= 0) return;
+        if (SurvivorsHome + SurvivorsLost < SurvivorsTotal) return;
+
+        if (SurvivorsLost == 0)
+        {
+            Won = true;
+            FloatingText.Show(transform.position + Vector3.up * 4f, "Everyone is home.", 0f, 0.16f);
+        }
+        else
+        {
+            FloatingText.Show(transform.position + Vector3.up * 4f, $"{SurvivorsHome} made it home. {SurvivorsLost} did not.", 0f, 0.12f);
+        }
+        if (StalkerDirector.Instance != null) StalkerDirector.Instance.Retire();
     }
 
     /// <summary>Go up one house level and re-seat everyone already home.</summary>

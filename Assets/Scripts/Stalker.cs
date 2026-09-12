@@ -13,6 +13,9 @@ public class Stalker : MonoBehaviour
 {
     public enum State { Dormant, Hunting, Retreating, Stunned }
 
+    /// <summary>Every live stalker in the scene.</summary>
+    public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
+
     [Header("Awareness")]
     [SerializeField] private float aggroRadius = 14f;
     [SerializeField] private float loseRadius = 22f;
@@ -62,6 +65,15 @@ public class Stalker : MonoBehaviour
         if (animator == null) animator = GetComponentInChildren<Animator>();
     }
 
+    private void OnEnable()  { All.Add(this); }
+    private void OnDisable() { All.Remove(this); }
+
+    /// <summary>Something screamed nearby. A dormant stalker wakes and hunts.</summary>
+    public void Alert()
+    {
+        if (CurrentState == State.Dormant) CurrentState = State.Hunting;
+    }
+
     private void Update()
     {
         if (player == null) return;
@@ -81,7 +93,7 @@ public class Stalker : MonoBehaviour
             case State.Hunting:
             {
                 Transform t = Nearest(out float dist);
-                if (t == null || dist > loseRadius)
+                if (t == null || dist > loseRadius * HomeBonuses.StalkerLoseMultiplier)
                 {
                     CurrentState = State.Dormant;
                     break;
@@ -159,7 +171,7 @@ public class Stalker : MonoBehaviour
 
         Consider(player, ref best, ref bestSq);
         foreach (Survivor s in Survivor.All)
-            if (s.CurrentState == Survivor.State.Following)
+            if (s.CurrentState == Survivor.State.Following || s.CurrentState == Survivor.State.Panicked)
                 Consider(s.transform, ref best, ref bestSq);
 
         distance = best != null ? Mathf.Sqrt(bestSq) : float.MaxValue;

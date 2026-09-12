@@ -64,11 +64,30 @@ public class StalkerDirector : MonoBehaviour
         }
     }
 
+    /// <summary>True once everyone is home; nothing spawns any more.</summary>
+    public bool Retired { get; private set; }
+
+    /// <summary>Stalkers only walk at night. By day the woods are empty.</summary>
+    public static bool IsNight => DayNightCycle.Instance == null || DayNightCycle.Instance.Daylight < 0.3f;
+
+    /// <summary>The game is won: clear the woods for good.</summary>
+    public void Retire()
+    {
+        Retired = true;
+        DespawnAll();
+    }
+
     private void Update()
     {
-        if (!playerOutside || respawning) return;
+        if (!playerOutside || respawning || Retired) return;
 
         TimeOutside += Time.deltaTime;
+
+        if (!IsNight)
+        {
+            if (stalkers.Count > 0) DespawnAll();   // dawn: they slip away
+            return;
+        }
 
         if (stalkers.Count == 0 && TimeOutside >= spawnDelay)
             SpawnGroup();

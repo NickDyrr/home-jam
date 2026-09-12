@@ -134,7 +134,7 @@ Material:
     - _ClipBox1: {r: 1.15, g: -7.6, b: 1.45, a: -0.44}
     - _ClipBox2: {r: 1.15, g: -7.9, b: 4.45, a: -7.59}
     - _ClipBox3: {r: -4.75, g: -0.74, b: -4.45, a: 4.6}
-    - _ClipBox4: {r: -0.55, g: 0.8, b: 1.2, a: 3.4}
+    - _ClipBox4: {r: 0, g: 0, b: 0, a: 0}
     - _ClipBox5: {r: 0, g: 0, b: 0, a: 0}
     - _ClipMinYA: {r: 2.95, g: 2.95, b: 2.95, a: 2.95}
     - _ClipMinYB: {r: 2.5, g: 0, b: 0, a: 0}

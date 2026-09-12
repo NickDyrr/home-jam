@@ -23,6 +23,9 @@ public class PlayerMovement : MonoBehaviour
     /// <summary>True while actually running this frame.</summary>
     public bool IsRunning { get; private set; }
 
+    /// <summary>While true (listening), input is ignored and she stands still.</summary>
+    public bool MovementLocked { get; set; }
+
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int RunHash = Animator.StringToHash("Run");
 
@@ -44,7 +47,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        Vector2 input = ReadInput();
+        Vector2 input = MovementLocked ? Vector2.zero : ReadInput();
         Keyboard kb = Keyboard.current;
         bool shift = kb != null && kb.leftShiftKey.isPressed;
 
