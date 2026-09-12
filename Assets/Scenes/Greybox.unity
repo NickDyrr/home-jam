@@ -23423,7 +23423,7 @@ Transform:
   m_GameObject: {fileID: 235640420}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.11510794, y: 0.079166666, z: 0.056250013}
+  m_LocalPosition: {x: -0.11151082, y: 0.079166666, z: 0.062068984}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -145265,7 +145265,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.35, y: 0.2, z: 4.34}
+  m_Size: {x: 0.33384615, y: 0.015384615, z: 0.103846155}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1355592033
 PrefabInstance:
@@ -156804,7 +156804,7 @@ Transform:
   m_GameObject: {fileID: 1470100030}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.25, y: 0, z: -0.33}
+  m_LocalPosition: {x: -2.1999998, y: 0, z: -0.33}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -188533,8 +188533,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.88, y: 2.5, z: 0.3}
-  m_Center: {x: -0.01, y: 1.25, z: -0.33}
+  m_Size: {x: 1.8299999, y: 2.5, z: 0.3}
+  m_Center: {x: 0.0150000155, y: 1.25, z: -0.33}
 --- !u!1001 &1782130965
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -196840,7 +196840,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FootprintManager
   printMaterial: {fileID: 2100000, guid: d74deabad412df046959f9050d3c6c20, type: 2}
   poolSize: 600
-  lifetime: 90
+  lifetime: 60
   groundY: 0.012
   startCutoff: 0.45
   endCutoff: 1
@@ -202662,8 +202662,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.96, y: 2.5, z: 0.3}
-  m_Center: {x: -3.23, y: 1.25, z: -0.33}
+  m_Size: {x: 2.0100002, y: 2.5, z: 0.3}
+  m_Center: {x: -3.205, y: 1.25, z: -0.33}
 --- !u!1001 &1917907603
 PrefabInstance:
   m_ObjectHideFlags: 0
