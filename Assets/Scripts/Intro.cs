@@ -23,9 +23,16 @@ public class Intro : MonoBehaviour
     };
     public static readonly string Hint = "Light finds them. Light finds you. Be back before dark.";
 
-    // Timeline (seconds)
-    private const float ShotA = 6f, ShotB = 13f, ShotC = 20f, FadeOutEnd = 21.5f, FadeInEnd = 23f, End = 27.5f;
-    private static readonly float[] LineTimes = { 1f, 5f, 9f, 13f, 17f };
+    // Timeline (seconds). With voice clips in Resources/Audio (Intro1..Intro5, IntroHint) the
+    // line times stretch so each line stays up while its clip plays.
+    private const float ShotA = 6f, ShotB = 13f;
+    private float ShotC = 20f, FadeOutEnd = 21.5f, FadeInEnd = 23f, End = 27.5f;
+    private readonly float[] LineTimes = { 1f, 5f, 9f, 13f, 17f };
+    private AudioClip[] voice;
+    private AudioClip hintVoice;
+    private AudioSource voiceSource;
+    private int nextVoiceLine;
+    private bool hintSpoken;
 
     private float t;
     private bool done;
@@ -70,6 +77,31 @@ public class Intro : MonoBehaviour
 
         Campfire fire = FirstFire();
         if (fire != null) fire.Flare();
+
+        // Optional voice-over: one clip per line. Timing stretches to fit whatever is there.
+        voice = new AudioClip[Lines.Length];
+        bool anyVoice = false;
+        for (int i = 0; i < Lines.Length; i++) { voice[i] = Resources.Load<AudioClip>("Audio/Intro" + (i + 1)); anyVoice |= voice[i] != null; }
+        hintVoice = Resources.Load<AudioClip>("Audio/IntroHint");
+        if (anyVoice || hintVoice != null)
+        {
+            voiceSource = gameObject.AddComponent<AudioSource>();
+            voiceSource.spatialBlend = 0f; voiceSource.volume = 1f; voiceSource.playOnAwake = false;
+        }
+        if (anyVoice)
+        {
+            float tt = 1f;
+            for (int i = 0; i < Lines.Length; i++)
+            {
+                LineTimes[i] = tt;
+                float dur = voice[i] != null ? voice[i].length + 0.6f : 4f;
+                tt += Mathf.Max(dur, 3f);
+            }
+            ShotC = tt;
+            FadeOutEnd = ShotC + 1.5f;
+            FadeInEnd = FadeOutEnd + 1.5f;
+            End = FadeInEnd + (hintVoice != null ? hintVoice.length + 1.5f : 4.5f);
+        }
     }
 
     private Vector3 DoorStep()
@@ -105,7 +137,19 @@ public class Intro : MonoBehaviour
         if (press && t < ShotC) t = ShotC;
 
         // Audio comes up with the first shot.
-        AudioListener.volume = Mathf.Clamp01(t / 3f);
+        AudioListener.volume = Mathf.Clamp01(t / 1f);
+
+        // Voice lines fire as their subtitle appears.
+        if (voiceSource != null)
+        {
+            if (nextVoiceLine < Lines.Length && t >= LineTimes[nextVoiceLine] && t < ShotC)
+            {
+                if (voice[nextVoiceLine] != null) { voiceSource.clip = voice[nextVoiceLine]; voiceSource.Play(); }
+                nextVoiceLine++;
+            }
+            if (!hintSpoken && hintVoice != null && t >= FadeInEnd) { hintSpoken = true; voiceSource.clip = hintVoice; voiceSource.Play(); }
+            if (press && voiceSource.isPlaying && t >= ShotC) voiceSource.Stop();
+        }
 
         if (t < ShotC) DriveCamera();
         DriveCameo();
@@ -190,6 +234,19 @@ public class Intro : MonoBehaviour
 
     private static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 
+    /// <summary>Black text with a soft pale halo so it reads on the night scene.</summary>
+    private static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
+    {
+        if (alpha <= 0f) return;
+        Color saved = style.normal.textColor;
+        style.normal.textColor = new Color(1f, 1f, 1f, 0.55f * alpha);
+        foreach (var o in new[] { new Vector2(-1.5f, 0f), new Vector2(1.5f, 0f), new Vector2(0f, -1.5f), new Vector2(0f, 1.5f), new Vector2(-1f, -1f), new Vector2(1f, 1f), new Vector2(-1f, 1f), new Vector2(1f, -1f) })
+            GUI.Label(new Rect(r.x + o.x, r.y + o.y, r.width, r.height), text, style);
+        style.normal.textColor = new Color(saved.r, saved.g, saved.b, alpha);
+        GUI.Label(r, text, style);
+        style.normal.textColor = saved;
+    }
+
     private void OnGUI()
     {
         if (done) return;
@@ -197,10 +254,10 @@ public class Intro : MonoBehaviour
         {
             title = new GUIStyle(GUI.skin.label) { fontSize = 72, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             title.normal.textColor = new Color(0.95f, 0.9f, 0.8f);
-            sub = new GUIStyle(GUI.skin.label) { fontSize = 24, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            sub.normal.textColor = new Color(0.95f, 0.93f, 0.88f);
-            hintStyle = new GUIStyle(sub) { fontSize = 20, fontStyle = FontStyle.Italic };
-            hintStyle.normal.textColor = new Color(0.8f, 0.85f, 1f);
+            sub = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+            sub.normal.textColor = new Color(0.05f, 0.05f, 0.07f);
+            hintStyle = new GUIStyle(sub) { fontSize = 21, fontStyle = FontStyle.BoldAndItalic };
+            hintStyle.normal.textColor = new Color(0.05f, 0.05f, 0.07f);
             black = new Texture2D(1, 1); black.SetPixel(0, 0, Color.black); black.Apply();
         }
 
@@ -233,16 +290,12 @@ public class Intro : MonoBehaviour
             float s = LineTimes[i], e = i + 1 < Lines.Length ? LineTimes[i + 1] : ShotC;
             float a = t < s ? 0f : t < s + 0.7f ? (t - s) / 0.7f : t < e - 0.4f ? 1f : Mathf.Clamp01((e - t) / 0.4f);
             if (a <= 0f) continue;
-            GUI.color = new Color(0f, 0f, 0f, a * 0.8f);
-            GUI.Label(new Rect(x + 2, Screen.height * 0.8f + 2, w, 70), Lines[i], sub);
-            GUI.color = new Color(1f, 1f, 1f, a);
-            GUI.Label(new Rect(x, Screen.height * 0.8f, w, 70), Lines[i], sub);
+            DrawLegible(new Rect(x, Screen.height * 0.6f, w, 70), Lines[i], sub, a);
         }
 
         // Hint after dawn.
         float hintA = t < FadeInEnd ? 0f : t < FadeInEnd + 0.8f ? (t - FadeInEnd) / 0.8f : t < End - 1f ? 1f : Mathf.Clamp01(End - t);
-        GUI.color = new Color(1f, 1f, 1f, hintA);
-        GUI.Label(new Rect(x, Screen.height * 0.8f, w, 60), Hint, hintStyle);
+        DrawLegible(new Rect(x, Screen.height * 0.6f, w, 60), Hint, hintStyle, hintA);
 
         if (t < ShotC) { GUI.color = new Color(1f, 1f, 1f, 0.45f); GUI.Label(new Rect(x, Screen.height - 50f, w, 30), "any key to skip", hintStyle); }
         GUI.color = Color.white;
