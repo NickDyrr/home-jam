@@ -28,14 +28,16 @@ public class AudioManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        Wind = ProceduralAudio.Wind();
-        Crackle = ProceduralAudio.Crackle();
-        Step = ProceduralAudio.Footstep(false);
-        StepHeavy = ProceduralAudio.Footstep(true);
-        Gunshot = ProceduralAudio.Gunshot();
-        Yell = ProceduralAudio.Yell();
-        Growl = ProceduralAudio.Growl();
-        Heartbeat = ProceduralAudio.Heartbeat();
+        // A real clip in Assets/Resources/Audio/<Name>.wav (or .ogg/.mp3) replaces the synthesized one.
+        // Footsteps have no synthesized fallback: silent until a real clip is dropped in.
+        Wind = Resources.Load<AudioClip>("Audio/Wind") ?? ProceduralAudio.Wind();
+        Crackle = Resources.Load<AudioClip>("Audio/Crackle") ?? ProceduralAudio.Crackle();
+        Step = Resources.Load<AudioClip>("Audio/Footstep");
+        StepHeavy = Resources.Load<AudioClip>("Audio/FootstepHeavy") ?? Step;
+        Gunshot = Resources.Load<AudioClip>("Audio/Gunshot") ?? ProceduralAudio.Gunshot();
+        Yell = Resources.Load<AudioClip>("Audio/Yell") ?? ProceduralAudio.Yell();
+        Growl = Resources.Load<AudioClip>("Audio/Growl") ?? ProceduralAudio.Growl();
+        Heartbeat = Resources.Load<AudioClip>("Audio/Heartbeat") ?? ProceduralAudio.Heartbeat();
 
         windSource = gameObject.AddComponent<AudioSource>();
         windSource.clip = Wind; windSource.loop = true; windSource.volume = 0.35f; windSource.spatialBlend = 0f; windSource.Play();
