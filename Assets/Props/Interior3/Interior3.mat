@@ -130,14 +130,14 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _ClipBox0: {r: -3.2, g: -2.55, b: -2.9, a: 5.79}
-    - _ClipBox1: {r: -3.2, g: -2.55, b: -1.9, a: -2.25}
-    - _ClipBox2: {r: -2.23, g: -6.4, b: -1.93, a: -2.25}
-    - _ClipBox3: {r: -2.23, g: -6.7, b: 0.4, a: -6.39}
-    - _ClipBox4: {r: 2, g: -6.7, b: 5.26, a: -6.39}
-    - _ClipBox5: {r: 0, g: 0, b: 0, a: 0}
+    - _ClipBox0: {r: -2.32, g: -1.37, b: 5.09, a: -1.07}
+    - _ClipBox1: {r: -7.4, g: -6.36, b: -2.02, a: -6.06}
+    - _ClipBox2: {r: -7.4, g: -6.36, b: -7.09, a: -2.9}
+    - _ClipBox3: {r: -7.4, g: -1.1, b: -7.09, a: 1.13}
+    - _ClipBox4: {r: -3.31, g: 1.13, b: -3.01, a: 2.1}
+    - _ClipBox5: {r: -1.52, g: -0.5, b: 1.08, a: 0.86}
     - _ClipMinYA: {r: 0.35, g: 0.35, b: 0.35, a: 0.35}
-    - _ClipMinYB: {r: 0.35, g: 0, b: 0, a: 0}
+    - _ClipMinYB: {r: 0.35, g: 0.2, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}

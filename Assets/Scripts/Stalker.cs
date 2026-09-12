@@ -30,6 +30,9 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float stunSeconds = 3f;
     [SerializeField] private float knockbackDamping = 6f;
 
+    [Header("Animation (optional)")]
+    [SerializeField] private Animator animator;
+
     [Header("Glow")]
     [SerializeField] private Light glow;
     [SerializeField] private float dormantGlow = 0.35f;
@@ -37,6 +40,10 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float glowLerp = 4f;
 
     public State CurrentState { get; private set; } = State.Dormant;
+
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int StunnedHash = Animator.StringToHash("Stunned");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     private CharacterController controller;
     private Transform player;
@@ -52,6 +59,7 @@ public class Stalker : MonoBehaviour
         if (p != null) player = p.transform;
         if (glow == null) glow = GetComponentInChildren<Light>();
         if (glow != null) glow.intensity = dormantGlow;
+        if (animator == null) animator = GetComponentInChildren<Animator>();
     }
 
     private void Update()
@@ -116,6 +124,12 @@ public class Stalker : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
         }
 
+        if (animator != null)
+        {
+            animator.SetFloat(SpeedHash, flat.magnitude, 0.1f, Time.deltaTime);
+            animator.SetBool(StunnedHash, CurrentState == State.Stunned);
+        }
+
         if (glow != null)
         {
             float want;
@@ -163,6 +177,7 @@ public class Stalker : MonoBehaviour
 
     private void Catch(Transform target)
     {
+        if (animator != null) animator.SetTrigger(AttackHash);
         Survivor s = target.GetComponent<Survivor>();
         if (s != null)
         {
