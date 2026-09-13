@@ -208,7 +208,7 @@ public class Intro : MonoBehaviour
         if (cameo != null) Destroy(cameo);
         HouseView.ForceOutside = false;
         if (HouseView.Instance != null) HouseView.Instance.RefreshView();
-        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.73f);
+        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.55f);   // late afternoon: about 70 s of light, then the first night
         cam.transform.position = player.position + camOffset;
         cam.orthographicSize = 7f;
     }

@@ -12,7 +12,7 @@ It's her house. They come as far as the fence and no further, and she doesn't kn
 
 Out in the forest, the people who ran are still alive. By day they hide and their fires go cold. Only after dark do they dare to light them. So it's in the dark you go looking.
 
-**HOME** is a short survival game about going out at night to bring people back. Read the tracks in the snow. Watch for the glow of a fire between the trees. Keep the lantern low, because what finds them by its light finds you too. Get everyone home and the house grows.
+**HOME** is a short survival game about going out at night to bring people back. Read the tracks in the snow. Watch for the glow of a fire between the trees. Your lantern is how you see, and how they see you. Get everyone home and the house grows.
 
 - A ten-minute day, most of it night. Night is when you work.
 - Six survivors, scattered far. Each one home makes the house stronger: more rounds, faster reloads, a longer reach for your lantern.
@@ -27,7 +27,6 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 | Shift | Sprint (loud) |
 | Mouse / Left click | Aim / Shoot |
 | R | Reload |
-| F | Lantern on / off |
 | T | Wait for dark (at home, by day) |
 | Esc | Pause and controls. Esc again to quit |
 | Any key | Skip the intro |

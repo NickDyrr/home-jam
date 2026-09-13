@@ -3,11 +3,10 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// The little that needs saying on screen: the goal, who is home, lost and
-/// still out there, the clock with dawn and dusk countdowns, the keys that
-/// are not obvious, a warm glow at the screen edge toward any burning fire
-/// nearby, a one-time hint on the first night, and the end screen with a
-/// restart. Plain OnGUI, like the ammo counter.
+/// Almost nothing on screen: a warm glow at the screen edge toward any
+/// burning fire nearby, a one-time hint on the first night, the wait-for-dark
+/// prompt when it applies, the pause screen with the controls, and the end
+/// screen with a restart. Plain OnGUI, like the ammo counter.
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
@@ -102,7 +101,6 @@ public class GameHUD : MonoBehaviour
         "W A S D   move",
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
-        "F   lantern on / off (they see it too)",
         "T   wait for dark (at home, by day)",
         "Esc   pause",
     };
@@ -130,46 +128,16 @@ public class GameHUD : MonoBehaviour
         if (Intro.Playing) { hintShownAt = -1f; return; }
         if (label == null) Build();
         if (hintShownAt < 0f) hintShownAt = Time.time;
-        float x = 20f, y = 16f;
 
-        // Goal and survivors
-        if (Home.Instance != null)
-        {
-            int home = Home.Instance.SurvivorsHome, lost = Home.Instance.SurvivorsLost;
-            int outThere = Mathf.Max(0, Home.Instance.SurvivorsTotal - home - lost);
-            GUI.Label(new Rect(x, y, 600, 30), $"Home {home}    Out there {outThere}    Lost {lost}", label);
-            y += 30f;
-        }
-
-        // Clock: a bar that fills through the day, with countdowns
+        // The only standing prompt: waiting for dark, when it applies.
         var dn = DayNightCycle.Instance;
-        if (dn != null)
+        if (dn != null && dn.IsDayWindow && !dn.FastForwarding && HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome && !Paused)
         {
-            float t = dn.TimeOfDay;
-            float w = 220f, h = 8f;
-            GUI.color = new Color(0f, 0f, 0f, 0.5f); GUI.DrawTexture(new Rect(x, y + 8f, w, h), white);
-            GUI.color = new Color(0.25f, 0.35f, 0.6f, 0.9f); GUI.DrawTexture(new Rect(x, y + 8f, w * 0.25f, h), white); GUI.DrawTexture(new Rect(x + w * 0.75f, y + 8f, w * 0.25f, h), white);
-            GUI.color = new Color(1f, 0.85f, 0.5f, 0.9f); GUI.DrawTexture(new Rect(x + w * 0.25f, y + 8f, w * 0.5f, h), white);
-            GUI.color = Color.white; GUI.DrawTexture(new Rect(x + w * t - 2f, y + 4f, 4f, h + 8f), white);
-            y += 26f;
-            int nights = StalkerDirector.Instance != null ? StalkerDirector.Instance.Nights : 0;
-            if (dn.IsDayWindow)
-            {
-                float s = dn.SecondsUntil(DayNightCycle.Sunset);
-                bool home = HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome;
-                string when = $"Day. Dark in {Mathf.FloorToInt(s / 60f)}:{Mathf.FloorToInt(s % 60f):00}" + (home ? "   (T: wait for dark)" : "");
-                GUI.Label(new Rect(x, y, 500, 24), when, small);
-            }
-            else
-            {
-                float s = dn.SecondsUntil(DayNightCycle.Sunrise);
-                GUI.Label(new Rect(x, y, 500, 24), $"Night {nights + 1}. Dawn in {Mathf.FloorToInt(s / 60f)}:{Mathf.FloorToInt(s % 60f):00}", warn);
-            }
-            y += 24f;
+            float w = 400f;
+            GUI.color = new Color(1f, 1f, 1f, 0.8f);
+            GUI.Label(new Rect((Screen.width - w) * 0.5f, Screen.height - 46f, w, 30), "T   wait for dark", mid);
+            GUI.color = Color.white;
         }
-
-        // Keys
-        GUI.Label(new Rect(x, y, 500, 22), (Lantern.IsOn ? "Lantern on" : "Lantern off") + "  (F)", small);
 
         DrawFireGlow();
         DrawHint();

@@ -113,7 +113,7 @@ public class Stalker : MonoBehaviour
                 // The lantern is what they see. Lit, she is noticed from far off; dark, they must stumble into her.
                 Transform t = Nearest(out float dist);
                 float reach = aggroRadius;
-                if (t == player) reach *= Lantern.IsOn ? 1.6f : 0.45f;
+                if (t == player) reach *= 1.2f;   // her lantern is always lit: a little easier to notice than a survivor
                 if (t != null && dist <= reach)
                     Wake();
                 break;

@@ -121,8 +121,11 @@ public class DayNightCycle : MonoBehaviour
     {
         TimeOfDay = Mathf.Repeat(timeOfDay, 1f);
         FastForwarding = false;
+        suppressDawn = true;   // a jump is not a sunrise
         Apply();
+        suppressDawn = false;
     }
+    private bool suppressDawn;
 
     private void Apply()
     {
@@ -132,7 +135,7 @@ public class DayNightCycle : MonoBehaviour
         float edge = 4f * day * (1f - day);   // peaks at dawn and dusk
         Daylight = day;
         bool isDay = day > 0.5f;
-        if (isDay && !wasDay && Application.isPlaying && initialised) Dawn?.Invoke();   // never on the first apply
+        if (isDay && !wasDay && Application.isPlaying && initialised && !suppressDawn) Dawn?.Invoke();   // never on the first apply or a jump
         wasDay = isDay;
         initialised = true;
 
