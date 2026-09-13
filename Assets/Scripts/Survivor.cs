@@ -17,7 +17,7 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class Survivor : MonoBehaviour
 {
-    public enum State { Waiting, Following, Panicked, Settling, Home }
+    public enum State { Waiting, Following, Panicked, Entering, Settling, Home }
 
     /// <summary>Every live survivor in the scene.</summary>
     public static readonly List<Survivor> All = new List<Survivor>();
@@ -64,6 +64,8 @@ public class Survivor : MonoBehaviour
     private bool running;
     private float calmTimer;
     private float panicOkAfter;
+    private List<Vector3> route;
+    private int routeIndex;
 
     private void Awake()
     {
@@ -131,12 +133,31 @@ public class Survivor : MonoBehaviour
 
                 if (HomeZone.Instance != null && HomeZone.Instance.Contains(transform.position))
                 {
-                    CurrentState = State.Settling;
-                    running = false;
-                    settleSpot = Home.Instance != null
-                        ? Home.Instance.SurvivorArrived(this)
-                        : transform.position;
+                    Arrive();
                 }
+                else if (Home.Instance != null && Home.Instance.InYard(transform.position))
+                {
+                    // Safe inside the fence: stop shadowing the player and head in through the front door.
+                    CurrentState = State.Entering;
+                    running = false;
+                    route = DoorOpener.HomeRoute();
+                    routeIndex = 0;
+                }
+                break;
+            }
+
+            case State.Entering:
+            {
+                if (HomeZone.Instance != null && HomeZone.Instance.Contains(transform.position)) { Arrive(); break; }
+                Vector3 goal = Home.Instance != null ? Home.Instance.transform.position : transform.position;
+                if (route != null && routeIndex < route.Count)
+                {
+                    goal = route[routeIndex];
+                    Vector3 toGoal = goal - transform.position; toGoal.y = 0f;
+                    if (toGoal.magnitude < 0.3f) { routeIndex++; break; }
+                }
+                Vector3 toG = goal - transform.position; toG.y = 0f;
+                if (toG.sqrMagnitude > 0.01f) move = toG.normalized;
                 break;
             }
 
@@ -189,8 +210,16 @@ public class Survivor : MonoBehaviour
             animator.SetBool(RunHash, moving && running && CurrentState == State.Following);
             animator.SetBool(ScaredHash, CurrentState == State.Waiting);
             animator.SetBool(PanicHash, CurrentState == State.Panicked);
-            animator.SetBool(SittingHash, CurrentState == State.Home);
+            animator.SetBool(SittingHash, false);   // they stand and idle at home; nothing to sit on at their spots
         }
+    }
+
+    /// <summary>Inside the house: counted, and off to a spot.</summary>
+    private void Arrive()
+    {
+        CurrentState = State.Settling;
+        running = false;
+        settleSpot = Home.Instance != null ? Home.Instance.SurvivorArrived(this) : transform.position;
     }
 
     private bool StalkerNear(float radius)

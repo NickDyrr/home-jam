@@ -112632,6 +112632,8 @@ MonoBehaviour:
   rewardsRoot: {fileID: 1166676191}
   fallbackSettleSpot: {x: 0, y: 0, z: 1}
   ammoPerSurvivor: 6
+  yardMin: {x: -9.9, y: -9.9}
+  yardMax: {x: 9.9, y: 7.7}
   upgradeAtSurvivors: 
   debugUpgradeKey: 1
 --- !u!114 &1044136124
@@ -116947,9 +116949,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fec2e40ee76c6494491a0a6fc65c834e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  moveSpeed: 5
+  moveSpeed: 4
   runSpeed: 8.5
   turnSpeed: 720
+  runNoiseRadius: 14
   animator: {fileID: 0}
 --- !u!143 &1091352694
 CharacterController:
@@ -117078,6 +117081,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Lantern
   lantern: {fileID: 0}
   blendSpeed: 2
+  darkAmbient: 0.35
 --- !u!1001 &1091635118
 PrefabInstance:
   m_ObjectHideFlags: 0

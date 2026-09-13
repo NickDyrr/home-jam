@@ -21,6 +21,9 @@ public class Home : MonoBehaviour
     [SerializeField] private Transform rewardsRoot;
     [SerializeField] private Vector3 fallbackSettleSpot = new Vector3(0f, 0f, 1f);
     [SerializeField] private int ammoPerSurvivor = 6;
+    [Tooltip("The fenced yard, in world XZ. A following survivor inside it heads for the front door on its own.")]
+    [SerializeField] private Vector2 yardMin = new Vector2(-9.9f, -9.9f);
+    [SerializeField] private Vector2 yardMax = new Vector2(9.9f, 7.7f);
 
     [Header("Upgrades")]
     [Tooltip("Survivor counts at which the house goes up a level. Element 0 unlocks level 1, and so on.")]
@@ -34,6 +37,12 @@ public class Home : MonoBehaviour
     public bool Won { get; private set; }
 
     private readonly List<Survivor> arrivals = new List<Survivor>();
+
+    /// <summary>True when the point is inside the fence, by at least margin.</summary>
+    public bool InYard(Vector3 p, float margin = 0.6f)
+    {
+        return p.x > yardMin.x + margin && p.x < yardMax.x - margin && p.z > yardMin.y + margin && p.z < yardMax.y - margin;
+    }
 
     private void Awake()
     {

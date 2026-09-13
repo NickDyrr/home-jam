@@ -395,7 +395,7 @@ public class Intro : MonoBehaviour
     {
         // A stalker enters from off the right edge of the second shot, crosses in front of the
         // camera target and leaves off the bottom edge. The path is nudged until no trunk is on it.
-        float start = ShotA + 0.3f, endT = ShotB + 1.5f;
+        float start = ShotA + 0.3f, endT = ShotB + 3.0f;              // keeps walking a while past the bottom edge
         if (t < start || t > endT) { if (cameo != null && t > endT) Destroy(cameo); return; }
         if (cameo == null)
         {
@@ -405,7 +405,7 @@ public class Intro : MonoBehaviour
             Vector3 centre = ShotBTarget();
             float halfW = 10f * cam.aspect, halfH = 10f;                 // shot B is ortho size 10
             Vector3 from = centre + right * (halfW + 3f) + up * -1f;
-            Vector3 to = centre + right * (-halfW * 0.3f) + up * (-halfH - 3f);
+            Vector3 to = centre + right * (-halfW * 0.3f) + up * (-halfH - 8f);
             cameoPath = WeavePath(from, to, 1.4f);
             for (int i = 0; i < cameoPath.Count; i++) cameoPath[i] = new Vector3(cameoPath[i].x, 1.0f, cameoPath[i].z);
             cameoLength = PathLength(cameoPath);

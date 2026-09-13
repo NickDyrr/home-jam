@@ -12,7 +12,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float moveSpeed = 4f;
     [SerializeField] private float runSpeed = 8.5f;
     [SerializeField] private float turnSpeed = 720f;
     [Tooltip("Running wakes dormant stalkers within this distance.")]
