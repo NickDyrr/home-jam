@@ -449,19 +449,34 @@ public class Intro : MonoBehaviour
     private static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 
 
+    /// <summary>
+    /// Sets a style's text colour for every state. IMGUI labels switch to the hover state
+    /// under the mouse, so leaving hover unset makes text change under the cursor.
+    /// </summary>
+    public static void SetTextColor(GUIStyle style, Color c)
+    {
+        style.normal.textColor = c;
+        style.hover.textColor = c;
+        style.active.textColor = c;
+        style.focused.textColor = c;
+        style.onNormal.textColor = c;
+        style.onHover.textColor = c;
+        style.onActive.textColor = c;
+        style.onFocused.textColor = c;
+    }
+
     /// <summary>White text with a soft shadow so it reads on snow and on the dark.</summary>
     public static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
     {
         if (alpha <= 0f) return;
         Color saved = style.normal.textColor;
-        style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
         Color shadow = new Color(0f, 0f, 0f, 0.55f * alpha);
-        style.normal.textColor = shadow; GUI.color = Color.white;
+        SetTextColor(style, shadow); GUI.color = Color.white;
         GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), text, style);
-        style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
+        SetTextColor(style, new Color(saved.r, saved.g, saved.b, 1f));
         GUI.color = new Color(1f, 1f, 1f, alpha);
         GUI.Label(r, text, style);
-        style.normal.textColor = saved;
+        SetTextColor(style, saved);
         GUI.color = Color.white;
     }
 
@@ -471,11 +486,11 @@ public class Intro : MonoBehaviour
         if (title == null)
         {
             title = new GUIStyle(GUI.skin.label) { fontSize = 72, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            title.normal.textColor = new Color(0.95f, 0.9f, 0.8f);
+            SetTextColor(title, new Color(0.95f, 0.9f, 0.8f));
             sub = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            sub.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+            SetTextColor(sub, new Color(0.97f, 0.96f, 0.93f));
             hintStyle = new GUIStyle(sub) { fontSize = 21, fontStyle = FontStyle.BoldAndItalic };
-            hintStyle.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+            SetTextColor(hintStyle, new Color(0.97f, 0.96f, 0.93f));
             black = new Texture2D(1, 1); black.SetPixel(0, 0, Color.black); black.Apply();
         }
 

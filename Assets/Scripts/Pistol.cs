@@ -261,7 +261,7 @@ public class Pistol : MonoBehaviour
     private void OnGUI()
     {
         GUIStyle style = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold };
-        style.normal.textColor = Color.white;
+        Intro.SetTextColor(style, Color.white);
         string text = IsReloading ? "RELOADING" : $"{Loaded} / {Reserve}";
         GUI.Label(new Rect(20, Screen.height - 50, 300, 40), text, style);
     }

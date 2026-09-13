@@ -20,14 +20,14 @@ public class GameHUD : MonoBehaviour
     private void Build()
     {
         label = new GUIStyle(GUI.skin.label) { fontSize = 20, fontStyle = FontStyle.Bold };
-        label.normal.textColor = Color.white;
+        Intro.SetTextColor(label, Color.white);
         small = new GUIStyle(GUI.skin.label) { fontSize = 15 };
-        small.normal.textColor = new Color(1f, 1f, 1f, 0.75f);
-        warn = new GUIStyle(label); warn.normal.textColor = new Color(1f, 0.6f, 0.35f);
+        Intro.SetTextColor(small, new Color(1f, 1f, 1f, 0.75f));
+        warn = new GUIStyle(label); Intro.SetTextColor(warn, new Color(1f, 0.6f, 0.35f));
         big = new GUIStyle(GUI.skin.label) { fontSize = 44, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-        big.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+        Intro.SetTextColor(big, new Color(0.97f, 0.96f, 0.93f));
         mid = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-        mid.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+        Intro.SetTextColor(mid, new Color(0.97f, 0.96f, 0.93f));
         white = new Texture2D(1, 1); white.SetPixel(0, 0, Color.white); white.Apply();
 
         // Soft radial blob for the fire glow.

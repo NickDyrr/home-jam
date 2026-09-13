@@ -115,7 +115,7 @@ public class Encounter : MonoBehaviour
         if (style == null)
         {
             style = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            style.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+            Intro.SetTextColor(style, new Color(0.97f, 0.96f, 0.93f));
         }
         float a = t < 0.4f ? t / 0.4f : t > duration - 0.4f ? Mathf.Clamp01((duration - t) / 0.4f) : 1f;
         float w = Mathf.Min(900f, Screen.width - 80f);
