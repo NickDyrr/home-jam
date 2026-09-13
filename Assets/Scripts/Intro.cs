@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 /// its fence while a stalker comes up to the fence and turns back; then it tracks along
 /// the first survivor's trail in the snow to their fire. Cut to black, then inside: she
 /// is in the armchair, stands, walks, and turns to the door. Any key skips. Edit the
-/// lines below for the story; voice clips Resources/Audio/Intro1..4 stretch the timing.
+/// lines below for the story; voice clips Resources/Audio/Intro1..5 stretch the timing.
 /// </summary>
 public class Intro : MonoBehaviour
 {
@@ -16,8 +16,9 @@ public class Intro : MonoBehaviour
     public static readonly string[] Lines =
     {
         "The snow came early this year. Something came down with it.",
-        "They come as far as my fence and no further. I don't know why. Bullets don't kill them. They only slow them down.",
-        "The others are out in the woods. They hide by day and light their fires at night, so that's when I go.",
+        "They come as far as my fence and no further. I don't know why.",
+        "Bullets won't kill them. They only slow them down.",
+        "The others are out in the woods. They hide by day and light their fires at night.",
         "I'll find them. One at a time. And I'll bring them home.",
     };
 
@@ -27,11 +28,12 @@ public class Intro : MonoBehaviour
     private const float StepsForward = 1.7f;     // metres she walks after standing, before turning to the door
     private const float StepSpeed = 1.4f;
 
-    // Timeline (seconds). Shot A (the house and its fence) runs through lines 1 and 2, with a
-    // stalker coming up to the fence and turning back on line 2. Shot B (line 3) tracks along
-    // the first survivor's trail to their fire. Line 4 is inside.
-    private readonly float[] LineTimes = { 1f, 5f, 9f, 13f };
-    private float shotB;                      // when shot B starts (= line 3)
+    // Timeline (seconds). Shot A (the house and its fence) runs through all but the last two
+    // lines, with a stalker coming up to the fence and turning back on line 2. Shot B (the
+    // second-to-last line) tracks along the first survivor's trail to their fire. The last
+    // line is inside.
+    private readonly float[] LineTimes = { 1f, 5f, 9f, 13f, 17f };
+    private float shotB;                      // when shot B starts (= second-to-last line)
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
     private const float StandAfter = 1.2f;
@@ -116,7 +118,7 @@ public class Intro : MonoBehaviour
             float dur = voice[i] != null ? voice[i].length + 0.6f : words * 0.34f + 1.2f;
             tt += Mathf.Max(dur, 3f);
         }
-        shotB = LineTimes[2];
+        shotB = LineTimes[Lines.Length - 2];
         cut = LineTimes[Lines.Length - 1];
         cutStart = cut - FadeToBlack;
         storyEnd = tt;
