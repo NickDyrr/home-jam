@@ -22,7 +22,6 @@ public class Intro : MonoBehaviour
         "Out past the trees, fires are still burning. Every night there are fewer.",
         "I'm going to find them, and I'm going to bring them home.",
     };
-    public static readonly string Hint = "Light finds them. Light finds you. Be home before dark.";
 
     // Where she sits: the armchair by the fire, facing into the room.
     private static readonly Vector3 ChairSpot = new Vector3(1.45f, 1.0f, -1.5f);
@@ -79,7 +78,7 @@ public class Intro : MonoBehaviour
         if (cc != null) cc.enabled = false;                       // stays off until control is restored
         player.position = ChairSpot;
         player.rotation = Quaternion.LookRotation(ChairFacing, Vector3.up);
-        DoorOpener.HoldClosed = true;                             // she is near the door, but it stays shut until she stands
+        DoorOpener.HoldClosed = true;                             // she is near the door, but it stays shut until the intro is over
         playerScripts = new Behaviour[] { player.GetComponent<PlayerMovement>(), player.GetComponent<Pistol>(), player.GetComponent<Listen>() };
         foreach (var b in playerScripts) if (b != null) b.enabled = false;
 
@@ -118,7 +117,7 @@ public class Intro : MonoBehaviour
         cut = LineTimes[Lines.Length - 1];
         cutStart = cut - FadeToBlack;
         storyEnd = tt;
-        end = storyEnd + 3.5f;
+        end = storyEnd + 1.5f;
     }
 
     private static Campfire FirstFire()
@@ -178,7 +177,6 @@ public class Intro : MonoBehaviour
                 }
                 else
                 {
-                    DoorOpener.HoldClosed = false;               // on her feet: the door may open for her now
                     if (walked < StepsForward)
                     {
                         walking = true;
@@ -194,7 +192,7 @@ public class Intro : MonoBehaviour
             if (t >= storyEnd && !controllerRestored) RestoreControl();
         }
 
-        if (t >= end) { done = true; Playing = false; Destroy(this); }
+        if (t >= end) { done = true; Playing = false; DoorOpener.HoldClosed = false; Destroy(this); }
     }
 
     private static Vector3 DoorPosition()
@@ -218,7 +216,6 @@ public class Intro : MonoBehaviour
     private void RestoreControl()
     {
         controllerRestored = true;
-        DoorOpener.HoldClosed = false;
         var cc = player.GetComponent<CharacterController>();
         if (cc != null) { Vector3 p = player.position; p.y = Mathf.Max(p.y, StandY); player.position = p; cc.enabled = true; Physics.SyncTransforms(); }
         if (playerAnim != null && playerController != null) playerAnim.runtimeAnimatorController = playerController;
@@ -431,11 +428,15 @@ public class Intro : MonoBehaviour
     private static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 
 
-    /// <summary>Plain black text.</summary>
+    /// <summary>White text with a soft shadow so it reads on snow and on the dark.</summary>
     public static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
     {
         if (alpha <= 0f) return;
         Color saved = style.normal.textColor;
+        style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
+        Color shadow = new Color(0f, 0f, 0f, 0.55f * alpha);
+        style.normal.textColor = shadow; GUI.color = Color.white;
+        GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), text, style);
         style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
         GUI.color = new Color(1f, 1f, 1f, alpha);
         GUI.Label(r, text, style);
@@ -451,9 +452,9 @@ public class Intro : MonoBehaviour
             title = new GUIStyle(GUI.skin.label) { fontSize = 72, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             title.normal.textColor = new Color(0.95f, 0.9f, 0.8f);
             sub = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
-            sub.normal.textColor = new Color(0.05f, 0.05f, 0.07f);
+            sub.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
             hintStyle = new GUIStyle(sub) { fontSize = 21, fontStyle = FontStyle.BoldAndItalic };
-            hintStyle.normal.textColor = new Color(0.05f, 0.05f, 0.07f);
+            hintStyle.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
             black = new Texture2D(1, 1); black.SetPixel(0, 0, Color.black); black.Apply();
         }
 
@@ -488,8 +489,6 @@ public class Intro : MonoBehaviour
             DrawLegible(new Rect(x, Screen.height * 0.6f, w, 70), Lines[i], sub, a);
         }
 
-        float hintA = t < storyEnd ? 0f : t < storyEnd + 0.6f ? (t - storyEnd) / 0.6f : t < end - 0.8f ? 1f : Mathf.Clamp01((end - t) / 0.8f);
-        DrawLegible(new Rect(x, Screen.height * 0.6f, w, 60), Hint, hintStyle, hintA);
 
         if (t < storyEnd) { GUI.color = new Color(1f, 1f, 1f, 0.45f); GUI.Label(new Rect(x, Screen.height - 50f, w, 30), "any key to skip", hintStyle); }
         GUI.color = Color.white;
@@ -498,6 +497,7 @@ public class Intro : MonoBehaviour
     private void OnDestroy()
     {
         Playing = false;
+        DoorOpener.HoldClosed = false;
         Snowfall.FollowOverride = null;
         HouseView.ForceOutside = false;
         if (HouseView.Instance != null) HouseView.Instance.RefreshView();
