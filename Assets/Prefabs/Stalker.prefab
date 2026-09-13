@@ -81,8 +81,10 @@ MonoBehaviour:
   catchRadius: 1.3
   retreatSeconds: 2.5
   retreatSpeed: 5
-  stunSeconds: 3
+  stunSeconds: 1.2
   knockbackDamping: 6
+  slowPerHit: 0.18
+  minSpeedFactor: 0.3
   grabSeconds: 2.2
   animator: {fileID: 6553954678496869733}
   glow: {fileID: 0}

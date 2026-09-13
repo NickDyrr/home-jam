@@ -5,7 +5,7 @@ using UnityEngine;
 /// escorted survivor comes within aggroRadius, then hunts whichever of them
 /// is nearest. Gives up and goes dormant again if the nearest one gets past
 /// loseRadius. Speed ramps with time spent outside.
-/// A pistol hit stuns it and knocks it back; it never dies.
+/// A pistol hit staggers it, knocks it back and slows it for good; it never dies.
 /// Never seen clearly; it is a silhouette with a cold glow.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
@@ -30,8 +30,16 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float retreatSpeed = 5f;
 
     [Header("Hit")]
-    [SerializeField] private float stunSeconds = 3f;
+    [Tooltip("Brief stagger on a hit. The lasting effect is the slow below.")]
+    [SerializeField] private float stunSeconds = 1.2f;
     [SerializeField] private float knockbackDamping = 6f;
+    [Tooltip("Each bullet takes this much off its speed, for good. Bullets never kill it.")]
+    [SerializeField] private float slowPerHit = 0.18f;
+    [SerializeField] private float minSpeedFactor = 0.3f;
+
+    private int hits;
+    /// <summary>How much of its speed is left after the bullets it has taken.</summary>
+    public float SpeedFactor => Mathf.Max(minSpeedFactor, 1f - hits * slowPerHit);
 
     [Header("Grab")]
     [Tooltip("Seconds it holds the player before she is taken. A pistol hit in that window breaks the grab.")]
@@ -137,14 +145,14 @@ public class Stalker : MonoBehaviour
                 Vector3 to = t.position - transform.position;
                 to.y = 0f;
                 float outside = StalkerDirector.Instance != null ? StalkerDirector.Instance.TimeOutside : 0f;
-                float speed = Mathf.Min(maxSpeed, baseSpeed + outside * speedPerSecondOutside);
+                float speed = Mathf.Min(maxSpeed, baseSpeed + outside * speedPerSecondOutside) * SpeedFactor;
                 move = to.normalized * speed;
                 break;
             }
 
             case State.Retreating:
                 if (Time.time >= retreatUntil) CurrentState = State.Hunting;
-                else move = retreatDir * retreatSpeed;
+                else move = retreatDir * retreatSpeed * SpeedFactor;
                 break;
 
             case State.Stunned:
@@ -196,9 +204,10 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    /// <summary>Pistol hit. Knocked back along the shot, stunned for a few seconds. Breaks a grab.</summary>
+    /// <summary>Pistol hit. Knocked back along the shot, staggered briefly, and slower from now on. Breaks a grab. Never kills.</summary>
     public void Hit(Vector3 impulse)
     {
+        hits++;
         if (CurrentState == State.Grabbing) ReleasePlayer();
         knock = impulse;
         knock.y = 0f;

@@ -186,3 +186,5 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 **Tuning.** Stalker group 5 (+1 per night), scattered 18 to 48 m around the player. Walk 4, sprint 6.5.
 
 **Trim (Sep 13, evening).** After the intro the game starts in late afternoon (about 70 s of light) so the first night arrives after a short walk, not on a jump. The top HUD is gone: no counters, no clock. What remains is the ammo counter, the fire glow at the screen edge, the first-night hint, "T wait for dark" when at home by day, the pause screen with the controls, and the end screen. The lantern is always lit; the F toggle is removed (stalkers notice her at 1.2x a survivor's reach).
+
+**Bullets slow, never kill (Sep 13, late).** Each pistol hit staggers a stalker for 1.2 s, knocks it back, and takes 18% off its speed permanently (floor 30%). Six rounds turn a runner into a shambler; nothing ever dies. Said in the intro: "Bullets don't kill them. They only slow them down."
