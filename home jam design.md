@@ -161,7 +161,7 @@ The snow came early this year. Something came down with it. / The rest of us ran
 
 Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when they are home (HomeBonuses.Describe). The end message comes from Home.CheckEnd.
 
-## World update (Sep 14)
+## World update (Sep 13)
 
 **Bigger world.** Ground is 420 x 420 (about three times the area). The forest fills it to the edge: 6311 trees. A ring of rock (CliffRing, built at start) closes the map at +-200 m, jagged, 20 m at the crest, with colliders. Chunks that stand between the camera and the player go see-through the way trees do, and so do chunks on the camera's side of her when she is within 40 m, since the camera looks from the south-west.
 
@@ -171,7 +171,7 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 
 **Stalkers follow the hunt.** The night group is scattered 18 to 48 m around the player (never in the yard, never within 12 m of home). If she leaves them all more than 110 m behind, they melt away and a new group gathers nearer. Danger is everywhere, not just near the house.
 
-## Night loop (Sep 14)
+## Night loop (Sep 13)
 
 **Night is the game.** The clock is 180 s of day and 420 s of night, and the game starts at dusk. At home by day, T races the clock to dusk.
 
