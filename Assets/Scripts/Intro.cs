@@ -35,7 +35,8 @@ public class Intro : MonoBehaviour
     private readonly float[] LineTimes = { 1f, 5f, 9f, 13f, 17f };
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
-    private const float StandAfter = 1.2f, TurnAfter = 2.2f, TurnSeconds = 0.6f;
+    private const float StandAfter = 1.2f;
+    private const float RiseSeconds = 0.7f, RiseSlide = 0.55f;   // she comes forward out of the chair as she stands
 
     private float t;
     private bool done, insideNow, stood, controllerRestored;
@@ -51,6 +52,8 @@ public class Intro : MonoBehaviour
     private GameObject cameo;
     private Animator cameoAnim;
     private Vector3 cameoFrom, cameoTo;
+    private System.Collections.Generic.List<Vector3> cameoPath;
+    private float cameoLength;
     private AudioClip[] voice;
     private AudioSource voiceSource;
     private int nextVoiceLine;
@@ -159,26 +162,30 @@ public class Intro : MonoBehaviour
         if (insideNow)
         {
             if (!stood && t >= cut + StandAfter) { stood = true; if (playerAnim != null) playerAnim.SetBool(SittingHash, false); }
-            if (t >= cut + TurnAfter)
+            if (stood)
             {
-                Vector3 toDoor = DoorPosition() - player.position; toDoor.y = 0f;
-                if (toDoor.sqrMagnitude > 0.01f)
+                // Standing slides her out of the chair; then she walks straight ahead, no turn.
+                float since = t - (cut + StandAfter);
+                var cc = player.GetComponent<CharacterController>();
+                Vector3 step = Vector3.zero;
+                bool walking = false;
+                if (since < RiseSeconds)
                 {
-                    float k = Ease((t - (cut + TurnAfter)) / TurnSeconds);
-                    Quaternion want = Quaternion.LookRotation(toDoor.normalized, Vector3.up);
-                    player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), want, k);
-                    // Once she faces the door, a few steps toward it.
-                    bool walking = k >= 1f && walked < StepsForward;
-                    if (walking)
-                    {
-                        float d = StepSpeed * Time.deltaTime;
-                        var cc = player.GetComponent<CharacterController>();
-                        Vector3 step = toDoor.normalized * d + Vector3.down * 0.5f * Time.deltaTime;
-                        if (cc != null && cc.enabled) cc.Move(step); else player.position += step;
-                        walked += d;
-                    }
-                    if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
+                    step = ChairFacing * (RiseSlide / RiseSeconds) * Time.deltaTime;
                 }
+                else if (walked < StepsForward)
+                {
+                    walking = true;
+                    float d = StepSpeed * Time.deltaTime;
+                    step = ChairFacing * d;
+                    walked += d;
+                }
+                if (step.sqrMagnitude > 0f)
+                {
+                    step += Vector3.down * 0.5f * Time.deltaTime;
+                    if (cc != null && cc.enabled) cc.Move(step); else player.position += step;
+                }
+                if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
             }
             if (t >= storyEnd && !controllerRestored) RestoreControl();
         }
@@ -254,22 +261,130 @@ public class Intro : MonoBehaviour
         up = cam.transform.forward; up.y = 0f; up.Normalize();
     }
 
-    /// <summary>True if a tree trunk sits within clearance of the segment a-b.</summary>
-    private static bool PathHitsTree(Vector3 a, Vector3 b, float clearance)
+    /// <summary>First tree trunk within clearance of the segment a-b (flat), or null.</summary>
+    public static Transform FirstTreeOn(Vector3 a, Vector3 b, float clearance)
     {
         var forest = GameObject.Find("Forest");
-        if (forest == null) return false;
-        Vector3 ab = b - a; ab.y = 0f; float len = ab.magnitude; if (len < 0.01f) return false;
+        if (forest == null) return null;
+        Vector3 ab = b - a; ab.y = 0f; float len = ab.magnitude; if (len < 0.01f) return null;
         Vector3 dir = ab / len;
+        Transform best = null; float bestAlong = float.MaxValue;
         foreach (Transform tr in forest.transform)
         {
             Vector3 ap = tr.position - a; ap.y = 0f;
-            float along = Mathf.Clamp(Vector3.Dot(ap, dir), 0f, len);
+            float along = Mathf.Clamp(Vector3.Dot(ap, dir), 0.01f, len - 0.01f);
             Vector3 closest = a + dir * along; closest.y = 0f;
             Vector3 p = tr.position; p.y = 0f;
-            if ((p - closest).sqrMagnitude < clearance * clearance) return true;
+            if ((p - closest).sqrMagnitude < clearance * clearance && along < bestAlong) { bestAlong = along; best = tr; }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// A path from a to b that bobs and weaves between trunks. The route is split into
+    /// stations; at each one the walker may sit in any of several lanes to the side of the
+    /// straight line. The cheapest chain of lanes whose every segment is clear of trees (and
+    /// of the yard) wins, so the monster drifts left and right around the trunks instead of
+    /// through them. Falls back to the straight line if no clear chain exists.
+    /// </summary>
+    public static System.Collections.Generic.List<Vector3> WeavePath(Vector3 a, Vector3 b, float clearance)
+    {
+        var pts = new System.Collections.Generic.List<Vector3>();
+        Vector3 ab = b - a; ab.y = 0f; float len = ab.magnitude;
+        if (len < 0.01f) { pts.Add(a); pts.Add(b); return pts; }
+        Vector3 dir = ab / len;
+        Vector3 side = Vector3.Cross(Vector3.up, dir);
+
+        // Only trunks near the corridor matter; gather them once so the lane search stays cheap.
+        var trunks = new System.Collections.Generic.List<Vector3>();
+        var forestRoot = GameObject.Find("Forest");
+        if (forestRoot != null)
+            foreach (Transform tr in forestRoot.transform)
+            {
+                Vector3 p = tr.position; p.y = 0f;
+                Vector3 rel = p - a; rel.y = 0f;
+                float along = Vector3.Dot(rel, dir), across = Vector3.Dot(rel, side);
+                if (along > -clearance - 1f && along < len + clearance + 1f && Mathf.Abs(across) < 7f) trunks.Add(p);
+            }
+
+        const float stationStep = 2.0f, laneStep = 0.75f;
+        const int halfLanes = 7;                                   // lanes at -5.25 .. +5.25 m
+        int stations = Mathf.Max(2, Mathf.CeilToInt(len / stationStep));
+        int lanes = halfLanes * 2 + 1;
+
+        Vector3 P(int k, int l) => a + dir * (len * k / stations) + side * ((l - halfLanes) * laneStep);
+
+        var cost = new float[stations + 1, lanes];
+        var from = new int[stations + 1, lanes];
+        for (int k = 0; k <= stations; k++) for (int l = 0; l < lanes; l++) cost[k, l] = float.PositiveInfinity;
+        // Start and end are off screen, so any lane will do there (slight preference for the centre).
+        for (int l = 0; l < lanes; l++) cost[0, l] = Mathf.Abs(l - halfLanes) * 0.3f;
+        for (int k = 1; k <= stations; k++)
+        {
+            for (int l = 0; l < lanes; l++)
+            {
+                Vector3 pk = P(k, l);
+                if (InYard(pk, 1.5f)) continue;
+                for (int pl = Mathf.Max(0, l - 3); pl <= Mathf.Min(lanes - 1, l + 3); pl++)
+                {
+                    if (float.IsInfinity(cost[k - 1, pl])) continue;
+                    if (SegmentHits(trunks, P(k - 1, pl), pk, clearance)) continue;
+                    float c = cost[k - 1, pl] + Mathf.Abs(l - pl) * 0.6f + Mathf.Abs(l - halfLanes) * 0.15f;
+                    if (c < cost[k, l]) { cost[k, l] = c; from[k, l] = pl; }
+                }
+            }
+        }
+        int endLane = -1; float endCost = float.PositiveInfinity;
+        for (int l = 0; l < lanes; l++) { float c = cost[stations, l] + Mathf.Abs(l - halfLanes) * 0.3f; if (c < endCost) { endCost = c; endLane = l; } }
+        if (endLane < 0) { pts.Add(a); pts.Add(b); return pts; }
+
+        var laneAt = new int[stations + 1];
+        laneAt[stations] = endLane;
+        for (int k = stations; k > 0; k--) laneAt[k - 1] = from[k, laneAt[k]];
+        for (int k = 0; k <= stations; k++) pts.Add(P(k, laneAt[k]));
+        return pts;
+    }
+
+    /// <summary>True if any of the given trunks sits within clearance of the flat segment a-b.</summary>
+    private static bool SegmentHits(System.Collections.Generic.List<Vector3> trunks, Vector3 a, Vector3 b, float clearance)
+    {
+        Vector3 ab = b - a; ab.y = 0f; float len = ab.magnitude; if (len < 0.01f) return false;
+        Vector3 dir = ab / len; a.y = 0f;
+        float sq = clearance * clearance;
+        for (int i = 0; i < trunks.Count; i++)
+        {
+            Vector3 ap = trunks[i] - a;
+            float along = Mathf.Clamp(Vector3.Dot(ap, dir), 0f, len);
+            if ((ap - dir * along).sqrMagnitude < sq) return true;
         }
         return false;
+    }
+
+    /// <summary>True inside the fenced yard, grown by margin.</summary>
+    private static bool InYard(Vector3 p, float margin)
+    {
+        return Mathf.Abs(p.x) < 9.9f + margin && p.z > -9.9f - margin && p.z < 7.7f + margin;
+    }
+
+    private static float PathLength(System.Collections.Generic.List<Vector3> pts)
+    {
+        float l = 0f; for (int i = 0; i < pts.Count - 1; i++) l += Vector3.Distance(pts[i], pts[i + 1]); return l;
+    }
+
+    private static Vector3 PointAlong(System.Collections.Generic.List<Vector3> pts, float dist, out Vector3 dir)
+    {
+        dir = Vector3.forward;
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            float seg = Vector3.Distance(pts[i], pts[i + 1]);
+            if (dist <= seg || i == pts.Count - 2)
+            {
+                dir = (pts[i + 1] - pts[i]).normalized;
+                return Vector3.Lerp(pts[i], pts[i + 1], seg > 0f ? Mathf.Clamp01(dist / seg) : 1f);
+            }
+            dist -= seg;
+        }
+        return pts[pts.Count - 1];
     }
 
     private void DriveCameo()
@@ -285,41 +400,34 @@ public class Intro : MonoBehaviour
             ScreenAxes(out Vector3 right, out Vector3 up);
             Vector3 centre = ShotBTarget();
             float halfW = 10f * cam.aspect, halfH = 10f;                 // shot B is ortho size 10
-            Vector3 from = Vector3.zero, to = Vector3.zero; bool ok = false;
-            foreach (float shift in new[] { 0f, 2f, -2f, 4f, -4f, 6f, -6f })
-            {
-                from = centre + right * (halfW + 3f) + up * (-1f + shift);
-                to = centre + right * (-halfW * 0.3f + shift * 0.5f) + up * (-halfH - 3f);
-                if (!PathHitsTree(from, to, 1.3f)) { ok = true; break; }
-            }
-            if (!ok) { from = centre + right * (halfW + 3f) + up * -1f; to = centre + up * (-halfH - 3f); }
-            cameoFrom = from + Vector3.up * 1.0f;
-            cameoTo = to + Vector3.up * 1.0f;
-            cameo = Instantiate(prefab, cameoFrom, Quaternion.LookRotation(cameoTo - cameoFrom, Vector3.up));
+            Vector3 from = centre + right * (halfW + 3f) + up * -1f;
+            Vector3 to = centre + right * (-halfW * 0.3f) + up * (-halfH - 3f);
+            cameoPath = WeavePath(from, to, 1.4f);
+            for (int i = 0; i < cameoPath.Count; i++) cameoPath[i] = new Vector3(cameoPath[i].x, 1.0f, cameoPath[i].z);
+            cameoLength = PathLength(cameoPath);
+            cameoFrom = cameoPath[0]; cameoTo = cameoPath[cameoPath.Count - 1];
+            cameo = Instantiate(prefab, cameoFrom, Quaternion.LookRotation(cameoPath[1] - cameoFrom, Vector3.up));
             var s = cameo.GetComponent<Stalker>(); if (s != null) s.enabled = false;
             var e = cameo.GetComponent<FootprintEmitter>(); if (e != null) e.enabled = false;
             var c = cameo.GetComponent<CharacterController>(); if (c != null) c.enabled = false;
             cameoAnim = cameo.GetComponentInChildren<Animator>();
         }
         float k = (t - start) / (endT - start);
-        cameo.transform.position = Vector3.Lerp(cameoFrom, cameoTo, k);
-        float speed = (cameoTo - cameoFrom).magnitude / (endT - start);
+        Vector3 pos = PointAlong(cameoPath, k * cameoLength, out Vector3 dir);
+        cameo.transform.position = pos;
+        if (dir.sqrMagnitude > 0.001f)
+            cameo.transform.rotation = Quaternion.Slerp(cameo.transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 1f - Mathf.Exp(-6f * Time.deltaTime));
+        float speed = cameoLength / (endT - start);
         if (cameoAnim != null) cameoAnim.SetFloat("Speed", speed);
     }
 
     private static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 
-    private static Texture2D bandTex;
 
-    /// <summary>Black text on a soft pale band so it reads on the night scene.</summary>
+    /// <summary>Plain black text.</summary>
     public static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
     {
         if (alpha <= 0f) return;
-        if (bandTex == null) { bandTex = new Texture2D(1, 1); bandTex.SetPixel(0, 0, Color.white); bandTex.Apply(); }
-        float h = style.CalcHeight(new GUIContent(text), r.width);
-        var band = new Rect(r.x - 16f, r.y + (r.height - h) * 0.5f - 8f, r.width + 32f, h + 16f);
-        GUI.color = new Color(0.93f, 0.9f, 0.84f, 0.72f * alpha);
-        GUI.DrawTexture(band, bandTex);
         Color saved = style.normal.textColor;
         style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
         GUI.color = new Color(1f, 1f, 1f, alpha);
