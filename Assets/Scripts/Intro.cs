@@ -15,9 +15,9 @@ public class Intro : MonoBehaviour
     public static readonly string Title = "HOME";
     public static readonly string[] Lines =
     {
-        "The snow came early this year. Something came down with it. Nobody saw them arrive, only what they left behind.",
+        "The snow came early this year. Something came down with it.",
         "The rest of us ran for the forest.",
-        "I made it back here. They come as far as the fence and no further. I don't know why. I've stopped asking.",
+        "I made it back here. They come as far as the fence and no further. I don't know why.",
         "Out past the trees, fires are still burning. Every night there are fewer.",
         "I'm going to find them, and I'm going to bring them home.",
     };
@@ -286,10 +286,11 @@ public class Intro : MonoBehaviour
         GUI.Label(new Rect(x, Screen.height * 0.3f, w, 100), Title, title);
 
         // Subtitles, one at a time.
+        // Subtitles: each line holds until the next one starts; the last holds through the fade to black.
         for (int i = 0; i < Lines.Length; i++)
         {
-            float s = LineTimes[i], e = i + 1 < Lines.Length ? LineTimes[i + 1] : ShotC;
-            float a = t < s ? 0f : t < s + 0.7f ? (t - s) / 0.7f : t < e - 0.4f ? 1f : Mathf.Clamp01((e - t) / 0.4f);
+            float s = LineTimes[i], e = i + 1 < Lines.Length ? LineTimes[i + 1] : FadeOutEnd;
+            float a = t < s ? 0f : t < s + 0.3f ? (t - s) / 0.3f : t < e ? 1f : 0f;
             if (a <= 0f) continue;
             DrawLegible(new Rect(x, Screen.height * 0.6f, w, 70), Lines[i], sub, a);
         }

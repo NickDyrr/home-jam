@@ -35,7 +35,7 @@ public class Campfire : MonoBehaviour
     private void Start()
     {
         var audio = AudioManager.Ensure();
-        crackle = audio.Loop(audio.Crackle, transform, 0.7f);
+        crackle = audio.Loop(audio.Crackle, transform, 0.12f);
     }
 
     private void Update()

@@ -156,7 +156,7 @@ Everything above the cut line: walk out, escort home, be afraid, watch the house
 ## Story (Sep 12)
 
 **Intro (in-world flyover, subtitles one line at a time, any key skips; edit in Intro.cs; voice clips Resources/Audio/Intro1..5 + IntroHint):**
-The snow came early this year. Something came down with it. Nobody saw them arrive, only what they left behind. / The rest of us ran for the forest. / I made it back here. They come as far as the fence and no further. I don't know why. I've stopped asking. / Out past the trees, fires are still burning. Every night there are fewer. / I'm going to find them, and I'm going to bring them home.
+The snow came early this year. Something came down with it. / The rest of us ran for the forest. / I made it back here. They come as far as the fence and no further. I don't know why. / Out past the trees, fires are still burning. Every night there are fewer. / I'm going to find them, and I'm going to bring them home.
 *Light finds them. Light finds you. Be home before dark.*
 
 Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when they are home (HomeBonuses.Describe). The end message comes from Home.CheckEnd.

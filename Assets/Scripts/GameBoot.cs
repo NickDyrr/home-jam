@@ -14,5 +14,6 @@ public static class GameBoot
         systems.AddComponent<Dread>();
         systems.AddComponent<GameHUD>();
         systems.AddComponent<Intro>();
+        systems.AddComponent<Encounter>();
     }
 }

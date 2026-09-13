@@ -33,6 +33,9 @@ public class PlayerMovement : MonoBehaviour
     /// <summary>A stalker has hold of her. Set by the stalker for the grab window.</summary>
     public bool Grabbed { get; set; }
 
+    /// <summary>A short scene (meeting a survivor) owns her for a moment.</summary>
+    public bool CutsceneLocked { get; set; }
+
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int RunHash = Animator.StringToHash("Run");
 
@@ -54,7 +57,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        Vector2 input = (MovementLocked || Grabbed) ? Vector2.zero : ReadInput();
+        Vector2 input = (MovementLocked || Grabbed || CutsceneLocked) ? Vector2.zero : ReadInput();
         Keyboard kb = Keyboard.current;
         bool shift = kb != null && kb.leftShiftKey.isPressed;
 
