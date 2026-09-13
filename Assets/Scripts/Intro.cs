@@ -2,12 +2,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// The opening, played in the world. Dusk. The camera starts wide over the
-/// forest on a lone camp fire, drifts toward home while a stalker crosses
-/// between the trees, and pans onto the house. Cut to black, then inside:
-/// she is sitting in the armchair by the fire. On the last line she stands
-/// and walks toward the door as night falls. Any key skips. Edit the lines below for the story;
-/// voice clips Resources/Audio/Intro1..5 stretch the timing to fit.
+/// The opening, played in the world. Night. The camera holds wide on the house and
+/// its fence while a stalker comes up to the fence and turns back; then it tracks along
+/// the first survivor's trail in the snow to their fire. Cut to black, then inside: she
+/// is in the armchair, stands, walks, and turns to the door. Any key skips. Edit the
+/// lines below for the story; voice clips Resources/Audio/Intro1..4 stretch the timing.
 /// </summary>
 public class Intro : MonoBehaviour
 {
@@ -17,10 +16,9 @@ public class Intro : MonoBehaviour
     public static readonly string[] Lines =
     {
         "The snow came early this year. Something came down with it.",
-        "The rest of us ran for the forest.",
-        "I made it back here. They come as far as the fence and no further. I don't know why.",
-        "Out past the trees, fires are still burning. Every night there are fewer.",
-        "I'm going to find them, and I'm going to bring them home.",
+        "They come as far as my fence and no further. I don't know why.",
+        "The others are out in the woods. They hide by day and light their fires at night, so that's when I go.",
+        "I'll find them. One at a time. And I'll bring them home.",
     };
 
     // Where she sits: the armchair by the fire, facing into the room.
@@ -29,9 +27,11 @@ public class Intro : MonoBehaviour
     private const float StepsForward = 1.7f;     // metres she walks after standing, before turning to the door
     private const float StepSpeed = 1.4f;
 
-    // Timeline (seconds)
-    private const float ShotA = 6f, ShotB = 13f;
-    private readonly float[] LineTimes = { 1f, 5f, 9f, 13f, 17f };
+    // Timeline (seconds). Shot A (the house and its fence) runs through lines 1 and 2, with a
+    // stalker coming up to the fence and turning back on line 2. Shot B (line 3) tracks along
+    // the first survivor's trail to their fire. Line 4 is inside.
+    private readonly float[] LineTimes = { 1f, 5f, 9f, 13f };
+    private float shotB;                      // when shot B starts (= line 3)
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
     private const float StandAfter = 1.2f;
@@ -116,6 +116,7 @@ public class Intro : MonoBehaviour
             float dur = voice[i] != null ? voice[i].length + 0.6f : words * 0.34f + 1.2f;
             tt += Mathf.Max(dur, 3f);
         }
+        shotB = LineTimes[2];
         cut = LineTimes[Lines.Length - 1];
         cutStart = cut - FadeToBlack;
         storyEnd = tt;
@@ -226,36 +227,35 @@ public class Intro : MonoBehaviour
 
     private void DriveCamera()
     {
-        Vector3 fire = FireTarget();
-        Vector3 toHome = (Vector3.zero - fire).normalized;
         Vector3 target; float size;
-        if (t < ShotA)
+        if (t < shotB)
         {
-            float k = Ease(t / ShotA);
-            target = Vector3.Lerp(fire, fire + toHome * 3.5f, k);
-            size = Mathf.Lerp(20f, 14f, k);
-        }
-        else if (t < ShotB)
-        {
-            float k = Ease((t - ShotA) / (ShotB - ShotA));
-            target = Vector3.Lerp(fire + toHome * 3.5f, ShotBTarget(), k);
-            size = Mathf.Lerp(14f, 10f, k);
+            // Shot A: home, wide, with the fence in frame; a slow drift in over two lines.
+            float k = t / shotB;
+            target = Vector3.Lerp(new Vector3(-3f, 0f, -4f), new Vector3(-2.5f, 0f, -3f), k);
+            size = Mathf.Lerp(14.5f, 12f, k);
         }
         else
         {
-            float k = Ease((t - ShotB) / Mathf.Max(0.1f, cutStart - ShotB));
-            target = Vector3.Lerp(ShotBTarget(), new Vector3(0f, 0f, -1.5f), k);
-            size = Mathf.Lerp(10f, 9f, k);
+            // Shot B: along the first survivor's tracks to their fire, arriving as the line ends.
+            Vector3 fire = FireTarget();
+            float k = Ease((t - shotB) / Mathf.Max(0.1f, cutStart - shotB));
+            target = Vector3.Lerp(TrailStart(), fire, k);
+            size = Mathf.Lerp(8.5f, 7.5f, k);
         }
         cam.transform.position = target + camOffset;
         cam.orthographicSize = size;
         Snowfall.FollowOverride = target;
     }
 
-    private Vector3 ShotBTarget()
+    /// <summary>Where the first survivor's trail begins (fallback: 20 m toward home from the fire).</summary>
+    private Vector3 TrailStart()
     {
         Vector3 fire = FireTarget();
-        return Vector3.Lerp(fire, Vector3.zero, 0.7f);   // just outside the fence, on the fire side
+        Survivor nearest = null; float best = float.MaxValue;
+        foreach (var s in Survivor.All) { float d = (s.transform.position - fire).sqrMagnitude; if (d < best) { best = d; nearest = s; } }
+        if (nearest != null && Trails.Instance != null && Trails.Instance.StartOf(nearest, out Vector3 start)) return start;
+        return fire + (Vector3.zero - fire).normalized * 20f;
     }
 
     /// <summary>Screen axes on the ground: right, and "up" (away from the camera).</summary>
@@ -393,20 +393,19 @@ public class Intro : MonoBehaviour
 
     private void DriveCameo()
     {
-        // A stalker enters from off the right edge of the second shot, crosses in front of the
-        // camera target and leaves off the bottom edge. The path is nudged until no trunk is on it.
-        float start = ShotA + 0.3f, endT = ShotB + 3.0f;              // keeps walking a while past the bottom edge
-        if (t < start || t > endT) { if (cameo != null && t > endT) Destroy(cameo); return; }
+        // On "they come as far as my fence": a stalker runs in from off the bottom of the screen,
+        // pulls up short of the west fence, stands facing the house, then turns and walks back
+        // into the trees. Gone by the cut to shot B. The path weaves around trunks.
+        float arrive = LineTimes[1] + 2.0f, start = arrive - 4.5f, leave = arrive + 2.2f;
+        if (t < start || t >= shotB) { if (cameo != null && t >= shotB) Destroy(cameo); return; }
         if (cameo == null)
         {
             var prefab = StalkerDirector.Instance != null ? StalkerDirector.Instance.StalkerPrefab : null;
             if (prefab == null) return;
             ScreenAxes(out Vector3 right, out Vector3 up);
-            Vector3 centre = ShotBTarget();
-            float halfW = 10f * cam.aspect, halfH = 10f;                 // shot B is ortho size 10
-            Vector3 from = centre + right * (halfW + 3f) + up * -1f;
-            Vector3 to = centre + right * (-halfW * 0.3f) + up * (-halfH - 8f);
-            cameoPath = WeavePath(from, to, 1.4f);
+            Vector3 stop = new Vector3(-12.3f, 0f, -1f);                  // in the clear strip just outside the west fence
+            Vector3 from = stop - up * 22f;                                // off the bottom edge of shot A
+            cameoPath = WeavePath(from, stop, 1.4f);
             for (int i = 0; i < cameoPath.Count; i++) cameoPath[i] = new Vector3(cameoPath[i].x, 1.0f, cameoPath[i].z);
             cameoLength = PathLength(cameoPath);
             cameoFrom = cameoPath[0]; cameoTo = cameoPath[cameoPath.Count - 1];
@@ -416,12 +415,29 @@ public class Intro : MonoBehaviour
             var c = cameo.GetComponent<CharacterController>(); if (c != null) c.enabled = false;
             cameoAnim = cameo.GetComponentInChildren<Animator>();
         }
-        float k = (t - start) / (endT - start);
-        Vector3 pos = PointAlong(cameoPath, k * cameoLength, out Vector3 dir);
+
+        Vector3 pos, dir; float speed;
+        if (t < arrive)
+        {
+            float k = (t - start) / (arrive - start);
+            pos = PointAlong(cameoPath, k * cameoLength, out dir);
+            speed = cameoLength / (arrive - start);
+        }
+        else if (t < leave)
+        {
+            pos = cameoTo; dir = Vector3.zero - cameoTo; speed = 0f;      // stands at the fence, facing the house
+        }
+        else
+        {
+            float back = 1.8f * (t - leave);                              // walks back the way it came
+            pos = PointAlong(cameoPath, Mathf.Max(0f, cameoLength - back), out dir);
+            dir = -dir; speed = 1.8f;
+            if (back >= cameoLength) { Destroy(cameo); return; }
+        }
         cameo.transform.position = pos;
+        dir.y = 0f;
         if (dir.sqrMagnitude > 0.001f)
-            cameo.transform.rotation = Quaternion.Slerp(cameo.transform.rotation, Quaternion.LookRotation(dir, Vector3.up), 1f - Mathf.Exp(-6f * Time.deltaTime));
-        float speed = cameoLength / (endT - start);
+            cameo.transform.rotation = Quaternion.Slerp(cameo.transform.rotation, Quaternion.LookRotation(dir.normalized, Vector3.up), 1f - Mathf.Exp(-6f * Time.deltaTime));
         if (cameoAnim != null) cameoAnim.SetFloat("Speed", speed);
     }
 

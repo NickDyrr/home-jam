@@ -20,6 +20,15 @@ public class Trails : MonoBehaviour
     [SerializeField] private float minLength = 45f, maxLength = 70f;
     [SerializeField] private float wobble = 6f;
 
+    public static Trails Instance { get; private set; }
+    private readonly System.Collections.Generic.Dictionary<Survivor, Vector3> starts = new System.Collections.Generic.Dictionary<Survivor, Vector3>();
+
+    /// <summary>Where this survivor's trail begins, if one was laid.</summary>
+    public bool StartOf(Survivor s, out Vector3 start) => starts.TryGetValue(s, out start);
+
+    private void Awake() { Instance = this; }
+    private void OnDestroy() { if (Instance == this) Instance = null; }
+
     private void Start()
     {
         var fm = FootprintManager.Instance;
@@ -42,6 +51,8 @@ public class Trails : MonoBehaviour
             Vector3 start = camp + toHome * length + side * lateral;
             for (int guard = 0; guard < 10 && Home.Instance != null && Home.Instance.InYard(start, -3f); guard++)
                 start = camp + toHome * (length -= 5f) + side * lateral;
+
+            starts[s] = start;
 
             // Walk from start to camp with a wandering sideways drift.
             Vector3 line = camp - start; float total = line.magnitude; Vector3 dir = line / total;

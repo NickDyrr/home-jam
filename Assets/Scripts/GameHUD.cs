@@ -183,7 +183,7 @@ public class GameHUD : MonoBehaviour
         float a = age < 0.6f ? age / 0.6f : age > show - 1f ? show - age : 1f;
         float w = Mathf.Min(1000f, Screen.width - 80f);
         Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, Screen.height * 0.6f, w, 80),
-            "They hide by day and light their fires only after dark.\nFollow the tracks in the snow.", mid, a);
+            "Follow the tracks in the snow. Their fires burn only after dark.", mid, a);
     }
 
     private void DrawEnd()
