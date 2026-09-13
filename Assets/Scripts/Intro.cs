@@ -17,9 +17,9 @@ public class Intro : MonoBehaviour
     {
         "The snow came early this year. The things came with it. Nobody saw them arrive, only what they left.",
         "By the time the church bell stopped we were running, and we didn't run together.",
-        "I ended up here, at my grandfather's cabin, with a lantern, six rounds, and a door they will not cross. I don't know what stops them. I've stopped asking.",
-        "Out in the trees the others are keeping their fires lit, because a fire in the dark says someone is still alive. I can see them from the porch, one by one, going out.",
-        "Not tonight. Tonight I'm going to get them.",
+        "I made it back here. Home. They come as far as the fence and no further, and I don't know why. I've stopped asking.",
+        "Out in the trees the others are keeping their fires lit, because a fire in the dark says someone is still alive. I can see them from my porch, one by one, going out.",
+        "Not tonight. Tonight I'm going to find them, and I'm going to bring them home.",
     };
     public static readonly string Hint = "Light finds them. Light finds you. Be home before dark.";
 
