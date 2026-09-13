@@ -18,12 +18,13 @@ public class StalkerDirector : MonoBehaviour
     [Header("Spawning")]
     [SerializeField] private GameObject stalkerPrefab;
     [SerializeField] private int stalkerCount = 4;
-    [SerializeField] private float spawnDelay = 0.5f;
+    [Tooltip("Quiet spell after she leaves the yard before the first group gathers.")]
+    [SerializeField] private float spawnDelay = 12f;
     [Tooltip("Never inside this distance of home: the yard stays theirs to circle, not enter.")]
-    [SerializeField] private float minFromHome = 12f;
+    [SerializeField] private float minFromHome = 35f;
     [Tooltip("The group is scattered around the player, between these distances.")]
-    [SerializeField] private float minFromPlayer = 18f;
-    [SerializeField] private float maxFromPlayer = 48f;
+    [SerializeField] private float minFromPlayer = 30f;
+    [SerializeField] private float maxFromPlayer = 60f;
     [SerializeField] private float minBetween = 8f;
     [Tooltip("When every stalker is further than this from the player, the group melts away and a new one gathers nearer.")]
     [SerializeField] private float regroupDistance = 110f;

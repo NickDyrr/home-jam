@@ -26,7 +26,7 @@ public class Intro : MonoBehaviour
     // Where she sits: the armchair by the fire, facing into the room.
     private static readonly Vector3 ChairSpot = new Vector3(1.45f, 1.0f, -1.5f);
     private static readonly Vector3 ChairFacing = Vector3.left;
-    private const float StepsForward = 1.3f;     // metres she walks toward the door after standing
+    private const float StepsForward = 1.7f;     // metres she walks after standing, before turning to the door
     private const float StepSpeed = 1.4f;
 
     // Timeline (seconds)
@@ -35,7 +35,9 @@ public class Intro : MonoBehaviour
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
     private const float StandAfter = 1.2f;
-    private const float RiseSeconds = 0.7f, RiseSlide = 0.55f;   // she comes forward out of the chair as she stands
+    private const float RiseSeconds = 0.7f;                       // speed and height ease in over this as she rises
+    private const float TurnSeconds = 0.6f;                       // the turn to the door once her steps are done
+    private float turnStart = -1f;
     private const float StandY = 1.18f;                           // player pivot height when standing on the cabin floor
 
     private float t;
@@ -163,31 +165,29 @@ public class Intro : MonoBehaviour
             if (!stood && t >= cut + StandAfter) { stood = true; if (playerAnim != null) playerAnim.SetBool(SittingHash, false); }
             if (stood)
             {
-                // Standing slides her out of the chair and up to standing height; then she walks
-                // straight ahead, no turn. The controller is off for the whole intro so nothing
-                // (floor, chair) can shove her about; she is moved by hand.
+                // She gets up and walks off in one motion: the walk cycle starts as she rises and
+                // her speed eases in, so the legs animate out of the chair instead of sliding. She
+                // rises to standing height over the first moments, then turns to face the door.
+                // The controller is off for the whole intro; she is moved by hand.
                 float since = t - (cut + StandAfter);
-                Vector3 pos = player.position;
-                bool walking = false;
-                if (since < RiseSeconds)
-                {
-                    float k = Ease(since / RiseSeconds);
-                    pos = ChairSpot + ChairFacing * (RiseSlide * k);
-                    pos.y = Mathf.Lerp(ChairSpot.y, StandY, k);
-                }
-                else
-                {
-                    if (walked < StepsForward)
-                    {
-                        walking = true;
-                        float d = StepSpeed * Time.deltaTime;
-                        walked += d;
-                    }
-                    pos = ChairSpot + ChairFacing * (RiseSlide + walked);
-                    pos.y = StandY;
-                }
+                bool walking = walked < StepsForward;
+                if (walking) walked = Mathf.Min(StepsForward, walked + StepSpeed * Ease(since / RiseSeconds) * Time.deltaTime);
+                Vector3 pos = ChairSpot + ChairFacing * walked;
+                pos.y = Mathf.Lerp(ChairSpot.y, StandY, Ease(since / RiseSeconds));
                 player.position = pos;
                 if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
+
+                if (!walking)
+                {
+                    // At the end of her steps: turn to the door.
+                    if (turnStart < 0f) turnStart = t;
+                    Vector3 toDoor = DoorPosition() - player.position; toDoor.y = 0f;
+                    if (toDoor.sqrMagnitude > 0.01f)
+                    {
+                        float k = Ease((t - turnStart) / TurnSeconds);
+                        player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), Quaternion.LookRotation(toDoor.normalized, Vector3.up), k);
+                    }
+                }
             }
             if (t >= storyEnd && !controllerRestored) RestoreControl();
         }
