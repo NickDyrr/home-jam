@@ -111,6 +111,30 @@ public class FootprintManager : MonoBehaviour
         pool[(next + pool.Length - 1) % pool.Length] = p;
     }
 
+    /// <summary>
+    /// A print that never fades and is not part of the pool: old tracks in the
+    /// snow. cutoff sets how filled-in it looks (startCutoff = fresh).
+    /// </summary>
+    public void StampPermanent(Vector3 pos, Vector3 dir, bool left, float size, Color tint, float cutoff, Material material = null)
+    {
+        if (HomeZone.Instance != null && HomeZone.Instance.Contains(pos)) return;
+        if (dir.sqrMagnitude < 0.0001f) dir = Vector3.forward;
+        dir.y = 0f;
+        GameObject g = new GameObject("Track");
+        g.transform.SetParent(transform, false);
+        g.transform.position = new Vector3(pos.x, groundY, pos.z);
+        g.transform.rotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+        g.transform.localScale = Vector3.one * size;
+        g.AddComponent<MeshFilter>().sharedMesh = left ? meshLeft : meshRight;
+        var r = g.AddComponent<MeshRenderer>();
+        r.sharedMaterial = material != null ? material : printMaterial;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        var block = new MaterialPropertyBlock();
+        block.SetFloat(CutoffId, cutoff);
+        block.SetColor(ColorId, tint);
+        r.SetPropertyBlock(block);
+    }
+
     // 1x1 quad on the XZ plane, normal up, +Z is the toe direction.
     private static Mesh BuildQuad(bool mirrorU)
     {

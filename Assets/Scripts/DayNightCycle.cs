@@ -12,8 +12,13 @@ public class DayNightCycle : MonoBehaviour
     public static DayNightCycle Instance { get; private set; }
 
     [Header("Clock")]
-    [SerializeField] private float cycleSeconds = 600f;
-    [Range(0f, 1f)] [SerializeField] private float startTimeOfDay = 0.3f;
+    [Tooltip("Real seconds the day half (sunrise to sunset) takes.")]
+    [SerializeField] private float daySeconds = 180f;
+    [Tooltip("Real seconds the night half takes. Night is the game, so it gets most of the cycle.")]
+    [SerializeField] private float nightSeconds = 420f;
+    [Range(0f, 1f)] [SerializeField] private float startTimeOfDay = 0.73f;
+    [Tooltip("Clock speed while waiting for dark at home.")]
+    [SerializeField] private float fastForwardRate = 0.16f;
 
     [Header("Targets")]
     [SerializeField] private Light sun;
@@ -37,14 +42,47 @@ public class DayNightCycle : MonoBehaviour
     public float TimeOfDay { get; private set; }
     /// <summary>0 at night, 1 in full day.</summary>
     public float Daylight { get; private set; }
-    public float CycleSeconds => cycleSeconds;
+    public float CycleSeconds => daySeconds + nightSeconds;
+    /// <summary>True while the clock is racing toward dusk (waiting at home).</summary>
+    public bool FastForwarding { get; private set; }
+    private float fastForwardTarget;
+
+    /// <summary>Sunrise and sunset, as time-of-day fractions.</summary>
+    public const float Sunrise = 0.25f, Sunset = 0.75f;
+    public bool IsDayWindow => TimeOfDay >= Sunrise && TimeOfDay < Sunset;
+
+    /// <summary>Real seconds until the clock reaches target (ahead of now, wrapping).</summary>
+    public float SecondsUntil(float target)
+    {
+        float t = TimeOfDay, total = 0f;
+        for (int guard = 0; guard < 4; guard++)
+        {
+            bool day = t >= Sunrise && t < Sunset;
+            float windowEnd = day ? Sunset : (t < Sunrise ? Sunrise : 1f + Sunrise);
+            float rate = 0.5f / (day ? daySeconds : nightSeconds);
+            float tt = target < t ? target + 1f : target;
+            if (tt <= windowEnd) return total + (tt - t) / rate;
+            total += (windowEnd - t) / rate;
+            t = Mathf.Repeat(windowEnd, 1f);
+            target = Mathf.Repeat(tt, 1f);
+            if (Mathf.Approximately(t, target)) return total;
+        }
+        return total;
+    }
+
+    /// <summary>Race the clock to the given time of day (used to wait for dark at home).</summary>
+    public void FastForwardTo(float target)
+    {
+        fastForwardTarget = Mathf.Repeat(target, 1f);
+        FastForwarding = true;
+    }
 
     /// <summary>Multiplier on ambient light, driven by the lantern (dark when it is off at night).</summary>
     public static float AmbientScale = 1f;
 
     /// <summary>Fires once each morning as daylight comes up.</summary>
     public static event System.Action Dawn;
-    private bool wasDay;
+    private bool wasDay, initialised;
 
     private void Awake()
     {
@@ -66,8 +104,15 @@ public class DayNightCycle : MonoBehaviour
 
     private void Update()
     {
-        if (cycleSeconds <= 0f) return;
-        TimeOfDay = Mathf.Repeat(TimeOfDay + Time.deltaTime / cycleSeconds, 1f);
+        float rate = 0.5f / (IsDayWindow ? Mathf.Max(1f, daySeconds) : Mathf.Max(1f, nightSeconds));
+        if (FastForwarding)
+        {
+            float remaining = Mathf.Repeat(fastForwardTarget - TimeOfDay, 1f);
+            float step = fastForwardRate * Time.deltaTime;
+            if (step >= remaining) { TimeOfDay = fastForwardTarget; FastForwarding = false; }
+            else TimeOfDay = Mathf.Repeat(TimeOfDay + step, 1f);
+        }
+        else TimeOfDay = Mathf.Repeat(TimeOfDay + rate * Time.deltaTime, 1f);
         Apply();
     }
 
@@ -75,6 +120,7 @@ public class DayNightCycle : MonoBehaviour
     public void SetTime(float timeOfDay)
     {
         TimeOfDay = Mathf.Repeat(timeOfDay, 1f);
+        FastForwarding = false;
         Apply();
     }
 
@@ -86,8 +132,9 @@ public class DayNightCycle : MonoBehaviour
         float edge = 4f * day * (1f - day);   // peaks at dawn and dusk
         Daylight = day;
         bool isDay = day > 0.5f;
-        if (isDay && !wasDay && Application.isPlaying) Dawn?.Invoke();
+        if (isDay && !wasDay && Application.isPlaying && initialised) Dawn?.Invoke();   // never on the first apply
         wasDay = isDay;
+        initialised = true;
 
         if (sun != null)
         {

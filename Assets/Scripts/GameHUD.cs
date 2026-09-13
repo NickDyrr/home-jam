@@ -1,14 +1,22 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /// <summary>
-/// The little that needs saying on screen: who is home, lost and still out
-/// there, the time of day with a warning as dusk comes, the lantern state and
-/// the two keys that are not obvious. Plain OnGUI, like the ammo counter.
+/// The little that needs saying on screen: the goal, who is home, lost and
+/// still out there, the clock with dawn and dusk countdowns, the keys that
+/// are not obvious, a warm glow at the screen edge toward any burning fire
+/// nearby, a one-time hint on the first night, and the end screen with a
+/// restart. Plain OnGUI, like the ammo counter.
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
-    private GUIStyle label, small, warn;
-    private Texture2D white;
+    private const float GlowRange = 70f;
+
+    private GUIStyle label, small, warn, big, mid;
+    private Texture2D white, glow;
+    private float hintShownAt = -1f;
+    private bool restarting;
 
     private void Build()
     {
@@ -17,52 +25,147 @@ public class GameHUD : MonoBehaviour
         small = new GUIStyle(GUI.skin.label) { fontSize = 15 };
         small.normal.textColor = new Color(1f, 1f, 1f, 0.75f);
         warn = new GUIStyle(label); warn.normal.textColor = new Color(1f, 0.6f, 0.35f);
+        big = new GUIStyle(GUI.skin.label) { fontSize = 44, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        big.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
+        mid = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        mid.normal.textColor = new Color(0.97f, 0.96f, 0.93f);
         white = new Texture2D(1, 1); white.SetPixel(0, 0, Color.white); white.Apply();
+
+        // Soft radial blob for the fire glow.
+        const int n = 64;
+        glow = new Texture2D(n, n, TextureFormat.RGBA32, false);
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+        {
+            float d = Vector2.Distance(new Vector2(x, y), new Vector2(n * 0.5f - 0.5f, n * 0.5f - 0.5f)) / (n * 0.5f);
+            float a = Mathf.Clamp01(1f - d); a = a * a;
+            glow.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+        }
+        glow.Apply();
+    }
+
+    private void Update()
+    {
+        var kb = Keyboard.current;
+        if (kb == null) return;
+
+        // Wait for dark: only at home, only by day.
+        var dn = DayNightCycle.Instance;
+        if (dn != null && !Intro.Playing && kb.tKey.wasPressedThisFrame && dn.IsDayWindow && !dn.FastForwarding
+            && HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome)
+            dn.FastForwardTo(0.735f);
+
+        if (Home.Instance != null && Home.Instance.Ended && kb.rKey.wasPressedThisFrame && !restarting)
+        {
+            restarting = true;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+#if !UNITY_EDITOR
+        if (kb.escapeKey.wasPressedThisFrame) Application.Quit();
+#endif
     }
 
     private void OnGUI()
     {
-        if (Intro.Playing) return;
+        if (Intro.Playing) { hintShownAt = -1f; return; }
         if (label == null) Build();
+        if (hintShownAt < 0f) hintShownAt = Time.time;
         float x = 20f, y = 16f;
 
-        // Survivors
+        // Goal and survivors
         if (Home.Instance != null)
         {
             int home = Home.Instance.SurvivorsHome, lost = Home.Instance.SurvivorsLost;
             int outThere = Mathf.Max(0, Home.Instance.SurvivorsTotal - home - lost);
-            GUI.Label(new Rect(x, y, 500, 30), $"Home {home}    Out there {outThere}    Lost {lost}", label);
+            GUI.Label(new Rect(x, y, 600, 30), $"Home {home}    Out there {outThere}    Lost {lost}", label);
             y += 30f;
         }
 
-        // Clock: a bar that fills through the day, with dusk warning
+        // Clock: a bar that fills through the day, with countdowns
         var dn = DayNightCycle.Instance;
         if (dn != null)
         {
             float t = dn.TimeOfDay;
             float w = 220f, h = 8f;
             GUI.color = new Color(0f, 0f, 0f, 0.5f); GUI.DrawTexture(new Rect(x, y + 8f, w, h), white);
-            // Day window is roughly 0.25..0.75; paint it warm, the rest cold.
             GUI.color = new Color(0.25f, 0.35f, 0.6f, 0.9f); GUI.DrawTexture(new Rect(x, y + 8f, w * 0.25f, h), white); GUI.DrawTexture(new Rect(x + w * 0.75f, y + 8f, w * 0.25f, h), white);
             GUI.color = new Color(1f, 0.85f, 0.5f, 0.9f); GUI.DrawTexture(new Rect(x + w * 0.25f, y + 8f, w * 0.5f, h), white);
             GUI.color = Color.white; GUI.DrawTexture(new Rect(x + w * t - 2f, y + 4f, 4f, h + 8f), white);
             y += 26f;
-            string when;
-            if (t >= 0.25f && t < 0.75f)
+            int nights = StalkerDirector.Instance != null ? StalkerDirector.Instance.Nights : 0;
+            if (dn.IsDayWindow)
             {
-                float secondsToDusk = (0.75f - t) * dn.CycleSeconds;
-                when = secondsToDusk < 90f ? $"Dusk in {Mathf.CeilToInt(secondsToDusk)} s. Get home." : $"Day. Dusk in {Mathf.FloorToInt(secondsToDusk / 60f)}:{Mathf.FloorToInt(secondsToDusk % 60f):00}";
-                GUI.Label(new Rect(x, y, 400, 24), when, secondsToDusk < 90f ? warn : small);
+                float s = dn.SecondsUntil(DayNightCycle.Sunset);
+                bool home = HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome;
+                string when = $"Day. Dark in {Mathf.FloorToInt(s / 60f)}:{Mathf.FloorToInt(s % 60f):00}" + (home ? "   (T: wait for dark)" : "");
+                GUI.Label(new Rect(x, y, 500, 24), when, small);
             }
             else
             {
-                float toDawn = ((t < 0.25f ? 0.25f - t : 1.25f - t)) * dn.CycleSeconds;
-                GUI.Label(new Rect(x, y, 400, 24), $"Night. Dawn in {Mathf.FloorToInt(toDawn / 60f)}:{Mathf.FloorToInt(toDawn % 60f):00}", warn);
+                float s = dn.SecondsUntil(DayNightCycle.Sunrise);
+                GUI.Label(new Rect(x, y, 500, 24), $"Night {nights + 1}. Dawn in {Mathf.FloorToInt(s / 60f)}:{Mathf.FloorToInt(s % 60f):00}", warn);
             }
             y += 24f;
         }
 
         // Keys
-        GUI.Label(new Rect(x, y, 400, 22), (Lantern.IsOn ? "Lantern on" : "Lantern off") + "  (F)", small);
+        GUI.Label(new Rect(x, y, 500, 22), (Lantern.IsOn ? "Lantern on" : "Lantern off") + "  (F)", small);
+
+        DrawFireGlow();
+        DrawHint();
+        DrawEnd();
+    }
+
+    /// <summary>Warm glow at the screen edge toward each burning fire that is near but off screen.</summary>
+    private void DrawFireGlow()
+    {
+        var cam = Camera.main; var p = GameObject.FindWithTag("Player");
+        if (cam == null || p == null) return;
+        Vector3 pp = p.transform.position;
+        foreach (var f in Campfire.All)
+        {
+            if (!f.Lit) continue;
+            Vector3 d = f.Position - pp; d.y = 0f;
+            float dist = d.magnitude;
+            if (dist > GlowRange) continue;
+            Vector3 sp = cam.WorldToScreenPoint(f.Position);
+            if (sp.z < 0f) continue;
+            float sx = sp.x, sy = Screen.height - sp.y;
+            bool onScreen = sx > 0f && sx < Screen.width && sy > 0f && sy < Screen.height;
+            if (onScreen) continue;
+            // Slide the point to the screen edge along the line from the centre.
+            Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector2 v = new Vector2(sx, sy) - c;
+            float k = Mathf.Min(c.x / Mathf.Max(1f, Mathf.Abs(v.x)), c.y / Mathf.Max(1f, Mathf.Abs(v.y)));
+            Vector2 e = c + v * k;
+            float a = Mathf.Clamp01(1f - dist / GlowRange);
+            float size = Mathf.Lerp(160f, 320f, a);
+            GUI.color = new Color(1f, 0.62f, 0.3f, 0.85f * a);
+            GUI.DrawTexture(new Rect(e.x - size * 0.5f, e.y - size * 0.5f, size, size), glow);
+        }
+        GUI.color = Color.white;
+    }
+
+    private void DrawHint()
+    {
+        float age = Time.time - hintShownAt;
+        const float show = 16f;
+        if (age > show) return;
+        float a = age < 0.6f ? age / 0.6f : age > show - 1f ? show - age : 1f;
+        float w = Mathf.Min(1000f, Screen.width - 80f);
+        Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, Screen.height * 0.6f, w, 80),
+            "They hide by day and light their fires only after dark.\nFollow the tracks in the snow.", mid, a);
+    }
+
+    private void DrawEnd()
+    {
+        if (Home.Instance == null || !Home.Instance.Ended) return;
+        GUI.color = new Color(0f, 0f, 0f, 0.55f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), white);
+        GUI.color = Color.white;
+        float w = Mathf.Min(1000f, Screen.width - 80f), x = (Screen.width - w) * 0.5f;
+        int nights = StalkerDirector.Instance != null ? StalkerDirector.Instance.Nights : 0;
+        GUI.Label(new Rect(x, Screen.height * 0.36f, w, 70), Home.Instance.EndText, big);
+        GUI.Label(new Rect(x, Screen.height * 0.36f + 80f, w, 40), $"Nights survived: {nights}", mid);
+        GUI.Label(new Rect(x, Screen.height * 0.36f + 130f, w, 40), "R to play again", mid);
     }
 }

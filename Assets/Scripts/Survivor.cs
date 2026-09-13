@@ -66,6 +66,11 @@ public class Survivor : MonoBehaviour
     private float panicOkAfter;
     private List<Vector3> route;
     private int routeIndex;
+    private Renderer[] renderers;
+    private bool hiding;
+
+    /// <summary>By day a waiting survivor is hidden away and cannot be found.</summary>
+    public bool IsHiding => hiding;
 
     private void Awake()
     {
@@ -73,6 +78,14 @@ public class Survivor : MonoBehaviour
         GameObject p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
         if (animator == null) animator = GetComponentInChildren<Animator>();
+        renderers = GetComponentsInChildren<Renderer>(true);
+    }
+
+    private void SetHiding(bool hide)
+    {
+        if (hide == hiding) return;
+        hiding = hide;
+        foreach (var r in renderers) if (r != null) r.enabled = !hide;
     }
 
     private void OnEnable()  { All.Add(this); }
@@ -109,7 +122,9 @@ public class Survivor : MonoBehaviour
         switch (CurrentState)
         {
             case State.Waiting:
-                if (toPlayer.magnitude <= noticeRadius)
+                // Out of sight by day, at the fire by night. Only findable after dark.
+                SetHiding(!StalkerDirector.IsNight);
+                if (!hiding && toPlayer.magnitude <= noticeRadius)
                 {
                     CurrentState = State.Following;
                     Encounter.Play(this);
@@ -118,6 +133,7 @@ public class Survivor : MonoBehaviour
 
             case State.Following:
             {
+                SetHiding(false);
                 if (Time.time >= panicOkAfter && StalkerNear(panicRadius))
                 {
                     Panic();

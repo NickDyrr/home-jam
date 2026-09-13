@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 /// forest on a lone camp fire, drifts toward home while a stalker crosses
 /// between the trees, and pans onto the house. Cut to black, then inside:
 /// she is sitting in the armchair by the fire. On the last line she stands
-/// and turns to the door. Any key skips. Edit the lines below for the story;
+/// and walks toward the door as night falls. Any key skips. Edit the lines below for the story;
 /// voice clips Resources/Audio/Intro1..5 stretch the timing to fit.
 /// </summary>
 public class Intro : MonoBehaviour
@@ -95,7 +95,7 @@ public class Intro : MonoBehaviour
         HouseView.ForceOutside = true;
         if (HouseView.Instance != null) HouseView.Instance.RefreshView();
         StalkerDirector.Suppressed = true;
-        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.72f);
+        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.75f);
         AudioListener.volume = 0f;
 
         Campfire fire = FirstFire();
@@ -208,7 +208,7 @@ public class Intro : MonoBehaviour
         if (cameo != null) Destroy(cameo);
         HouseView.ForceOutside = false;
         if (HouseView.Instance != null) HouseView.Instance.RefreshView();
-        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.28f);
+        if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.73f);
         cam.transform.position = player.position + camOffset;
         cam.orthographicSize = 7f;
     }

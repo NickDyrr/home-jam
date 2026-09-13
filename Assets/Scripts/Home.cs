@@ -35,6 +35,9 @@ public class Home : MonoBehaviour
     public int SurvivorsLost { get; private set; }
     public int SurvivorsTotal { get; private set; }
     public bool Won { get; private set; }
+    /// <summary>Everyone accounted for, one way or the other.</summary>
+    public bool Ended { get; private set; }
+    public string EndText { get; private set; } = "";
 
     private readonly List<Survivor> arrivals = new List<Survivor>();
 
@@ -133,14 +136,15 @@ public class Home : MonoBehaviour
         if (Won || SurvivorsTotal <= 0) return;
         if (SurvivorsHome + SurvivorsLost < SurvivorsTotal) return;
 
+        Ended = true;
         if (SurvivorsLost == 0)
         {
             Won = true;
-            FloatingText.Show(transform.position + Vector3.up * 4f, "Everyone is home.", 0f, 0.16f);
+            EndText = "Everyone is home.";
         }
         else
         {
-            FloatingText.Show(transform.position + Vector3.up * 4f, $"{SurvivorsHome} made it home. {SurvivorsLost} did not.", 0f, 0.12f);
+            EndText = $"{SurvivorsHome} made it home. {SurvivorsLost} did not.";
         }
         if (StalkerDirector.Instance != null) StalkerDirector.Instance.Retire();
     }

@@ -170,3 +170,17 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 **Slower feet.** Walk 4, sprint 6.5 (was 5 / 8.5). Sprinting is no longer a free win.
 
 **Stalkers follow the hunt.** The night group is scattered 18 to 48 m around the player (never in the yard, never within 12 m of home). If she leaves them all more than 110 m behind, they melt away and a new group gathers nearer. Danger is everywhere, not just near the house.
+
+## Night loop (Sep 14)
+
+**Night is the game.** The clock is 180 s of day and 420 s of night, and the game starts at dusk. At home by day, T races the clock to dusk.
+
+**They only show after dark.** Waiting survivors are hidden by day and their fires are cold. At dusk the fires catch (light range 24, x1.6 with the Scout home) and the survivor steps out to it. A survivor already following keeps following through dawn.
+
+**Tracks are the clue.** Everyone left tracks when they ran: a wandering trail of old prints, 45 to 70 m long, starting on the home side of each camp and leading to it. Permanent. Cross one, follow it, find the fire.
+
+**Fire glow cue.** A warm glow at the screen edge toward any burning fire within 70 m that is off screen. Short range on purpose.
+
+**Ending.** When everyone is home or lost: end screen with nights survived, R restarts (statics are reset on scene load). Esc quits in the build.
+
+**Tuning.** Stalker group 5 (+1 per night), scattered 18 to 48 m around the player. Walk 4, sprint 6.5.
