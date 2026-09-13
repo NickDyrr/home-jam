@@ -15,13 +15,13 @@ public class Intro : MonoBehaviour
     public static readonly string Title = "HOME";
     public static readonly string[] Lines =
     {
-        "The pass closed in October. The village burned the week after.",
-        "We ran for the trees when they came. The tall quiet ones. They only walk after dark.",
-        "I found the old cabin. They stop at the door. I don't know why. Maybe it's the hearth.",
-        "The others are still out there in the snow, keeping their fires lit so someone will find them.",
-        "Someone should. Bring them home.",
+        "The snow came early this year. The things came with it. Nobody saw them arrive, only what they left.",
+        "By the time the church bell stopped we were running, and we didn't run together.",
+        "I ended up here, at my grandfather's cabin, with a lantern, six rounds, and a door they will not cross. I don't know what stops them. I've stopped asking.",
+        "Out in the trees the others are keeping their fires lit, because a fire in the dark says someone is still alive. I can see them from the porch, one by one, going out.",
+        "Not tonight. Tonight I'm going to get them.",
     };
-    public static readonly string Hint = "Light finds them. Light finds you. Be back before dark.";
+    public static readonly string Hint = "Light finds them. Light finds you. Be home before dark.";
 
     // Timeline (seconds). With voice clips in Resources/Audio (Intro1..Intro5, IntroHint) the
     // line times stretch so each line stays up while its clip plays.
@@ -88,13 +88,14 @@ public class Intro : MonoBehaviour
             voiceSource = gameObject.AddComponent<AudioSource>();
             voiceSource.spatialBlend = 0f; voiceSource.volume = 1f; voiceSource.playOnAwake = false;
         }
-        if (anyVoice)
+        // Each line stays up for its clip, or long enough to read it.
         {
             float tt = 1f;
             for (int i = 0; i < Lines.Length; i++)
             {
                 LineTimes[i] = tt;
-                float dur = voice[i] != null ? voice[i].length + 0.6f : 4f;
+                int words = Lines[i].Split(' ').Length;
+                float dur = voice[i] != null ? voice[i].length + 0.6f : words * 0.34f + 1.2f;
                 tt += Mathf.Max(dur, 3f);
             }
             ShotC = tt;
