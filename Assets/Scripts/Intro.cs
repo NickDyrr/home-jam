@@ -239,11 +239,14 @@ public class Intro : MonoBehaviour
         }
         else
         {
-            // Shot B: along the first survivor's tracks to their fire, arriving as the line ends.
-            Vector3 fire = FireTarget();
+            // Shot B, in one continuous move: leave the house, curve out past the fence to where
+            // the first survivor's tracks begin, and follow them to the fire, arriving as the
+            // line ends. A quadratic curve through the trail start keeps it smooth.
+            Vector3 a = new Vector3(-2.5f, 0f, -3f), c = TrailStart(), f = FireTarget();
             float k = Ease((t - shotB) / Mathf.Max(0.1f, cutStart - shotB));
-            target = Vector3.Lerp(TrailStart(), fire, k);
-            size = Mathf.Lerp(8.5f, 7.5f, k);
+            float u = 1f - k;
+            target = a * (u * u) + c * (2f * u * k) + f * (k * k);
+            size = Mathf.Lerp(12f, 7.5f, k);
         }
         cam.transform.position = target + camOffset;
         cam.orthographicSize = size;
@@ -397,9 +400,9 @@ public class Intro : MonoBehaviour
     {
         // On "they come as far as my fence": a stalker runs in from off the bottom of the screen,
         // pulls up short of the west fence, stands facing the house, then turns and walks back
-        // into the trees. Gone by the cut to shot B. The path weaves around trunks.
+        // into the trees, and keeps going until the fade to black. The path weaves around trunks.
         float arrive = LineTimes[1] + 2.0f, start = arrive - 4.5f, leave = arrive + 2.2f;
-        if (t < start || t >= shotB) { if (cameo != null && t >= shotB) Destroy(cameo); return; }
+        if (t < start || t >= cutStart) { if (cameo != null && t >= cutStart) Destroy(cameo); return; }
         if (cameo == null)
         {
             var prefab = StalkerDirector.Instance != null ? StalkerDirector.Instance.StalkerPrefab : null;
