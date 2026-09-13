@@ -37,6 +37,7 @@ public class Intro : MonoBehaviour
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
     private const float StandAfter = 1.2f;
     private const float RiseSeconds = 0.7f, RiseSlide = 0.55f;   // she comes forward out of the chair as she stands
+    private const float StandY = 1.18f;                           // player pivot height when standing on the cabin floor
 
     private float t;
     private bool done, insideNow, stood, controllerRestored;
@@ -75,11 +76,10 @@ public class Intro : MonoBehaviour
 
         // She is home, in the chair, while the outside plays. The house shows its outside until the cut.
         var cc = player.GetComponent<CharacterController>();
-        if (cc != null) cc.enabled = false;
+        if (cc != null) cc.enabled = false;                       // stays off until control is restored
         player.position = ChairSpot;
         player.rotation = Quaternion.LookRotation(ChairFacing, Vector3.up);
-        if (cc != null) cc.enabled = true;
-        Physics.SyncTransforms();
+        DoorOpener.HoldClosed = true;                             // she is near the door, but it stays shut until she stands
         playerScripts = new Behaviour[] { player.GetComponent<PlayerMovement>(), player.GetComponent<Pistol>(), player.GetComponent<Listen>() };
         foreach (var b in playerScripts) if (b != null) b.enabled = false;
 
@@ -164,27 +164,31 @@ public class Intro : MonoBehaviour
             if (!stood && t >= cut + StandAfter) { stood = true; if (playerAnim != null) playerAnim.SetBool(SittingHash, false); }
             if (stood)
             {
-                // Standing slides her out of the chair; then she walks straight ahead, no turn.
+                // Standing slides her out of the chair and up to standing height; then she walks
+                // straight ahead, no turn. The controller is off for the whole intro so nothing
+                // (floor, chair) can shove her about; she is moved by hand.
                 float since = t - (cut + StandAfter);
-                var cc = player.GetComponent<CharacterController>();
-                Vector3 step = Vector3.zero;
+                Vector3 pos = player.position;
                 bool walking = false;
                 if (since < RiseSeconds)
                 {
-                    step = ChairFacing * (RiseSlide / RiseSeconds) * Time.deltaTime;
+                    float k = Ease(since / RiseSeconds);
+                    pos = ChairSpot + ChairFacing * (RiseSlide * k);
+                    pos.y = Mathf.Lerp(ChairSpot.y, StandY, k);
                 }
-                else if (walked < StepsForward)
+                else
                 {
-                    walking = true;
-                    float d = StepSpeed * Time.deltaTime;
-                    step = ChairFacing * d;
-                    walked += d;
+                    DoorOpener.HoldClosed = false;               // on her feet: the door may open for her now
+                    if (walked < StepsForward)
+                    {
+                        walking = true;
+                        float d = StepSpeed * Time.deltaTime;
+                        walked += d;
+                    }
+                    pos = ChairSpot + ChairFacing * (RiseSlide + walked);
+                    pos.y = StandY;
                 }
-                if (step.sqrMagnitude > 0f)
-                {
-                    step += Vector3.down * 0.5f * Time.deltaTime;
-                    if (cc != null && cc.enabled) cc.Move(step); else player.position += step;
-                }
+                player.position = pos;
                 if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
             }
             if (t >= storyEnd && !controllerRestored) RestoreControl();
@@ -214,6 +218,9 @@ public class Intro : MonoBehaviour
     private void RestoreControl()
     {
         controllerRestored = true;
+        DoorOpener.HoldClosed = false;
+        var cc = player.GetComponent<CharacterController>();
+        if (cc != null) { Vector3 p = player.position; p.y = Mathf.Max(p.y, StandY); player.position = p; cc.enabled = true; Physics.SyncTransforms(); }
         if (playerAnim != null && playerController != null) playerAnim.runtimeAnimatorController = playerController;
         foreach (var b in playerScripts) if (b != null) b.enabled = true;
         if (follow != null) follow.enabled = true;

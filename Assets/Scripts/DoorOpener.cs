@@ -20,6 +20,9 @@ public class DoorOpener : MonoBehaviour
 
     public bool IsOpen => t > 0.5f;
 
+    /// <summary>Set by the intro: doors stay shut no matter who is near.</summary>
+    public static bool HoldClosed;
+
     private void Awake()
     {
         GameObject p = GameObject.FindWithTag("Player");
@@ -44,6 +47,7 @@ public class DoorOpener : MonoBehaviour
             }
         }
 
+        if (HoldClosed) near = false;
         float target = near ? 1f : 0f;
         float speed = near ? openSpeed : closeSpeed;
         t = Mathf.MoveTowards(t, target, speed * Time.deltaTime * 0.25f);

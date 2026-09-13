@@ -10,7 +10,7 @@ public class Encounter : MonoBehaviour
 {
     public static Encounter Instance { get; private set; }
 
-    [SerializeField] private float zoomSize = 5f;
+    [SerializeField] private float zoomSize = 7.5f;   // outside view is 9: just a nudge in
     [SerializeField] private float minSeconds = 2.8f;
     [SerializeField] private float easeIn = 0.6f;
     [SerializeField] private float easeOut = 0.7f;
