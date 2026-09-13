@@ -19,10 +19,14 @@ public class StalkerDirector : MonoBehaviour
     [SerializeField] private GameObject stalkerPrefab;
     [SerializeField] private int stalkerCount = 4;
     [SerializeField] private float spawnDelay = 0.5f;
+    [Tooltip("Never inside this distance of home: the yard stays theirs to circle, not enter.")]
     [SerializeField] private float minFromHome = 12f;
-    [SerializeField] private float maxFromHome = 34f;
-    [SerializeField] private float minFromPlayer = 10f;
+    [Tooltip("The group is scattered around the player, between these distances.")]
+    [SerializeField] private float minFromPlayer = 18f;
+    [SerializeField] private float maxFromPlayer = 48f;
     [SerializeField] private float minBetween = 8f;
+    [Tooltip("When every stalker is further than this from the player, the group melts away and a new one gathers nearer.")]
+    [SerializeField] private float regroupDistance = 110f;
 
     [Header("Caught")]
     [SerializeField] private float respawnDelay = 1.2f;
@@ -99,8 +103,23 @@ public class StalkerDirector : MonoBehaviour
             return;
         }
 
+        if (stalkers.Count > 0 && AllFarFromPlayer()) DespawnAll();   // left behind: they regroup around her
+
         if (stalkers.Count == 0 && TimeOutside >= spawnDelay)
             SpawnGroup();
+    }
+
+    private bool AllFarFromPlayer()
+    {
+        float sq = regroupDistance * regroupDistance;
+        Vector3 p = player.position;
+        foreach (GameObject s in stalkers)
+        {
+            if (s == null) continue;
+            Vector3 d = s.transform.position - p; d.y = 0f;
+            if (d.sqrMagnitude < sq) return false;
+        }
+        return true;
     }
 
     private void SpawnGroup()
@@ -126,10 +145,11 @@ public class StalkerDirector : MonoBehaviour
         for (int attempt = 0; attempt < 30; attempt++)
         {
             Vector2 dir = Random.insideUnitCircle.normalized;
-            float r = Random.Range(minFromHome, maxFromHome);
-            pos = home + new Vector3(dir.x, 0f, dir.y) * r;
+            float r = Random.Range(minFromPlayer, maxFromPlayer);
+            pos = p + new Vector3(dir.x, 0f, dir.y) * r;
 
-            if ((pos - p).sqrMagnitude < minFromPlayer * minFromPlayer) continue;
+            if ((pos - home).sqrMagnitude < minFromHome * minFromHome) continue;
+            if (Home.Instance != null && Home.Instance.InYard(pos, -2f)) continue;
 
             bool tooClose = false;
             foreach (GameObject s in stalkers)

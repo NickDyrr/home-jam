@@ -160,3 +160,13 @@ The snow came early this year. Something came down with it. / The rest of us ran
 *Light finds them. Light finds you. Be home before dark.*
 
 Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when they are home (HomeBonuses.Describe). The end message comes from Home.CheckEnd.
+
+## World update (Sep 14)
+
+**Bigger world.** Ground is 420 x 420 (about three times the area). The forest fills it to the edge: 6311 trees. A ring of rock (CliffRing, built at start) closes the map at +-200 m, jagged, 20 m at the crest, with colliders. Chunks that stand between the camera and the player go see-through the way trees do, and so do chunks on the camera's side of her when she is within 40 m, since the camera looks from the south-west.
+
+**Survivors far apart.** Survivor1 stays close (10, -38) as the tutorial. The rest are 120 to 195 m out in different directions: S2 (-150, 60), S3 (120, 140), S4 (175, -70), S5 (-125, -150), S6 (-60, 185). Camps 1.7 m toward home from each.
+
+**Slower feet.** Walk 4, sprint 6.5 (was 5 / 8.5). Sprinting is no longer a free win.
+
+**Stalkers follow the hunt.** The night group is scattered 18 to 48 m around the player (never in the yard, never within 12 m of home). If she leaves them all more than 110 m behind, they melt away and a new group gathers nearer. Danger is everywhere, not just near the house.

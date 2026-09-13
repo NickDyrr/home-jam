@@ -24,9 +24,21 @@ public class TreeFade : MonoBehaviour
 
     public bool OccludingThisFrame { get; set; }
 
-    private void Awake()
+    /// <summary>For objects built at runtime: set both material sets before the first tick.</summary>
+    public void SetMaterials(Material[] opaque, Material[] transparent, float fadedTo = -1f)
+    {
+        opaqueMaterials = opaque;
+        transparentMaterials = transparent;
+        if (fadedTo >= 0f) fadedAlpha = fadedTo;
+        Setup();
+    }
+
+    private void Awake() { Setup(); }
+
+    private void Setup()
     {
         rend = GetComponentInChildren<Renderer>();
+        if (rend == null) return;
         mpb = new MaterialPropertyBlock();
         if (opaqueMaterials == null || opaqueMaterials.Length == 0) opaqueMaterials = rend.sharedMaterials;
         baseColors = new Color[opaqueMaterials.Length];
@@ -37,6 +49,7 @@ public class TreeFade : MonoBehaviour
     /// <summary>Called once per frame by the fader after occlusion has been decided.</summary>
     public void Tick(float dt)
     {
+        if (rend == null) return;
         float target = OccludingThisFrame ? fadedAlpha : 1f;
         OccludingThisFrame = false;
         float next = Mathf.MoveTowards(alpha, target, fadeSpeed * dt);
