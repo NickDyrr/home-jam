@@ -39,6 +39,12 @@ public class HouseView : MonoBehaviour
     public int LevelCount => levels != null ? levels.Length : 0;
     public bool CanUpgrade => levels != null && CurrentLevel < levels.Length - 1;
 
+    /// <summary>Set by the intro to show the outside of the house even though the player is inside.</summary>
+    public static bool ForceOutside;
+
+    /// <summary>Re-apply the inside/outside look (after changing ForceOutside).</summary>
+    public void RefreshView() { Apply(); }
+
     private bool playerIsHome = true;
     private bool playerUpstairs;
     private Transform player;
@@ -134,17 +140,18 @@ public class HouseView : MonoBehaviour
     {
         if (levels == null || levels.Length == 0) return;
         Level cur = levels[CurrentLevel];
+        bool inside = playerIsHome && !ForceOutside;
 
-        if (cur.exteriorRoot != null) cur.exteriorRoot.SetActive(!playerIsHome);
+        if (cur.exteriorRoot != null) cur.exteriorRoot.SetActive(!inside);
         if (cur.interiorRoot != null)
         {
             // The interior object stays active so its colliders keep working;
             // only what is rendered changes.
             cur.interiorRoot.SetActive(true);
             foreach (Renderer r in cur.interiorRoot.GetComponentsInChildren<Renderer>(true))
-                r.enabled = playerIsHome;
+                r.enabled = inside;
         }
         if (cur.upstairsRoot != null)
-            cur.upstairsRoot.SetActive(playerIsHome && playerUpstairs);
+            cur.upstairsRoot.SetActive(inside && playerUpstairs);
     }
 }
