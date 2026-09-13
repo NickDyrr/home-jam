@@ -28,6 +28,22 @@ public class Home : MonoBehaviour
     [Header("Upgrades")]
     [Tooltip("Survivor counts at which the house goes up a level. Element 0 unlocks level 1, and so on.")]
     [SerializeField] private int[] upgradeAtSurvivors = { 3 };
+    [Tooltip("Upgrade by itself when the count is reached. Off: she has to build it at the workbench.")]
+    [SerializeField] private bool autoUpgrade = false;
+
+    /// <summary>Survivors needed for the next house level, or -1 when there is no next level.</summary>
+    public int NextUpgradeNeeded
+    {
+        get
+        {
+            if (HouseView.Instance == null || !HouseView.Instance.CanUpgrade) return -1;
+            int next = HouseView.Instance.CurrentLevel;
+            return upgradeAtSurvivors != null && next < upgradeAtSurvivors.Length ? upgradeAtSurvivors[next] : 0;
+        }
+    }
+
+    /// <summary>Enough people are home to build the next level.</summary>
+    public bool CanBuildNext => NextUpgradeNeeded >= 0 && SurvivorsHome >= NextUpgradeNeeded;
     [Tooltip("Debug: press U to upgrade the house without bringing anyone home.")]
     [SerializeField] private bool debugUpgradeKey = true;
 
@@ -112,7 +128,7 @@ public class Home : MonoBehaviour
         Debug.Log($"Survivor '{survivor.name}' is home. Total: {SurvivorsHome}");
 
         // Upgrade first, so this survivor's spot is computed for the new room.
-        if (HouseView.Instance != null && HouseView.Instance.CanUpgrade)
+        if (autoUpgrade && HouseView.Instance != null && HouseView.Instance.CanUpgrade)
         {
             int next = HouseView.Instance.CurrentLevel;
             if (upgradeAtSurvivors != null && next < upgradeAtSurvivors.Length && SurvivorsHome >= upgradeAtSurvivors[next])

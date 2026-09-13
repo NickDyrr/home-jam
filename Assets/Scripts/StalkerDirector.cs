@@ -29,6 +29,16 @@ public class StalkerDirector : MonoBehaviour
     [Tooltip("When every stalker is further than this from the player, the group melts away and a new one gathers nearer.")]
     [SerializeField] private float regroupDistance = 110f;
 
+    [Header("Placed")]
+    [Tooltip("Stalkers standing dormant at fixed spots across the whole map every night, so a careful walk can still meet one.")]
+    [SerializeField] private int placedCount = 14;
+    [SerializeField] private float placedMinFromHome = 40f;
+    [SerializeField] private float placedMaxFromHome = 190f;
+    [SerializeField] private float placedMinFromCamp = 22f;
+    [SerializeField] private int placedSeed = 5;
+    private readonly List<GameObject> placed = new List<GameObject>();
+    private Vector3[] placedSpots;
+
     [Header("Caught")]
     [SerializeField] private float respawnDelay = 1.2f;
     [SerializeField] private Vector3 respawnPoint = new Vector3(0f, 1.1f, 0f);
@@ -94,7 +104,13 @@ public class StalkerDirector : MonoBehaviour
 
     private void Update()
     {
-        if (!playerOutside || respawning || Retired || Suppressed) return;
+        if (Retired || Suppressed) return;
+
+        // The placed ones stand out there all night, whether or not she is home.
+        if (IsNight && placed.Count == 0) SpawnPlaced();
+        else if (!IsNight && placed.Count > 0) DespawnPlaced();
+
+        if (!playerOutside || respawning) return;
 
         TimeOutside += Time.deltaTime;
 
@@ -172,6 +188,41 @@ public class StalkerDirector : MonoBehaviour
         foreach (GameObject s in stalkers)
             if (s != null) Destroy(s);
         stalkers.Clear();
+    }
+
+    /// <summary>Fixed spots, chosen once from a seed: spread over the map, clear of home, camps and the yard.</summary>
+    private void PickPlacedSpots()
+    {
+        var rng = new System.Random(placedSeed);
+        var spots = new List<Vector3>();
+        Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero; home.y = 0f;
+        for (int attempt = 0; attempt < 400 && spots.Count < placedCount; attempt++)
+        {
+            float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
+            float r = Mathf.Lerp(placedMinFromHome, placedMaxFromHome, (float)rng.NextDouble());
+            Vector3 p = home + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
+            if (Mathf.Abs(p.x) > 192f || Mathf.Abs(p.z) > 192f) continue;
+            bool ok = true;
+            foreach (Campfire c in Campfire.All) { Vector3 d = c.transform.position - p; d.y = 0f; if (d.sqrMagnitude < placedMinFromCamp * placedMinFromCamp) { ok = false; break; } }
+            foreach (Vector3 q in spots) if ((q - p).sqrMagnitude < 30f * 30f) { ok = false; break; }
+            if (ok) spots.Add(p);
+        }
+        placedSpots = spots.ToArray();
+    }
+
+    private void SpawnPlaced()
+    {
+        if (stalkerPrefab == null) return;
+        if (placedSpots == null) PickPlacedSpots();
+        foreach (Vector3 p in placedSpots)
+            placed.Add(Instantiate(stalkerPrefab, p + Vector3.up * 1.1f, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)));
+    }
+
+    private void DespawnPlaced()
+    {
+        foreach (GameObject s in placed)
+            if (s != null) Destroy(s);
+        placed.Clear();
     }
 
     public void PlayerCaught()

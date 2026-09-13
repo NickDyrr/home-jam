@@ -17,7 +17,8 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 - A ten-minute day, most of it night. Night is when you work.
 - Six survivors, scattered far. Each one home makes the house stronger: more rounds, faster reloads, a longer reach for your lantern.
 - Stalkers wake to light and noise. Sprinting is loud. A shot is louder. A survivor's scream wakes the woods.
-- Bullets don't kill them. Each one slows them down, for good.
+- Bullets don't kill them. Each one slows them down, for good. Twelve to start, more for every survivor home.
+- Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good.
 
 ## Controls

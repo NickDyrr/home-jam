@@ -15,8 +15,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float moveSpeed = 4f;
     [SerializeField] private float runSpeed = 6.5f;
     [SerializeField] private float turnSpeed = 720f;
-    [Tooltip("Running wakes dormant stalkers within this distance.")]
-    [SerializeField] private float runNoiseRadius = 14f;
+    [Tooltip("Sprinting is loud: dormant stalkers within this range wake. Walking makes no noise.")]
+    [SerializeField] private float runNoiseRadius = 24f;
     [SerializeField] private Animator animator;
 
     private float nextNoise;
@@ -26,6 +26,7 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>True while actually running this frame.</summary>
     public bool IsRunning { get; private set; }
+    public static PlayerMovement Instance { get; private set; }
 
     /// <summary>While true (listening), input is ignored and she stands still.</summary>
     public bool MovementLocked { get; set; }
@@ -44,6 +45,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
+        Instance = this;
         controller = GetComponent<CharacterController>();
         if (Camera.main != null) cam = Camera.main.transform;
         if (animator == null) animator = GetComponentInChildren<Animator>();

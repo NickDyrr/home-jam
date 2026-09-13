@@ -59,18 +59,36 @@ public class CliffRing : MonoBehaviour
         MarkNear(player.position, fwd);
     }
 
-    /// <summary>Flags chunks that sit between the camera side and the player, close by, to fade this frame.</summary>
+    /// <summary>
+    /// Flags chunks that actually cover the player on screen: close by, on the camera's side
+    /// of her, and with her screen position inside the chunk's projected footprint. The rest
+    /// of the wall stays solid, so the edge of the map never seems to go missing.
+    /// </summary>
     public void MarkNear(Vector3 playerPos, Vector3 camForwardFlat)
     {
-        playerPos.y = 0f;
+        if (cam == null) return;
+        Vector3 flatPlayer = playerPos; flatPlayer.y = 0f;
         float sq = fadeDistance * fadeDistance;
+        Vector3 pv = cam.WorldToViewportPoint(playerPos + Vector3.up * 1f);
+        const float margin = 0.05f;
         for (int i = 0; i < fades.Count; i++)
         {
             Bounds b = chunkBounds[i];
-            Vector3 closest = b.ClosestPoint(playerPos); closest.y = 0f;
-            if ((closest - playerPos).sqrMagnitude > sq) continue;
+            Vector3 closest = b.ClosestPoint(flatPlayer); closest.y = 0f;
+            if ((closest - flatPlayer).sqrMagnitude > sq) continue;
             Vector3 centre = b.center; centre.y = 0f;
-            if (Vector3.Dot(centre - playerPos, camForwardFlat) < 0f) fades[i].OccludingThisFrame = true;
+            if (Vector3.Dot(centre - flatPlayer, camForwardFlat) >= 0f) continue;
+
+            // Project the chunk's bounds and test the player's viewport point against them.
+            float minX = 2f, maxX = -1f, minY = 2f, maxY = -1f;
+            for (int c = 0; c < 8; c++)
+            {
+                Vector3 corner = new Vector3((c & 1) == 0 ? b.min.x : b.max.x, (c & 2) == 0 ? b.min.y : b.max.y, (c & 4) == 0 ? b.min.z : b.max.z);
+                Vector3 v = cam.WorldToViewportPoint(corner);
+                minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x); minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
+            }
+            if (pv.x > minX - margin && pv.x < maxX + margin && pv.y > minY - margin && pv.y < maxY + margin)
+                fades[i].OccludingThisFrame = true;
         }
     }
 
@@ -177,7 +195,7 @@ public class CliffRing : MonoBehaviour
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         go.AddComponent<MeshCollider>().sharedMesh = mesh;
         var fade = go.AddComponent<TreeFade>();
-        fade.SetMaterials(new[] { rock, snow }, new[] { rockTransparent, snowTransparent }, 0.1f);   // a wall is big: fade it further than a tree
+        fade.SetMaterials(new[] { rock, snow }, new[] { rockTransparent, snowTransparent }, 0.22f);
         fades.Add(fade);
         chunkBounds.Add(mesh.bounds);
     }

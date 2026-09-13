@@ -1,20 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// The bench outside where the house gets upgraded. Stand near it and press
-/// the interact key to go up a house level. Upgrades are free for now so the
-/// levels can be tested; the cost hook is the one place to add later.
-/// Shows a floating prompt only while the player is in range.
+/// The table outside where the house gets built out. Stand near it and press E.
+/// It only works once enough survivors are home for the next level; otherwise
+/// it says how many more are needed. Shows a floating prompt while in range.
 /// </summary>
 public class Workbench : MonoBehaviour
 {
     [SerializeField] private float interactRadius = 2.4f;
     [SerializeField] private TextMesh prompt;
-    [SerializeField] private string upgradeText = "E   Upgrade home";
-    [SerializeField] private string maxedText = "Home fully upgraded";
 
     private Transform player;
     private Transform cam;
+    private float noteUntil;
 
     private void Awake()
     {
@@ -27,37 +25,38 @@ public class Workbench : MonoBehaviour
 
     private void Update()
     {
-        if (player == null) return;
+        if (player == null || Home.Instance == null) return;
 
         Vector3 d = player.position - transform.position;
         d.y = 0f;
         bool near = d.sqrMagnitude <= interactRadius * interactRadius;
-        bool canUpgrade = HouseView.Instance != null && HouseView.Instance.CanUpgrade;
+        int need = Home.Instance.NextUpgradeNeeded;
+        int home = Home.Instance.SurvivorsHome;
+        bool enough = Home.Instance.CanBuildNext;
 
         if (prompt != null)
         {
             prompt.gameObject.SetActive(near);
             if (near)
             {
-                prompt.text = canUpgrade ? upgradeText : maxedText;
+                if (Time.time < noteUntil) prompt.text = $"Not enough survivors to build.\n{need - home} more.";
+                else if (need < 0) prompt.text = "Nothing more to build";
+                else if (enough) prompt.text = "E   Build out the house";
+                else prompt.text = $"Build out the house\n{home} / {need} survivors home";
                 if (cam != null) prompt.transform.rotation = cam.rotation;
             }
         }
 
-        if (near && canUpgrade && InteractPressed())
+        if (near && need >= 0 && InteractPressed())
         {
-            if (Home.Instance != null) Home.Instance.Upgrade();
-            else HouseView.Instance.Upgrade();
+            if (enough) Home.Instance.Upgrade();
+            else noteUntil = Time.time + 2.5f;
         }
     }
 
     private static bool InteractPressed()
     {
-#if ENABLE_INPUT_SYSTEM
         var kb = UnityEngine.InputSystem.Keyboard.current;
         return kb != null && kb.eKey.wasPressedThisFrame;
-#else
-        return Input.GetKeyDown(KeyCode.E);
-#endif
     }
 }

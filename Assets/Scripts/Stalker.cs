@@ -118,10 +118,11 @@ public class Stalker : MonoBehaviour
         {
             case State.Dormant:
             {
-                // The lantern is what they see. Lit, she is noticed from far off; dark, they must stumble into her.
+                // Walking, she has to almost stumble into one. Sprinting is loud and seen from far off
+                // (and Noise() wakes them from further still).
                 Transform t = Nearest(out float dist);
                 float reach = aggroRadius;
-                if (t == player) reach *= 1.2f;   // her lantern is always lit: a little easier to notice than a survivor
+                if (t == player) reach *= (PlayerMovement.Instance != null && PlayerMovement.Instance.IsRunning) ? 1.2f : 0.5f;
                 if (t != null && dist <= reach)
                     Wake();
                 break;
