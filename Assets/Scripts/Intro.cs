@@ -79,7 +79,7 @@ public class Intro : MonoBehaviour
         player.position = ChairSpot;
         player.rotation = Quaternion.LookRotation(ChairFacing, Vector3.up);
         DoorOpener.HoldClosed = true;                             // she is near the door, but it stays shut until the intro is over
-        playerScripts = new Behaviour[] { player.GetComponent<PlayerMovement>(), player.GetComponent<Pistol>(), player.GetComponent<Listen>() };
+        playerScripts = new Behaviour[] { player.GetComponent<PlayerMovement>(), player.GetComponent<Pistol>() };
         foreach (var b in playerScripts) if (b != null) b.enabled = false;
 
         // Borrow the survivors' animator (it has the sitting pose) for the chair.

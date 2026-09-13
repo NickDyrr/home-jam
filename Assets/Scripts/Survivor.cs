@@ -190,7 +190,19 @@ public class Survivor : MonoBehaviour
                 break;
 
             case State.Home:
+            {
+                // Face the front door rather than whatever wall the spot happens to be near.
+                if (DoorOpener.Active.Count > 0)
+                {
+                    Vector3 toDoor = DoorOpener.Active[0].Doorway - transform.position; toDoor.y = 0f;
+                    if (toDoor.sqrMagnitude > 0.01f)
+                    {
+                        Quaternion look = Quaternion.LookRotation(toDoor.normalized, Vector3.up);
+                        transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * 0.5f * Time.deltaTime);
+                    }
+                }
                 break;
+            }
         }
 
         Vector3 velocity = move * speed;

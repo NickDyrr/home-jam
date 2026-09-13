@@ -63,6 +63,6 @@ public class GameHUD : MonoBehaviour
         }
 
         // Keys
-        GUI.Label(new Rect(x, y, 400, 22), (Lantern.IsOn ? "Lantern on" : "Lantern off") + "  (F)      Listen  (hold Q)", small);
+        GUI.Label(new Rect(x, y, 400, 22), (Lantern.IsOn ? "Lantern on" : "Lantern off") + "  (F)", small);
     }
 }

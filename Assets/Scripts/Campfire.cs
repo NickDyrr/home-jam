@@ -18,13 +18,14 @@ public class Campfire : MonoBehaviour
     private Light fire;
     private FlickerLight flicker;
     private float baseIntensity;
+    private float baseRange;
     private float flareUntil;
 
     private void Awake()
     {
         fire = GetComponentInChildren<Light>(true);
         flicker = GetComponentInChildren<FlickerLight>(true);
-        if (fire != null) baseIntensity = fire.intensity;
+        if (fire != null) { baseIntensity = fire.intensity; baseRange = fire.range; }
     }
 
     private void OnEnable()  { All.Add(this); }
@@ -41,6 +42,7 @@ public class Campfire : MonoBehaviour
     private void Update()
     {
         if (IsOut || fire == null) return;
+        fire.range = baseRange * HomeBonuses.CampfireRangeMultiplier;   // Scout home: fires seen from further
         if (Time.time < flareUntil)
         {
             float t = (flareUntil - Time.time) / flareSeconds;

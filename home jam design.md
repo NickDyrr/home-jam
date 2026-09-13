@@ -143,11 +143,11 @@ Everything above the cut line: walk out, escort home, be afraid, watch the house
 
 **Night is the clock.** Stalkers only walk at night (10-minute day, DayNightCycle). Leave at first light, get home before dark.
 
-**Finding people.** Hold Q to stand still and listen: the nearest waiting survivor answers with a ripple on the snow in their direction and their camp fire flares. Range doubles with the Scout home.
+**Finding people.** No listen key (removed Sep 13: it made survivors too easy to find and the run too short). You search the forest for their camp fires; the longer you are out, the more nights you spend out there.
 
 **Escort is a job.** A hunting stalker within 8 m makes the survivor panic: they freeze and yell (wakes dormant stalkers within 18 m). They only move again once the player stands within 2.2 m for half a second. Five-second cooldown before they can panic again.
 
-**Jobs.** Each survivor brings a home bonus: Hunter (+4 rounds each dawn), Soldier (reload twice as fast), Scout (listen range x2), Cook (survivors walk faster), Firekeeper (lantern reach x1.5), Watchman (stalkers give up sooner).
+**Jobs.** Each survivor brings a home bonus: Hunter (+4 rounds each dawn), Soldier (reload twice as fast), Scout (camp fire light reaches x1.6), Cook (survivors walk faster), Firekeeper (lantern reach x1.5), Watchman (stalkers give up sooner).
 
 **Loss is permanent.** A taken survivor's camp fire goes out and the pool shrinks. Everyone home with nobody lost = win; everyone accounted for otherwise = the house stops growing. Both end with a message over the house and the woods go quiet.
 
