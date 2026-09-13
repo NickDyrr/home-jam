@@ -120,12 +120,6 @@ public class Encounter : MonoBehaviour
         float a = t < 0.4f ? t / 0.4f : t > duration - 0.4f ? Mathf.Clamp01((duration - t) / 0.4f) : 1f;
         float w = Mathf.Min(900f, Screen.width - 80f);
         var r = new Rect((Screen.width - w) * 0.5f, Screen.height * 0.72f, w, 70);
-        Color saved = style.normal.textColor;
-        style.normal.textColor = new Color(1f, 1f, 1f, 0.55f * a);
-        foreach (var o in new[] { new Vector2(-1.5f, 0f), new Vector2(1.5f, 0f), new Vector2(0f, -1.5f), new Vector2(0f, 1.5f), new Vector2(-1f, -1f), new Vector2(1f, 1f), new Vector2(-1f, 1f), new Vector2(1f, -1f) })
-            GUI.Label(new Rect(r.x + o.x, r.y + o.y, r.width, r.height), line, style);
-        style.normal.textColor = new Color(saved.r, saved.g, saved.b, a);
-        GUI.Label(r, line, style);
-        style.normal.textColor = saved;
+        Intro.DrawLegible(r, line, style, a);
     }
 }

@@ -25,8 +25,10 @@ public class Intro : MonoBehaviour
     public static readonly string Hint = "Light finds them. Light finds you. Be home before dark.";
 
     // Where she sits: the armchair by the fire, facing into the room.
-    private static readonly Vector3 ChairSpot = new Vector3(1.85f, 1.0f, -1.5f);
+    private static readonly Vector3 ChairSpot = new Vector3(1.45f, 1.0f, -1.5f);
     private static readonly Vector3 ChairFacing = Vector3.left;
+    private const float StepsForward = 1.3f;     // metres she walks toward the door after standing
+    private const float StepSpeed = 1.4f;
 
     // Timeline (seconds)
     private const float ShotA = 6f, ShotB = 13f;
@@ -37,6 +39,8 @@ public class Intro : MonoBehaviour
 
     private float t;
     private bool done, insideNow, stood, controllerRestored;
+    private float walked;
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private Camera cam;
     private IsoCameraFollow follow;
     private Vector3 camOffset;
@@ -163,6 +167,17 @@ public class Intro : MonoBehaviour
                     float k = Ease((t - (cut + TurnAfter)) / TurnSeconds);
                     Quaternion want = Quaternion.LookRotation(toDoor.normalized, Vector3.up);
                     player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), want, k);
+                    // Once she faces the door, a few steps toward it.
+                    bool walking = k >= 1f && walked < StepsForward;
+                    if (walking)
+                    {
+                        float d = StepSpeed * Time.deltaTime;
+                        var cc = player.GetComponent<CharacterController>();
+                        Vector3 step = toDoor.normalized * d + Vector3.down * 0.5f * Time.deltaTime;
+                        if (cc != null && cc.enabled) cc.Move(step); else player.position += step;
+                        walked += d;
+                    }
+                    if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
                 }
             }
             if (t >= storyEnd && !controllerRestored) RestoreControl();
@@ -212,37 +227,74 @@ public class Intro : MonoBehaviour
         else if (t < ShotB)
         {
             float k = Ease((t - ShotA) / (ShotB - ShotA));
-            target = Vector3.Lerp(fire + toHome * 3.5f, Vector3.Lerp(fire, Vector3.zero, 0.6f), k);
-            size = Mathf.Lerp(14f, 13f, k);
+            target = Vector3.Lerp(fire + toHome * 3.5f, ShotBTarget(), k);
+            size = Mathf.Lerp(14f, 10f, k);
         }
         else
         {
             float k = Ease((t - ShotB) / Mathf.Max(0.1f, cutStart - ShotB));
-            target = Vector3.Lerp(Vector3.Lerp(fire, Vector3.zero, 0.6f), new Vector3(0f, 0f, -1.5f), k);
-            size = Mathf.Lerp(13f, 9f, k);
+            target = Vector3.Lerp(ShotBTarget(), new Vector3(0f, 0f, -1.5f), k);
+            size = Mathf.Lerp(10f, 9f, k);
         }
         cam.transform.position = target + camOffset;
         cam.orthographicSize = size;
         Snowfall.FollowOverride = target;
     }
 
+    private Vector3 ShotBTarget()
+    {
+        Vector3 fire = FireTarget();
+        return Vector3.Lerp(fire, Vector3.zero, 0.7f);   // just outside the fence, on the fire side
+    }
+
+    /// <summary>Screen axes on the ground: right, and "up" (away from the camera).</summary>
+    private void ScreenAxes(out Vector3 right, out Vector3 up)
+    {
+        right = cam.transform.right; right.y = 0f; right.Normalize();
+        up = cam.transform.forward; up.y = 0f; up.Normalize();
+    }
+
+    /// <summary>True if a tree trunk sits within clearance of the segment a-b.</summary>
+    private static bool PathHitsTree(Vector3 a, Vector3 b, float clearance)
+    {
+        var forest = GameObject.Find("Forest");
+        if (forest == null) return false;
+        Vector3 ab = b - a; ab.y = 0f; float len = ab.magnitude; if (len < 0.01f) return false;
+        Vector3 dir = ab / len;
+        foreach (Transform tr in forest.transform)
+        {
+            Vector3 ap = tr.position - a; ap.y = 0f;
+            float along = Mathf.Clamp(Vector3.Dot(ap, dir), 0f, len);
+            Vector3 closest = a + dir * along; closest.y = 0f;
+            Vector3 p = tr.position; p.y = 0f;
+            if ((p - closest).sqrMagnitude < clearance * clearance) return true;
+        }
+        return false;
+    }
+
     private void DriveCameo()
     {
-        // A stalker walks across the second shot, out past the fence and toward screen-right.
-        float start = ShotA + 0.5f, endT = ShotB - 0.5f;
+        // A stalker enters from off the right edge of the second shot, crosses in front of the
+        // camera target and leaves off the bottom edge. The path is nudged until no trunk is on it.
+        float start = ShotA + 0.3f, endT = ShotB + 1.5f;
         if (t < start || t > endT) { if (cameo != null && t > endT) Destroy(cameo); return; }
         if (cameo == null)
         {
             var prefab = StalkerDirector.Instance != null ? StalkerDirector.Instance.StalkerPrefab : null;
             if (prefab == null) return;
-            Vector3 fire = FireTarget();
-            Vector3 toHome = (Vector3.zero - fire).normalized;
-            Vector3 mid = Vector3.Lerp(fire, Vector3.zero, 0.45f);          // well outside the fence
-            Vector3 across = Vector3.Cross(Vector3.up, toHome);
-            Vector3 screenRight = cam.transform.right; screenRight.y = 0f; screenRight.Normalize();
-            Vector3 centre = mid + screenRight * 6f;
-            cameoFrom = centre + across * 8f + Vector3.up * 1.0f;
-            cameoTo = centre - across * 8f + Vector3.up * 1.0f;
+            ScreenAxes(out Vector3 right, out Vector3 up);
+            Vector3 centre = ShotBTarget();
+            float halfW = 10f * cam.aspect, halfH = 10f;                 // shot B is ortho size 10
+            Vector3 from = Vector3.zero, to = Vector3.zero; bool ok = false;
+            foreach (float shift in new[] { 0f, 2f, -2f, 4f, -4f, 6f, -6f })
+            {
+                from = centre + right * (halfW + 3f) + up * (-1f + shift);
+                to = centre + right * (-halfW * 0.3f + shift * 0.5f) + up * (-halfH - 3f);
+                if (!PathHitsTree(from, to, 1.3f)) { ok = true; break; }
+            }
+            if (!ok) { from = centre + right * (halfW + 3f) + up * -1f; to = centre + up * (-halfH - 3f); }
+            cameoFrom = from + Vector3.up * 1.0f;
+            cameoTo = to + Vector3.up * 1.0f;
             cameo = Instantiate(prefab, cameoFrom, Quaternion.LookRotation(cameoTo - cameoFrom, Vector3.up));
             var s = cameo.GetComponent<Stalker>(); if (s != null) s.enabled = false;
             var e = cameo.GetComponent<FootprintEmitter>(); if (e != null) e.enabled = false;
@@ -251,21 +303,29 @@ public class Intro : MonoBehaviour
         }
         float k = (t - start) / (endT - start);
         cameo.transform.position = Vector3.Lerp(cameoFrom, cameoTo, k);
-        if (cameoAnim != null) cameoAnim.SetFloat("Speed", 2.0f);
+        float speed = (cameoTo - cameoFrom).magnitude / (endT - start);
+        if (cameoAnim != null) cameoAnim.SetFloat("Speed", speed);
     }
 
     private static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * (3f - 2f * x); }
 
-    private static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
+    private static Texture2D bandTex;
+
+    /// <summary>Black text on a soft pale band so it reads on the night scene.</summary>
+    public static void DrawLegible(Rect r, string text, GUIStyle style, float alpha)
     {
         if (alpha <= 0f) return;
+        if (bandTex == null) { bandTex = new Texture2D(1, 1); bandTex.SetPixel(0, 0, Color.white); bandTex.Apply(); }
+        float h = style.CalcHeight(new GUIContent(text), r.width);
+        var band = new Rect(r.x - 16f, r.y + (r.height - h) * 0.5f - 8f, r.width + 32f, h + 16f);
+        GUI.color = new Color(0.93f, 0.9f, 0.84f, 0.72f * alpha);
+        GUI.DrawTexture(band, bandTex);
         Color saved = style.normal.textColor;
-        style.normal.textColor = new Color(1f, 1f, 1f, 0.55f * alpha);
-        foreach (var o in new[] { new Vector2(-1.5f, 0f), new Vector2(1.5f, 0f), new Vector2(0f, -1.5f), new Vector2(0f, 1.5f), new Vector2(-1f, -1f), new Vector2(1f, 1f), new Vector2(-1f, 1f), new Vector2(1f, -1f) })
-            GUI.Label(new Rect(r.x + o.x, r.y + o.y, r.width, r.height), text, style);
-        style.normal.textColor = new Color(saved.r, saved.g, saved.b, alpha);
+        style.normal.textColor = new Color(saved.r, saved.g, saved.b, 1f);
+        GUI.color = new Color(1f, 1f, 1f, alpha);
         GUI.Label(r, text, style);
         style.normal.textColor = saved;
+        GUI.color = Color.white;
     }
 
     private void OnGUI()
@@ -302,6 +362,7 @@ public class Intro : MonoBehaviour
         float titleA = t < 1f ? 0f : t < 2.5f ? (t - 1f) / 1.5f : t < 5f ? 1f : Mathf.Clamp01(1f - (t - 5f) / 1f);
         GUI.color = new Color(1f, 1f, 1f, titleA);
         GUI.Label(new Rect(x, Screen.height * 0.3f, w, 100), Title, title);
+        GUI.color = Color.white;   // never let the title's fade bleed into the subtitles
 
         // Subtitles: each line holds until the next starts; the last through the story's end.
         for (int i = 0; i < Lines.Length; i++)
