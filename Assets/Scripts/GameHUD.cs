@@ -43,10 +43,33 @@ public class GameHUD : MonoBehaviour
         glow.Apply();
     }
 
+    /// <summary>Esc pauses with the controls on screen; Esc again quits (in a build), anything else resumes.</summary>
+    public static bool Paused { get; private set; }
+
     private void Update()
     {
         var kb = Keyboard.current;
         if (kb == null) return;
+        var mouse = Mouse.current;
+
+        if (kb.escapeKey.wasPressedThisFrame)
+        {
+            if (Paused)
+            {
+#if UNITY_EDITOR
+                SetPaused(false);
+#else
+                Application.Quit();
+#endif
+            }
+            else if (!Intro.Playing) SetPaused(true);
+            return;
+        }
+        if (Paused)
+        {
+            if (kb.anyKey.wasPressedThisFrame || (mouse != null && mouse.leftButton.wasPressedThisFrame)) SetPaused(false);
+            return;
+        }
 
         // Wait for dark: only at home, only by day.
         var dn = DayNightCycle.Instance;
@@ -57,10 +80,48 @@ public class GameHUD : MonoBehaviour
         if (Home.Instance != null && Home.Instance.Ended && kb.rKey.wasPressedThisFrame && !restarting)
         {
             restarting = true;
+            SetPaused(false);
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
-#if !UNITY_EDITOR
-        if (kb.escapeKey.wasPressedThisFrame) Application.Quit();
+    }
+
+    private void SetPaused(bool on)
+    {
+        Paused = on;
+        Time.timeScale = on ? 0f : 1f;
+        AudioListener.pause = on;
+    }
+
+    private void OnDestroy()
+    {
+        if (Paused) SetPaused(false);
+    }
+
+    private static readonly string[] ControlLines =
+    {
+        "W A S D   move",
+        "Shift   sprint (loud)",
+        "Mouse   aim      Left click   shoot      R   reload",
+        "F   lantern on / off (they see it too)",
+        "T   wait for dark (at home, by day)",
+        "Esc   pause",
+    };
+
+    private void DrawPause()
+    {
+        if (!Paused) return;
+        GUI.color = new Color(0f, 0f, 0f, 0.7f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), white);
+        GUI.color = Color.white;
+        float w = Mathf.Min(900f, Screen.width - 80f), x = (Screen.width - w) * 0.5f, y = Screen.height * 0.2f;
+        GUI.Label(new Rect(x, y, w, 60), "Paused", big); y += 80f;
+        GUI.Label(new Rect(x, y, w, 40), "Find their fires after dark. Follow the tracks. Bring them home.", mid); y += 60f;
+        foreach (var line in ControlLines) { GUI.Label(new Rect(x, y, w, 32), line, mid); y += 32f; }
+        y += 24f;
+#if UNITY_EDITOR
+        GUI.Label(new Rect(x, y, w, 40), "Any key to resume", mid);
+#else
+        GUI.Label(new Rect(x, y, w, 40), "Any key to resume        Esc again to quit", mid);
 #endif
     }
 
@@ -113,6 +174,7 @@ public class GameHUD : MonoBehaviour
         DrawFireGlow();
         DrawHint();
         DrawEnd();
+        DrawPause();
     }
 
     /// <summary>Warm glow at the screen edge toward each burning fire that is near but off screen.</summary>
