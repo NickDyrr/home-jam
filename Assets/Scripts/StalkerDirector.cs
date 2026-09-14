@@ -29,6 +29,22 @@ public class StalkerDirector : MonoBehaviour
     [Tooltip("When every stalker is further than this from the player, the group melts away and a new one gathers nearer.")]
     [SerializeField] private float regroupDistance = 110f;
 
+    [Header("As the night goes on")]
+    [Tooltip("This many more join the group around her by the end of the night, one at a time.")]
+    [SerializeField] private int nightGrowth = 4;
+    [Tooltip("Seconds between newcomers when the group is under strength.")]
+    [SerializeField] private float reinforceSeconds = 20f;
+    [Tooltip("More stand up out there over the night, at fixed spots, spread evenly from dusk to dawn.")]
+    [SerializeField] private int latePlacedCount = 10;
+    private float nextReinforce;
+    private int placedSpawned;
+
+    /// <summary>0 at dusk, 1 at dawn.</summary>
+    private static float NightProgress => DayNightCycle.Instance != null ? DayNightCycle.Instance.NightProgress : 0.5f;
+
+    /// <summary>How big the group around her should be right now: base, plus a night survived, plus the hour.</summary>
+    private int WantedInGroup => stalkerCount + Nights + Mathf.FloorToInt(NightProgress * (nightGrowth + 0.999f));
+
     [Header("Placed")]
     [Tooltip("Stalkers standing dormant at fixed spots across the whole map every night, so a careful walk can still meet one.")]
     [SerializeField] private int placedCount = 14;
@@ -106,7 +122,7 @@ public class StalkerDirector : MonoBehaviour
         // The placed ones stand out there all night, whether or not she is home.
         if (IsNight && placed.Count == 0 && !dawnSounded) SpawnPlaced();
         else if (!IsNight && placed.Count > 0) DismissPlaced();
-        if (IsNight) dawnSounded = false;
+        if (IsNight) { dawnSounded = false; SpawnLatePlaced(); }
 
         if (!playerOutside || respawning) return;
 
@@ -122,6 +138,31 @@ public class StalkerDirector : MonoBehaviour
 
         if (stalkers.Count == 0 && TimeOutside >= spawnDelay)
             SpawnGroup();
+        else if (stalkers.Count > 0 && Time.time >= nextReinforce)
+        {
+            // The night deepens: one more slips in to join the group, until it is at strength.
+            nextReinforce = Time.time + reinforceSeconds;
+            stalkers.RemoveAll(s => s == null);
+            if (stalkers.Count < WantedInGroup && stalkerPrefab != null && player != null)
+            {
+                Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero; home.y = 0f;
+                if (TryPickSpot(home, out Vector3 pos)) { pos.y = 1.1f; stalkers.Add(Instantiate(stalkerPrefab, pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f))); }
+            }
+        }
+    }
+
+    /// <summary>The late ones: spot placedCount + k stands up when the night is k/(n+1) gone.</summary>
+    private void SpawnLatePlaced()
+    {
+        if (stalkerPrefab == null || placedSpots == null) return;
+        int total = placedSpots.Length;
+        while (placedSpawned < total)
+        {
+            int k = placedSpawned - placedCount + 1;
+            if (NightProgress < k / (float)(latePlacedCount + 1)) return;
+            Vector3 p = placedSpots[placedSpawned++];
+            placed.Add(Instantiate(stalkerPrefab, p + Vector3.up * 1.1f, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)));
+        }
     }
 
     private bool AllFarFromPlayer()
@@ -144,7 +185,8 @@ public class StalkerDirector : MonoBehaviour
         Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero;
         home.y = 0f;
 
-        int count = stalkerCount + Nights;
+        int count = WantedInGroup;
+        nextReinforce = Time.time + reinforceSeconds;
         for (int i = 0; i < count; i++)
         {
             if (!TryPickSpot(home, out Vector3 pos)) continue;
@@ -255,25 +297,29 @@ public class StalkerDirector : MonoBehaviour
                 if (Clear(p)) { spots.Add(p); k++; }
             }
         }
-        // A few more out in the open, up to placedCount.
-        for (int attempt = 0; attempt < 300 && spots.Count < placedCount; attempt++)
+        // A few more out in the open, up to placedCount; then the late ones, packed a little tighter.
+        for (int attempt = 0; attempt < 600 && spots.Count < placedCount + latePlacedCount; attempt++)
         {
+            float spacing = spots.Count < placedCount ? 35f : 24f;
             float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
             float r = Mathf.Lerp(placedMinFromHome, placedMaxFromHome, (float)rng.NextDouble());
             Vector3 p = home + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
             bool ok = Clear(p);
-            foreach (Vector3 q in spots) if (ok && (q - p).sqrMagnitude < 35f * 35f) ok = false;
+            foreach (Vector3 q in spots) if (ok && (q - p).sqrMagnitude < spacing * spacing) ok = false;
             if (ok) spots.Add(p);
         }
         placedSpots = spots.ToArray();
     }
 
+    /// <summary>Dusk: the first placedCount stand up at once. The rest come with the hours (SpawnLatePlaced).</summary>
     private void SpawnPlaced()
     {
         if (stalkerPrefab == null) return;
         if (placedSpots == null) PickPlacedSpots();
-        foreach (Vector3 p in placedSpots)
-            placed.Add(Instantiate(stalkerPrefab, p + Vector3.up * 1.1f, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)));
+        placedSpawned = 0;
+        int first = Mathf.Min(placedCount, placedSpots.Length);
+        for (; placedSpawned < first; placedSpawned++)
+            placed.Add(Instantiate(stalkerPrefab, placedSpots[placedSpawned] + Vector3.up * 1.1f, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)));
     }
 
     private void DespawnPlaced()

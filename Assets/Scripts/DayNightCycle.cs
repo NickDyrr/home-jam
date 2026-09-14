@@ -50,6 +50,8 @@ public class DayNightCycle : MonoBehaviour
     /// <summary>Sunrise and sunset, as time-of-day fractions.</summary>
     public const float Sunrise = 0.25f, Sunset = 0.75f;
     public bool IsDayWindow => TimeOfDay >= Sunrise && TimeOfDay < Sunset;
+    /// <summary>How far through the night: 0 at sunset, 1 at sunrise. Zero by day.</summary>
+    public float NightProgress => IsDayWindow ? 0f : Mathf.Clamp01(((TimeOfDay - Sunset + 1f) % 1f) / (1f - Sunset + Sunrise));
 
     /// <summary>Real seconds until the clock reaches target (ahead of now, wrapping).</summary>
     public float SecondsUntil(float target)
