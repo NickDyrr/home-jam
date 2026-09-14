@@ -38,8 +38,8 @@ public class Intro : MonoBehaviour
     private const float MinSit = 1.5f;                            // she sits at least this long after the cut inside
     private float standAt;                                        // when she gets up (set at the cut, timed to the end)
     private bool arrived;
-    private const float StandUpSpeed = 1.2f;                      // the StandUp state plays at this speed in the controller
-    private const float WalkAtClipFraction = 0.6f;                // she is upright this far into the clip; the walk blends in here (matches the StandUp->Walk exit time)
+    private const float StandUpSpeed = 0.85f;                     // the StandUp state plays at this speed in the controller: a slow rise
+    private const float UprightFraction = 0.72f;                  // she is on her feet this far into the clip; control returns here
     private const float OutsideY = 1.1f;                          // player pivot height on the snow
     private const float RiseSeconds = 0.7f;                       // speed and height ease in over this as she rises
     private const float RisePush = 0.45f, RisePushSeconds = 0.4f; // hips forward off the seat as she stands
@@ -217,51 +217,23 @@ public class Intro : MonoBehaviour
             }
             if (stood && !arrived)
             {
-                // She sits through most of the last line, then gets up and walks straight out: the
-                // turn toward the door happens while she rises, the steps begin as the stand-up
-                // clip ends, and she reaches the door as the intro ends. Moved by hand; the
-                // controller is off for the whole intro.
+                // She sits through most of the last line, then rises slowly out of the chair. The
+                // moment she is upright the game is hers; no scripted walk. The controller is off
+                // for the whole intro, so she is placed by hand while she rises.
                 float since = t - standAt;
-                // Two legs: to a step inside the door, then out through it onto the snow.
-                Vector3 rise = ChairSpot + ChairFacing * RisePush;          // hips forward off the seat as she stands
-                Vector3 a = DoorInside(), b = DoorOutside();
-                Vector3 leg1 = a - rise; leg1.y = 0f; float d1 = leg1.magnitude;
-                Vector3 leg2 = b - a; leg2.y = 0f; float d2 = leg2.magnitude;
-                float dist = d1 + d2;
-                float walkStart = WalkStart();
-                bool walking = since >= walkStart && walked < dist;
-                if (walking)
-                {
-                    walked = Mathf.Min(dist, walked + StepSpeed * Ease((since - walkStart) / RiseSeconds) * Time.deltaTime);
-                    DoorOpener.HoldClosed = false;                           // on her way: the door opens as she reaches it
-                }
-                if (walked >= dist - 0.01f) arrived = true;
-
-                Vector3 dir; Vector3 pos;
-                if (walked < d1) { dir = d1 > 0.01f ? leg1 / d1 : ChairFacing; pos = rise + dir * walked; }
-                else { dir = d2 > 0.01f ? leg2 / d2 : ChairFacing; pos = a + dir * (walked - d1); }
-                float push = RisePush * Ease(since / RisePushSeconds);
-                pos -= ChairFacing * (RisePush - push);                     // the hips slide forward off the seat as she rises
-                float floorY = Mathf.Lerp(StandY, OutsideY, Mathf.Clamp01((walked - d1) / Mathf.Max(0.5f, d2)));
-                pos.y = Mathf.Lerp(ChairSpot.y, floorY, Ease(since / RiseSeconds));
+                float push = RisePush * Ease(since / RisePushSeconds);        // hips forward off the seat
+                Vector3 pos = ChairSpot + ChairFacing * push;
+                pos.y = Mathf.Lerp(ChairSpot.y, StandY, Ease(since / RiseSeconds));
                 player.position = pos;
-                if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
-
-                // Turning to the door is part of getting up, not a step after it; the second leg turns as she walks.
-                Quaternion face = Quaternion.LookRotation(dir, Vector3.up);
-                if (walked < d1)
-                {
-                    float turn = Ease(since / Mathf.Max(0.3f, walkStart + 0.2f));
-                    player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), face, turn);
-                }
-                else player.rotation = Quaternion.RotateTowards(player.rotation, face, 540f * Time.deltaTime);
+                player.rotation = Quaternion.LookRotation(ChairFacing, Vector3.up);
+                if (playerAnim != null) playerAnim.SetFloat(SpeedHash, 0f, 0.1f, Time.deltaTime);
+                if (standClip <= 0f || since >= standClip * UprightFraction) arrived = true;
             }
-            if (arrived && playerAnim != null && !controllerRestored) playerAnim.SetFloat(SpeedHash, 0f, 0.1f, Time.deltaTime);
-            if (arrived && !controllerRestored) RestoreControl();
+            if (arrived && !controllerRestored) { RestoreControl(); DoorOpener.HoldClosed = false; }
         }
 
         // Over when the story is told and she is out the door (or, skipped, once she is out).
-        if (t >= end && arrived) { done = true; Playing = false; DoorOpener.HoldClosed = false; Destroy(this); }
+        if (arrived && t >= storyEnd) { done = true; Playing = false; DoorOpener.HoldClosed = false; Destroy(this); }
     }
 
     private static Vector3 DoorPosition()
@@ -282,8 +254,6 @@ public class Intro : MonoBehaviour
     /// <summary>Out on the snow past the porch: where the intro hands her over.</summary>
     private static Vector3 DoorOutside() { Vector3 p = DoorPosition() + DoorOutward() * 2.6f; p.y = 0f; return p; }
 
-    /// <summary>Seconds after standing when the steps begin: partway through the clip, once she is upright.</summary>
-    private float WalkStart() => standClip > 0f ? standClip * WalkAtClipFraction : 0f;
 
     private void CutInside()
     {
@@ -299,10 +269,7 @@ public class Intro : MonoBehaviour
         // When to get up: late enough that she sits through most of the line, timed so the
         // stand-up and the walk to the door land as the intro ends.
         standClip = playerAnim != null && HasParameter(playerAnim, "StandUp") ? ClipLength(playerAnim, "StandUp") / StandUpSpeed : 0f;
-        Vector3 w1 = DoorInside() - (ChairSpot + ChairFacing * RisePush); w1.y = 0f;
-        Vector3 w2 = DoorOutside() - DoorInside(); w2.y = 0f;
-        float walkSeconds = (w1.magnitude + w2.magnitude) / StepSpeed + RiseSeconds * 0.5f;
-        standAt = Mathf.Max(cut + MinSit, end - 0.15f - walkSeconds - WalkStart());
+        standAt = Mathf.Max(cut + MinSit, storyEnd - standClip * UprightFraction);
     }
 
     private void RestoreControl()
