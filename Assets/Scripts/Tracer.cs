@@ -7,8 +7,8 @@ using UnityEngine;
 /// </summary>
 public class Tracer : MonoBehaviour
 {
-    private const float StreakSeconds = 0.09f;
-    private const float PuffSeconds = 0.35f;
+    private const float StreakSeconds = 0.06f;
+    private const float PuffSeconds = 0.3f;
     private static Material streakMat, puffMat;
 
     private float born, life;
@@ -36,8 +36,8 @@ public class Tracer : MonoBehaviour
     /// <summary>A streak from a to b, and a puff at b if the round hit snow rather than something that bleeds.</summary>
     public static void Spawn(Vector3 from, Vector3 to, bool hitSomething)
     {
-        if (streakMat == null) streakMat = Unlit(new Color(1f, 0.93f, 0.7f));
-        if (puffMat == null) puffMat = Unlit(new Color(0.92f, 0.94f, 1f));
+        if (streakMat == null) streakMat = Unlit(new Color(0.85f, 0.8f, 0.66f));
+        if (puffMat == null) puffMat = Unlit(new Color(0.8f, 0.83f, 0.9f));
 
         Vector3 d = to - from; float len = d.magnitude; if (len < 0.05f) return;
         var s = Piece(streakMat);
@@ -45,12 +45,12 @@ public class Tracer : MonoBehaviour
         s.transform.position = (from + to) * 0.5f;
         s.transform.rotation = Quaternion.LookRotation(d / len, Vector3.up);
         var t = s.AddComponent<Tracer>();
-        t.fullScale = new Vector3(0.035f, 0.035f, len);
+        t.fullScale = new Vector3(0.016f, 0.016f, len);
         t.life = StreakSeconds;
         s.transform.localScale = t.fullScale;
 
         // Where it lands: a few grains of snow thrown up, or a darker spatter on a hit.
-        int n = hitSomething ? 3 : 5;
+        int n = hitSomething ? 2 : 3;
         for (int i = 0; i < n; i++)
         {
             var p = Piece(hitSomething ? streakMat : puffMat);
@@ -58,7 +58,7 @@ public class Tracer : MonoBehaviour
             p.transform.position = to;
             p.transform.rotation = Random.rotation;
             var pt = p.AddComponent<Tracer>();
-            pt.fullScale = Vector3.one * Random.Range(0.06f, 0.12f);
+            pt.fullScale = Vector3.one * Random.Range(0.04f, 0.07f);
             pt.life = PuffSeconds;
             pt.falls = true;
             Vector3 back = -d / len;

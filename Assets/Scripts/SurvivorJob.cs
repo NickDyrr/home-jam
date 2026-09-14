@@ -35,7 +35,7 @@ public static class HomeBonuses
     {
         switch (job)
         {
-            case SurvivorJob.Hunter:     return "Three nights I kept this fire. Let's go.";
+            case SurvivorJob.Hunter:     return "I could see your windows from here. I just couldn't cross that open ground.";
             case SurvivorJob.Soldier:    return "Stay behind me. No. In front. Just move.";
             case SurvivorJob.Scout:      return "I saw your light from the ridge. So did they.";
             case SurvivorJob.Cook:       return "Is the house still standing? Then there's soup.";

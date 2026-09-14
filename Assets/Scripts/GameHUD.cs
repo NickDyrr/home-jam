@@ -172,62 +172,145 @@ public class GameHUD : MonoBehaviour
         DrawPause();
     }
 
-    private Texture2D ring;
-    private GUIStyle compassLetter, compassNorth;
+    private Texture2D rose, needle;
+    private GUIStyle compassNorth, compassSmall;
+
+    /// <summary>Coverage helper: 1 inside, 0 outside, soft over one pixel.</summary>
+    private static float Cov(float d, float px) => Mathf.Clamp01(0.5f - d / px);
 
     /// <summary>
-    /// Top left: a compass rose laid out the way the world sits on screen, with north marked,
-    /// and a small needle that always points home.
+    /// The rose, drawn once: a thin outer ring with ticks at the eight points, a four-point star with a
+    /// lit and a shadowed half on each arm, shorter diagonal points, a soft dark ground. Antialiased.
+    /// </summary>
+    private static Texture2D MakeRose()
+    {
+        const int n = 256; float px = 2f / n;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        Color bone = new Color(0.94f, 0.91f, 0.84f), slate = new Color(0.52f, 0.58f, 0.7f), ground = new Color(0.03f, 0.04f, 0.07f);
+        var pixels = new Color[n * n];
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+        {
+            float u = (x + 0.5f) / n * 2f - 1f, v = (y + 0.5f) / n * 2f - 1f;
+            float r = Mathf.Sqrt(u * u + v * v);
+            Color c = new Color(0f, 0f, 0f, 0f);
+            void Put(Color col, float a)
+            {
+                a = Mathf.Clamp01(a);
+                c = new Color(Mathf.Lerp(c.r, col.r, a), Mathf.Lerp(c.g, col.g, a), Mathf.Lerp(c.b, col.b, a), c.a + a * (1f - c.a));
+            }
+
+            // Ground: a soft dark disc.
+            Put(ground, 0.55f * Cov(r - 0.90f, 0.06f));
+            // Outer ring.
+            Put(bone, 0.85f * Cov(Mathf.Abs(r - 0.93f) - 0.012f, px));
+            // Ticks at the eight points.
+            float ang = Mathf.Atan2(u, v);   // 0 at north (up), clockwise
+            for (int k = 0; k < 8; k++)
+            {
+                float a0 = k * Mathf.PI * 0.25f;
+                float da = Mathf.Abs(Mathf.DeltaAngle(ang * Mathf.Rad2Deg, a0 * Mathf.Rad2Deg)) * Mathf.Deg2Rad;
+                float across = Mathf.Sin(da) * r;                          // distance from the tick centre line
+                bool major = k % 2 == 0;
+                float inner = major ? 0.80f : 0.86f;
+                float along = r >= inner && r <= 0.91f ? 0f : Mathf.Max(inner - r, r - 0.91f);
+                if (da > Mathf.PI * 0.5f) continue;
+                float d = Mathf.Max(Mathf.Abs(across) - (major ? 0.014f : 0.009f), along);
+                Put(bone, 0.9f * Cov(d, px));
+            }
+            // Star: four long arms, four short. Each arm is a kite; the half toward the next
+            // point clockwise is shadowed.
+            for (int k = 0; k < 8; k++)
+            {
+                bool major = k % 2 == 0;
+                float a0 = k * Mathf.PI * 0.25f;
+                float len = major ? 0.74f : 0.40f, half = major ? 0.115f : 0.075f;
+                // Local frame: t along the arm, s across (positive = clockwise side).
+                float t = u * Mathf.Sin(a0) + v * Mathf.Cos(a0);
+                float s = u * Mathf.Cos(a0) - v * Mathf.Sin(a0);
+                if (t < 0f) continue;
+                float width = half * (1f - t / len);                       // narrows to the tip
+                float d = Mathf.Max(Mathf.Abs(s) - width, t - len);
+                float cov = Cov(d, px);
+                if (cov <= 0f) continue;
+                Color lit = major ? bone : Color.Lerp(bone, slate, 0.35f);
+                Color dark = major ? slate : Color.Lerp(slate, ground, 0.35f);
+                Put(s > 0f ? dark : lit, cov);
+                // A hairline between the halves.
+                Put(ground, 0.5f * Cov(Mathf.Abs(s) - 0.004f, px) * Cov(t - len + 0.02f, px));
+            }
+            // Centre boss.
+            Put(ground, Cov(r - 0.05f, px));
+            Put(bone, Cov(r - 0.032f, px));
+            pixels[y * n + x] = c;
+        }
+        tex.SetPixels(pixels); tex.Apply();
+        return tex;
+    }
+
+    /// <summary>A slim tapered needle, gold, with a dark edge so it reads over the star.</summary>
+    private static Texture2D MakeNeedle()
+    {
+        const int w = 96, h = 24; float px = 2f / h;
+        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var cols = new Color[w * h];
+        Color gold = new Color(1f, 0.82f, 0.38f), edge = new Color(0.25f, 0.15f, 0.02f);
+        for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+        {
+            float t = (x + 0.5f) / w;                          // 0 at the tail, 1 at the tip
+            float s = ((y + 0.5f) / h) * 2f - 1f;              // -1..1 across
+            float width = t < 0.15f ? t / 0.15f * 0.55f : 0.55f * (1f - (t - 0.15f) / 0.85f);
+            float d = Mathf.Abs(s) - width;
+            float body = Mathf.Clamp01(0.5f - (d + 0.12f) / px), rim = Mathf.Clamp01(0.5f - d / px);
+            Color c = Color.Lerp(edge, gold, body); c.a = rim;
+            cols[y * w + x] = c;
+        }
+        tex.SetPixels(cols); tex.Apply();
+        return tex;
+    }
+
+    /// <summary>
+    /// Top left: the compass rose turned so its points lie where those world directions run on
+    /// screen, N marked, and a gold needle that points home whenever she is outside the yard.
     /// </summary>
     private void DrawCompass()
     {
         var cam = Camera.main; var p = GameObject.FindWithTag("Player");
         if (cam == null || p == null) return;
-        if (ring == null)
+        if (rose == null)
         {
-            const int n = 96;
-            ring = new Texture2D(n, n, TextureFormat.RGBA32, false);
-            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
-            {
-                float d = Vector2.Distance(new Vector2(x, y), new Vector2(n * 0.5f - 0.5f, n * 0.5f - 0.5f)) / (n * 0.5f);
-                float a = d > 0.84f && d < 0.97f ? 1f : 0f;
-                if (d >= 0.80f && d <= 0.84f) a = (d - 0.80f) / 0.04f;
-                if (d >= 0.97f && d <= 1f) a = (1f - d) / 0.03f;
-                ring.SetPixel(x, y, new Color(1f, 1f, 1f, a));
-            }
-            ring.Apply();
-            compassLetter = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            Intro.SetTextColor(compassLetter, new Color(1f, 1f, 1f, 0.85f));
-            compassNorth = new GUIStyle(compassLetter) { fontSize = 16 };
-            Intro.SetTextColor(compassNorth, new Color(1f, 0.55f, 0.4f));
+            rose = MakeRose(); needle = MakeNeedle();
+            compassNorth = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(compassNorth, new Color(0.98f, 0.5f, 0.38f));
+            compassSmall = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(compassSmall, new Color(0.94f, 0.91f, 0.84f, 0.8f));
         }
 
-        float size = 92f, radius = size * 0.5f;
-        Vector2 c = new Vector2(16f + radius, 16f + radius);
+        float size = 108f, radius = size * 0.5f;
+        Vector2 c = new Vector2(18f + radius, 18f + radius);
         Vector3 pp = p.transform.position;
 
-        // Which way a world direction runs on screen, from the camera's own view.
         Vector2 OnScreen(Vector3 dir)
         {
             Vector3 a = cam.WorldToScreenPoint(pp), b = cam.WorldToScreenPoint(pp + dir);
             Vector2 v = new Vector2(b.x - a.x, -(b.y - a.y));
             return v.sqrMagnitude > 0.0001f ? v.normalized : Vector2.up;
         }
-
-        // Soft dark disc, then the ring.
-        GUI.color = new Color(0f, 0f, 0f, 0.45f);
-        GUI.DrawTexture(new Rect(c.x - radius * 1.25f, c.y - radius * 1.25f, size * 1.25f, size * 1.25f), glow);
-        GUI.color = new Color(1f, 1f, 1f, 0.55f);
-        GUI.DrawTexture(new Rect(c.x - radius, c.y - radius, size, size), ring);
-        GUI.color = Color.white;
-
-        // The four points, where they actually lie on screen.
-        float r = radius * 0.68f;
         Vector2 north = OnScreen(Vector3.forward);
+        float northAng = Mathf.Atan2(north.x, -north.y) * Mathf.Rad2Deg;   // turns texture-up onto screen north
+
+        // The rose, turned to the world.
+        Matrix4x4 m = GUI.matrix;
+        GUIUtility.RotateAroundPivot(northAng, c);
+        GUI.color = Color.white;
+        GUI.DrawTexture(new Rect(c.x - radius, c.y - radius, size, size), rose);
+        GUI.matrix = m;
+
+        // Letters stay upright, just past the arm tips.
+        float r = radius * 0.62f;
         DrawAt(c + north * r, "N", compassNorth);
-        DrawAt(c + OnScreen(Vector3.right) * r, "E", compassLetter);
-        DrawAt(c + OnScreen(Vector3.back) * r, "S", compassLetter);
-        DrawAt(c + OnScreen(Vector3.left) * r, "W", compassLetter);
+        DrawAt(c + OnScreen(Vector3.right) * r, "E", compassSmall);
+        DrawAt(c + OnScreen(Vector3.back) * r, "S", compassSmall);
+        DrawAt(c + OnScreen(Vector3.left) * r, "W", compassSmall);
 
         // The needle: home, when she is away from it.
         if (Home.Instance != null && !(HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome))
@@ -237,18 +320,13 @@ public class GameHUD : MonoBehaviour
             {
                 Vector2 v = OnScreen(toHome.normalized);
                 float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg;
-                Matrix4x4 m = GUI.matrix;
+                m = GUI.matrix;
                 GUIUtility.RotateAroundPivot(ang, c);
-                GUI.color = new Color(1f, 0.85f, 0.45f, 0.95f);
-                GUI.DrawTexture(new Rect(c.x + 4f, c.y - 1.5f, radius * 0.5f, 3f), white);
-                GUI.DrawTexture(new Rect(c.x + radius * 0.5f, c.y - 3.5f, 5f, 7f), white);
-                GUI.color = Color.white;
+                float len = radius * 0.78f, th = 12f;
+                GUI.DrawTexture(new Rect(c.x - len * 0.22f, c.y - th * 0.5f, len, th), needle);
                 GUI.matrix = m;
             }
         }
-        GUI.color = new Color(1f, 1f, 1f, 0.9f);
-        GUI.DrawTexture(new Rect(c.x - 2f, c.y - 2f, 4f, 4f), white);
-        GUI.color = Color.white;
     }
 
     private static void DrawAt(Vector2 at, string text, GUIStyle style)

@@ -60,18 +60,21 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    [Tooltip("How fast it runs from light. Bullets slow this too, but never to a walk.")]
-    [SerializeField] private float fleeSpeed = 9f;
+    [Tooltip("How fast it runs from light: a steady run, not a sprint. Bullets slow this too, but never to a walk.")]
+    [SerializeField] private float fleeSpeed = 6.5f;
+    [Tooltip("Seconds for the run to come up to speed after it turns.")]
+    [SerializeField] private float fleeWindup = 0.7f;
     [Tooltip("The stagger on a hit before it turns and runs. Short: the bullet is a shove, not a stun.")]
-    [SerializeField] private float hitStagger = 0.2f;
+    [SerializeField] private float hitStagger = 0.25f;
+    private float fleeStart;
 
-    /// <summary>Turn away from a point on the spot and run, then stand dormant out there.</summary>
+    /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
     private void Flee(Vector3 from)
     {
         strikeTarget = null;
         retreatDir = transform.position - from; retreatDir.y = 0f;
         retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
-        transform.rotation = Quaternion.LookRotation(retreatDir, Vector3.up);   // no slow turn: it wheels and goes
+        fleeStart = Time.time;                    // the turn is a real turn and the run builds from a walk
         retreatUntil = Time.time + scareSeconds;
         retreatToDormant = true;
         huntStart = -1f;
@@ -263,7 +266,12 @@ public class Stalker : MonoBehaviour
                     CurrentState = retreatToDormant ? State.Dormant : State.Hunting; if (retreatToDormant) huntStart = -1f; retreatToDormant = false;
                 }
                 else if (dismissed) move = retreatDir * 1.8f;                                              // dawn: a walk, not a rout
-                else if (Time.time < spookedUntil) move = retreatDir * (fleeSpeed * Mathf.Max(0.7f, SpeedFactor));   // scared: a flat run
+                else if (Time.time < spookedUntil)
+                {
+                    // Scared: it turns, then the run builds up over the first moments and holds.
+                    float up = Mathf.SmoothStep(0f, 1f, (Time.time - fleeStart) / Mathf.Max(0.05f, fleeWindup));
+                    move = retreatDir * Mathf.Lerp(1.5f, fleeSpeed * Mathf.Max(0.7f, SpeedFactor), up);
+                }
                 else move = retreatDir * (retreatSpeed * SpeedFactor);
                 break;
 
