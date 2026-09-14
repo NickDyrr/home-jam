@@ -11,8 +11,15 @@ public static class GameBoot
     {
         // The browser gets the plain Forward renderer without ambient occlusion: WebGL 2 has no
         // Forward+ and the extra passes are the first thing to misbehave there.
-        if (Application.platform == RuntimePlatform.WebGLPlayer && QualitySettings.GetQualityLevel() != 0)
-            QualitySettings.SetQualityLevel(0, true);
+        if (Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            if (QualitySettings.GetQualityLevel() != 0) QualitySettings.SetQualityLevel(0, true);
+            // WebGL 2 samples a shadow map that was never made ("mismatch between texture format and
+            // sampler type") and then draws nothing lit at all. No light gets shadows in the browser.
+            QualitySettings.shadows = ShadowQuality.Disable;
+            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                l.shadows = LightShadows.None;
+        }
 
         // Statics survive a scene reload (restart): put them back.
         HouseView.ForceOutside = false;
