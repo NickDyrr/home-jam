@@ -19,7 +19,7 @@ public class Notebook : MonoBehaviour
         "They only come after dark, and they stop at the fence.",
         "When it came, the others ran for the trees. They hide by day. After dark they light their fires, and the fires keep them back.",
         "Light scares them away. Sound draws them closer.",
-        "Bullets don't kill them. Each one slows them down, and the flash sends them running. I have twelve. Everyone I bring back has a few to spare.",
+        "Bullets don't kill them. A hit slows one down and sends it running for a while. I have twelve. Everyone I bring back has a few to spare.",
         "Running is loud, and loud brings them. Walking is much safer.",
         "They go for whoever is with me first. If they get me, that is the end.",
         "The more people I bring home, the more we can expand.",

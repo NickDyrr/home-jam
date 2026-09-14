@@ -17,7 +17,7 @@ When it came, the others ran for the trees. They're still out there. By day they
 - A ten-minute day, most of it night. Night is when you work.
 - Six survivors, scattered far. Each one home makes the house stronger: more rounds, faster reloads, a longer reach for your lantern.
 - Light scares them away. Sound draws them closer. A burning fire is ground they won't cross.
-- Bullets don't kill them. Each one slows them down, for good, and the flash sends the near ones running. The bang carries further than the flash.
+- Bullets don't kill them. A hit slows one down for good and sends it running for a while. The bang carries, and the others come to it.
 - Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good. They go for the person you are escorting first. If one gets you, the run is over.
 - Rounds are scarce: twelve to start, three for each survivor home, and a crate at the farthest camps.
