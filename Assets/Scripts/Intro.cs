@@ -16,9 +16,9 @@ public class Intro : MonoBehaviour
     public static readonly string[] Lines =
     {
         "The snow came early this year. Something came down with it.",
-        "They come as far as my fence and no further. I don't know why.",
-        "Bullets won't kill them. They only slow them down.",
-        "The others are out in the woods. They hide by day and light their fires at night.",
+        "They come as far as my fence and no further. It's the light. Light scares them off. Sound draws them in.",
+        "Bullets won't kill them. A hit slows one down, and sends it running.",
+        "The others ran for the trees when it came. They hide by day, and after dark they keep their fires lit.",
         "I'll find them. One at a time. And I'll bring them home.",
     };
 
