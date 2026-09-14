@@ -25,7 +25,6 @@ public class Intro : MonoBehaviour
     // Where she sits: the armchair by the fire, facing into the room.
     private static readonly Vector3 ChairSpot = new Vector3(1.45f, 1.0f, -1.5f);
     private static readonly Vector3 ChairFacing = Vector3.left;
-    private const float StepsForward = 1.7f;     // metres she walks after standing, before turning to the door
     private const float StepSpeed = 1.4f;
 
     // Timeline (seconds). Shot A (the house and its fence) runs through all but the last two
@@ -36,12 +35,12 @@ public class Intro : MonoBehaviour
     private float shotB;                      // when shot B starts (= second-to-last line)
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
-    private const float StandAfter = 0.6f;
+    private const float MinSit = 1.5f;                            // she sits at least this long after the cut inside
+    private float standAt;                                        // when she gets up (set at the cut, timed to the end)
+    private bool arrived;
     private const float StandUpSpeed = 1.6f;                      // the StandUp state plays at this speed in the controller
     private const float RiseSeconds = 0.7f;                       // speed and height ease in over this as she rises
     private const float RisePush = 0.45f, RisePushSeconds = 0.4f; // hips forward off the seat as she stands
-    private const float TurnSeconds = 0.6f;                       // the turn to the door once her steps are done
-    private float turnStart = -1f;
     private const float StandY = 1.18f;                           // player pivot height when standing on the cabin floor
 
     private float t;
@@ -204,48 +203,44 @@ public class Intro : MonoBehaviour
         if (t >= cut && !insideNow) CutInside();
         if (insideNow)
         {
-            if (!stood && t >= cut + StandAfter)
+            if (!stood && t >= standAt)
             {
                 stood = true;
                 if (playerAnim != null)
                 {
-                    // A real stand-up clip if the controller has one; the walk waits for it to finish.
+                    // A real stand-up clip if the controller has one; the walk starts as it ends.
                     playerAnim.SetBool(SittingHash, false);
-                    if (HasParameter(playerAnim, "StandUp")) { playerAnim.SetTrigger(StandUpHash); standClip = ClipLength(playerAnim, "StandUp") / StandUpSpeed; }
+                    if (HasParameter(playerAnim, "StandUp")) playerAnim.SetTrigger(StandUpHash);
                 }
             }
-            if (stood)
+            if (stood && !arrived)
             {
-                // She gets up and walks off in one motion: the walk cycle starts as she rises and
-                // her speed eases in, so the legs animate out of the chair instead of sliding. She
-                // rises to standing height over the first moments, then turns to face the door.
-                // The controller is off for the whole intro; she is moved by hand.
-                float since = t - (cut + StandAfter);
-                // With a stand-up clip, the steps begin as it ends; without one, they ease in over the rise.
+                // She sits through most of the last line, then gets up and walks straight out: the
+                // turn toward the door happens while she rises, the steps begin as the stand-up
+                // clip ends, and she reaches the door as the intro ends. Moved by hand; the
+                // controller is off for the whole intro.
+                float since = t - standAt;
+                Vector3 goal = DoorInside();
+                Vector3 rise = ChairSpot + ChairFacing * RisePush;          // hips forward off the seat as she stands
+                Vector3 path = goal - rise; path.y = 0f;
+                float dist = path.magnitude; Vector3 dir = dist > 0.01f ? path / dist : ChairFacing;
                 float walkStart = standClip > 0f ? Mathf.Max(0f, standClip - 0.25f) : 0f;
-                bool walking = walked < StepsForward && since >= walkStart;
-                if (walking) walked = Mathf.Min(StepsForward, walked + StepSpeed * Ease((since - walkStart) / RiseSeconds) * Time.deltaTime);
-                // Standing up carries the hips forward off the seat before the first step lands,
-                // so her legs come out of the cushion rather than through it.
+                bool walking = since >= walkStart && walked < dist;
+                if (walking) walked = Mathf.Min(dist, walked + StepSpeed * Ease((since - walkStart) / RiseSeconds) * Time.deltaTime);
+                if (walked >= dist - 0.01f) arrived = true;
+
                 float push = RisePush * Ease(since / RisePushSeconds);
-                Vector3 pos = ChairSpot + ChairFacing * (walked + push);
+                Vector3 pos = ChairSpot + ChairFacing * push + dir * walked;
                 pos.y = Mathf.Lerp(ChairSpot.y, StandY, Ease(since / RiseSeconds));
                 player.position = pos;
                 if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);
 
-                if (!walking)
-                {
-                    // At the end of her steps: turn to the door.
-                    if (turnStart < 0f) turnStart = t;
-                    Vector3 toDoor = DoorPosition() - player.position; toDoor.y = 0f;
-                    if (toDoor.sqrMagnitude > 0.01f)
-                    {
-                        float k = Ease((t - turnStart) / TurnSeconds);
-                        player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), Quaternion.LookRotation(toDoor.normalized, Vector3.up), k);
-                    }
-                }
+                // Turning to the door is part of getting up, not a step after it.
+                float turn = Ease(since / Mathf.Max(0.3f, walkStart + 0.2f));
+                player.rotation = Quaternion.Slerp(Quaternion.LookRotation(ChairFacing, Vector3.up), Quaternion.LookRotation(dir, Vector3.up), turn);
             }
-            if (t >= storyEnd && !controllerRestored) RestoreControl();
+            if (arrived && playerAnim != null && !controllerRestored) playerAnim.SetFloat(SpeedHash, 0f, 0.1f, Time.deltaTime);
+            if ((arrived || t >= end) && !controllerRestored) RestoreControl();
         }
 
         if (t >= end) { done = true; Playing = false; DoorOpener.HoldClosed = false; Destroy(this); }
@@ -255,6 +250,15 @@ public class Intro : MonoBehaviour
     {
         var door = FindFirstObjectByType<DoorOpener>();
         return door != null ? door.transform.position + new Vector3(0.55f, 0f, 0f) : new Vector3(0f, 0f, -3f);
+    }
+
+    /// <summary>A step inside the front door: where she stops as the intro hands over, clear of the swing.</summary>
+    private static Vector3 DoorInside()
+    {
+        var door = FindFirstObjectByType<DoorOpener>();
+        Vector3 outward = door != null && door.Outward.sqrMagnitude > 0.01f ? door.Outward : Vector3.back;
+        Vector3 p = DoorPosition() - outward * 0.9f; p.y = 0f;
+        return p;
     }
 
     private void CutInside()
@@ -267,6 +271,14 @@ public class Intro : MonoBehaviour
         if (DayNightCycle.Instance != null) DayNightCycle.Instance.SetTime(0.71f);   // sundown: a few seconds of light, then the first night
         cam.transform.position = player.position + camOffset;
         cam.orthographicSize = 7f;
+
+        // When to get up: late enough that she sits through most of the line, timed so the
+        // stand-up and the walk to the door land as the intro ends.
+        standClip = playerAnim != null && HasParameter(playerAnim, "StandUp") ? ClipLength(playerAnim, "StandUp") / StandUpSpeed : 0f;
+        Vector3 walk = DoorInside() - (ChairSpot + ChairFacing * RisePush); walk.y = 0f;
+        float walkSeconds = walk.magnitude / StepSpeed + RiseSeconds * 0.5f;
+        float walkStart = standClip > 0f ? Mathf.Max(0f, standClip - 0.25f) : 0f;
+        standAt = Mathf.Max(cut + MinSit, end - 0.15f - walkSeconds - walkStart);
     }
 
     private void RestoreControl()
