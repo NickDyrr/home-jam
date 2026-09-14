@@ -282,3 +282,5 @@ Sep 14, later: lines 3 and 4 recordings were swapped and are now right. Line 2 s
 **Sites thinned (Sep 14).** One find per site, two at a third of them (seed 5), weapons always kept and their ammo often kept with them; 29 things removed, 35 pickups and 12 crates left. Scrap is down to two piles, so each is worth four and the workbench asks for 2 then 4 (Home.upgradeScrap).
 
 **Rounds stop at trees (Sep 14).** The shot first finds the nearest thing in the way that is not her, a stalker or a survivor, and the stalker search runs only that far. A stalker behind a trunk or a rock is safe, and the round is spent. The shotgun's spread works the same against the centre line.
+
+**Shipped (Sep 14, 2026).** Submitted to All Tools Allowed #2 as a browser build. Repo public. For the update pass: play the web build end to end first, then fix the weapon poses in her hands (primitives, and Nick flagged the shotgun), then real gun models from Tripo, then survivor voice lines. Everything since the site thinning is unplayed.
