@@ -6,13 +6,13 @@ using UnityEngine.SceneManagement;
 /// Almost nothing on screen: a warm glow at the screen edge toward any
 /// burning fire nearby, the wait-for-dark
 /// prompt when it applies, the pause screen with the controls, and the end
-/// screen with a restart. Plain OnGUI, like the ammo counter.
+/// screen with Restart and Quit buttons. Plain OnGUI, like the ammo counter.
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
     private const float GlowRange = 40f;
 
-    private GUIStyle label, small, warn, big, mid, huge;
+    private GUIStyle label, small, warn, big, mid, huge, small2, button;
     private Texture2D white, glow;
     private bool restarting;
 
@@ -28,6 +28,9 @@ public class GameHUD : MonoBehaviour
         mid = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
         Intro.SetTextColor(mid, new Color(0.97f, 0.96f, 0.93f));
         huge = new GUIStyle(big) { fontSize = 72 };
+        small2 = new GUIStyle(mid) { fontSize = 17, fontStyle = FontStyle.Normal };
+        button = new GUIStyle(GUI.skin.button) { fontSize = 22, fontStyle = FontStyle.Bold };
+        Intro.SetTextColor(button, new Color(0.97f, 0.96f, 0.93f));
         white = new Texture2D(1, 1); white.SetPixel(0, 0, Color.white); white.Apply();
 
         // Soft radial blob for the fire glow.
@@ -42,31 +45,23 @@ public class GameHUD : MonoBehaviour
         glow.Apply();
     }
 
-    /// <summary>Esc pauses with the controls on screen; Esc again quits (in a build), anything else resumes.</summary>
+    /// <summary>Esc pauses with the controls on screen; Esc or any key resumes. Quit and Restart are buttons.</summary>
     public static bool Paused { get; private set; }
 
     private void Update()
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        var mouse = Mouse.current;
 
         if (kb.escapeKey.wasPressedThisFrame)
         {
-            if (Paused)
-            {
-#if UNITY_EDITOR
-                SetPaused(false);
-#else
-                Application.Quit();
-#endif
-            }
+            if (Paused) SetPaused(false);                 // Esc toggles; Quit is a button now
             else if (!Intro.Playing) SetPaused(true);
             return;
         }
         if (Paused)
         {
-            if (kb.anyKey.wasPressedThisFrame || (mouse != null && mouse.leftButton.wasPressedThisFrame)) SetPaused(false);
+            if (kb.anyKey.wasPressedThisFrame) SetPaused(false);   // keys resume; the mouse is for the buttons
             return;
         }
 
@@ -76,12 +71,7 @@ public class GameHUD : MonoBehaviour
             && HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome)
             dn.FastForwardTo(0.735f);
 
-        if (Home.Instance != null && Home.Instance.Ended && kb.rKey.wasPressedThisFrame && !restarting)
-        {
-            restarting = true;
-            SetPaused(false);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
+        if (Home.Instance != null && Home.Instance.Ended && kb.rKey.wasPressedThisFrame) Restart();
     }
 
     private void SetPaused(bool on)
@@ -102,7 +92,7 @@ public class GameHUD : MonoBehaviour
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
         "T   wait for dark (at home, by day)",
-        "Esc   pause",
+        "Esc   pause / resume",
     };
 
     private void DrawPause()
@@ -116,10 +106,35 @@ public class GameHUD : MonoBehaviour
         GUI.Label(new Rect(x, y, w, 40), "Find their fires after dark. Follow the tracks. Bring them home.", mid); y += 60f;
         foreach (var line in ControlLines) { GUI.Label(new Rect(x, y, w, 32), line, mid); y += 32f; }
         y += 24f;
+        GUI.Label(new Rect(x, y, w, 30), "Any key to resume", small2); y += 44f;
+        if (Button(x, y, w, "Resume", 0, 3)) SetPaused(false);
+        if (Button(x, y, w, "Restart", 1, 3)) Restart();
+        if (Button(x, y, w, "Quit", 2, 3)) Quit();
+    }
+
+    /// <summary>One of n buttons in a row across width w at height y. Returns true when clicked.</summary>
+    private bool Button(float x, float y, float w, string text, int index, int n)
+    {
+        float bw = Mathf.Min(220f, (w - (n - 1) * 20f) / n);
+        float total = n * bw + (n - 1) * 20f;
+        float bx = x + (w - total) * 0.5f + index * (bw + 20f);
+        return GUI.Button(new Rect(bx, y, bw, 48f), text, button);
+    }
+
+    private void Restart()
+    {
+        if (restarting) return;
+        restarting = true;
+        SetPaused(false);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private static void Quit()
+    {
 #if UNITY_EDITOR
-        GUI.Label(new Rect(x, y, w, 40), "Any key to resume", mid);
+        UnityEditor.EditorApplication.isPlaying = false;
 #else
-        GUI.Label(new Rect(x, y, w, 40), "Any key to resume        Esc again to quit", mid);
+        Application.Quit();
 #endif
     }
 
@@ -191,6 +206,7 @@ public class GameHUD : MonoBehaviour
         if (h.Won && h.NewBest) { GUI.Label(new Rect(x, y, w, 40), "New best", mid); y += 40f; }
         else if (h.BestSeconds >= 0f) { GUI.Label(new Rect(x, y, w, 40), "Best: " + Home.FormatTime(h.BestSeconds), mid); y += 40f; }
         GUI.Label(new Rect(x, y, w, 40), $"Nights: {nights}", mid); y += 60f;
-        GUI.Label(new Rect(x, y, w, 40), "R to play again", mid);
+        if (Button(x, y, w, "Restart", 0, 2)) Restart();
+        if (Button(x, y, w, "Quit", 1, 2)) Quit();
     }
 }

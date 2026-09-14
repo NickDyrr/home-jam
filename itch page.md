@@ -30,7 +30,7 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 | Mouse / Left click | Aim / Shoot |
 | R | Reload |
 | T | Wait for dark (at home, by day) |
-| Esc | Pause and controls. Esc again to quit |
+| Esc | Pause and controls. Quit and Restart are on the pause screen |
 | Any key | Skip the intro |
 
 Windows only. Unzip and run HOME.exe. Play with sound.
