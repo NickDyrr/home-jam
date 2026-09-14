@@ -17,9 +17,9 @@ public class Intro : MonoBehaviour
     {
         "The snow came early this year. Something came down with it.",
         "They come as far as my fence and no further. It's the light. Light scares them off. Sound draws them in.",
-        "Bullets won't kill them. A hit slows one down, and sends it running.",
+        "Bullets won't kill them. A hit slows one down, and sends it running. But it'll come back.",
         "Those stuck out in the woods move by day, and keep their fires at night.",
-        "I'll find them. One at a time. And I'll bring them home.",
+        "I'll find them. And bring them home.",
     };
 
     // Where she sits: the armchair by the fire, facing into the room.
@@ -126,20 +126,33 @@ public class Intro : MonoBehaviour
         // Voice: one clip per line; each line holds for its clip, or long enough to read.
         voice = new AudioClip[Lines.Length];
         bool anyVoice = false;
-        for (int i = 0; i < Lines.Length; i++) { voice[i] = Resources.Load<AudioClip>("Audio/Intro" + (i + 1)); anyVoice |= voice[i] != null; }
+        voiceTail = new AudioClip[Lines.Length];
+        for (int i = 0; i < Lines.Length; i++)
+        {
+            voice[i] = Resources.Load<AudioClip>("Audio/Intro" + (i + 1)); anyVoice |= voice[i] != null;
+            voiceTail[i] = Resources.Load<AudioClip>("Audio/Intro" + (i + 1) + "b");   // a line recorded in two takes: the second follows the first
+        }
         if (anyVoice) { voiceSource = gameObject.AddComponent<AudioSource>(); voiceSource.spatialBlend = 0f; voiceSource.playOnAwake = false; }
         // In the browser the clips decode after the scene loads, and an undecoded clip reports no
         // length. Ask for them now; the timeline is laid out once they are in (see Update).
         foreach (var c in voice) if (c != null && c.loadState == AudioDataLoadState.Unloaded) c.LoadAudioData();
+        foreach (var c in voiceTail) if (c != null && c.loadState == AudioDataLoadState.Unloaded) c.LoadAudioData();
     }
 
     private bool timelineReady;
 
+    private AudioClip[] voiceTail;
+    private AudioClip tailClip; private float tailAt;
+
     private bool VoiceLoaded()
     {
         foreach (var c in voice) if (c != null && c.loadState == AudioDataLoadState.Loading) return false;
+        foreach (var c in voiceTail) if (c != null && c.loadState == AudioDataLoadState.Loading) return false;
         return true;
     }
+
+    /// <summary>Seconds of voice for a line: the clip, plus its second take if there is one.</summary>
+    private float VoiceSeconds(int i) => (voice[i] != null ? voice[i].length : 0f) + (voiceTail[i] != null ? voiceTail[i].length + 0.2f : 0f);
 
     private void LayOutTimeline()
     {
@@ -149,7 +162,7 @@ public class Intro : MonoBehaviour
         {
             LineTimes[i] = tt;
             int words = Lines[i].Split(' ').Length;
-            float dur = voice[i] != null ? voice[i].length + 0.6f : words * 0.34f + 1.2f;
+            float dur = voice[i] != null ? VoiceSeconds(i) + 0.6f : words * 0.34f + 1.2f;
             tt += Mathf.Max(dur, 3f);
         }
         shotB = LineTimes[Lines.Length - 2];
@@ -195,9 +208,15 @@ public class Intro : MonoBehaviour
 
         if (voiceSource != null && nextVoiceLine < Lines.Length && t >= LineTimes[nextVoiceLine] && t < storyEnd)
         {
-            if (voice[nextVoiceLine] != null) { voiceSource.clip = voice[nextVoiceLine]; voiceSource.Play(); }
+            if (voice[nextVoiceLine] != null)
+            {
+                voiceSource.clip = voice[nextVoiceLine]; voiceSource.Play();
+                tailClip = voiceTail[nextVoiceLine]; tailAt = t + voice[nextVoiceLine].length + 0.2f;
+            }
             nextVoiceLine++;
         }
+        // The second take of a line, right after the first.
+        if (voiceSource != null && tailClip != null && t >= tailAt && t < storyEnd) { voiceSource.clip = tailClip; voiceSource.Play(); tailClip = null; }
 
         if (t < cutStart) DriveCamera();
         DriveCameo();
