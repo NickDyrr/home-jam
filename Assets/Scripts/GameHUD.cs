@@ -65,11 +65,7 @@ public class GameHUD : MonoBehaviour
             return;
         }
 
-        // Wait for dark: only at home, only by day.
-        var dn = DayNightCycle.Instance;
-        if (dn != null && !Intro.Playing && kb.tKey.wasPressedThisFrame && dn.IsDayWindow && !dn.FastForwarding
-            && HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome)
-            dn.FastForwardTo(0.735f);
+        // (Wait-for-dark on T was cut Sep 14: the day is hers to spend.)
 
         if (Home.Instance != null && Home.Instance.Ended && kb.rKey.wasPressedThisFrame) Restart();
     }
@@ -105,11 +101,7 @@ public class GameHUD : MonoBehaviour
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), white);
         GUI.color = Color.white;
         float w = Mathf.Min(900f, Screen.width - 80f), x = (Screen.width - w) * 0.5f, y = Screen.height * 0.2f;
-        GUI.Label(new Rect(x, y, w, 60), "Paused", big); y += 80f;
-        GUI.Label(new Rect(x, y, w, 40), "Find their fires after dark. Follow the tracks. Bring them home.", mid); y += 60f;
-        foreach (var line in ControlLines) { GUI.Label(new Rect(x, y, w, 32), line, mid); y += 32f; }
-        y += 24f;
-        GUI.Label(new Rect(x, y, w, 30), "Any key to resume", small2); y += 44f;
+        GUI.Label(new Rect(x, y, w, 60), "Paused", big); y += 100f;   // just the title and the buttons (the controls text was cut Sep 14)
         int n = CanQuit ? 3 : 2;
         if (Button(x, y, w, "Resume", 0, n)) SetPaused(false);
         if (Button(x, y, w, "Restart", 1, n)) Restart();
@@ -150,15 +142,6 @@ public class GameHUD : MonoBehaviour
         if (Intro.Playing) return;
         if (label == null) Build();
 
-        // The only standing prompt: waiting for dark, when it applies.
-        var dn = DayNightCycle.Instance;
-        if (dn != null && dn.IsDayWindow && !dn.FastForwarding && HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome && !Paused)
-        {
-            float w = 400f;
-            GUI.color = new Color(1f, 1f, 1f, 0.8f);
-            GUI.Label(new Rect((Screen.width - w) * 0.5f, Screen.height - 46f, w, 30), "T   wait for dark", mid);
-            GUI.color = Color.white;
-        }
         // The bell, when it is hers to ring.
         if (Bell.Instance != null && Bell.Instance.CanRing && !Paused)
         {
@@ -179,16 +162,18 @@ public class GameHUD : MonoBehaviour
     // ---- crosshair: the mouse, while the game is live ----
     [Header("Crosshair")]
     [Tooltip("Half-size of the crosshair in pixels: the ticks reach this far from the centre.")]
-    [SerializeField] private float crosshairSize = 11f;
+    [SerializeField] private float crosshairSize = 14f;
     [Tooltip("Gap between the centre and the start of each tick.")]
-    [SerializeField] private float crosshairGap = 4f;
-    private static readonly Color CrossBone = new Color(0.97f, 0.94f, 0.86f, 0.95f);
-    private static readonly Color CrossShadow = new Color(0f, 0f, 0f, 0.6f);
+    [SerializeField] private float crosshairGap = 3f;
+    [Tooltip("Radius of the ring the ticks run through.")]
+    [SerializeField] private float crosshairRing = 8f;
+    private static readonly Color CrossTan = new Color(0.86f, 0.74f, 0.58f, 0.95f);   // a very light brown
+    private static readonly Color CrossShadow = new Color(0f, 0f, 0f, 0.55f);
 
     /// <summary>
-    /// Four bone-coloured ticks and a dot, over a soft dark shadow so it reads on snow and in the
-    /// dark. The system pointer is hidden while it shows and comes back for the pause and end
-    /// screens, where there are buttons to click.
+    /// A light brown ring with four ticks running through it and a dot in the middle, over a
+    /// soft dark shadow so it reads on snow and in the dark. The system pointer is hidden while
+    /// it shows and comes back for the pause and end screens, where there are buttons to click.
     /// </summary>
     private void DrawCrosshair(bool live)
     {
@@ -196,13 +181,14 @@ public class GameHUD : MonoBehaviour
         if (Cursor.visible == show) Cursor.visible = !show;
         if (!show) return;
         Vector2 m = Event.current.mousePosition;
-        float s = crosshairSize, g = crosshairGap, len = s - g;
-        // Shadow pass first, one pixel fatter, then the ticks.
+        float s = crosshairSize, g = crosshairGap, len = s - g, r = crosshairRing;
+        // Shadow pass first, a pixel fatter, then the real thing.
         for (int pass = 0; pass < 2; pass++)
         {
-            float t = pass == 0 ? 4f : 2f;           // tick thickness
+            float t = pass == 0 ? 4f : 2f;           // tick and ring thickness
             float pad = pass == 0 ? 1f : 0f;         // the shadow reaches a pixel further
-            Color c = pass == 0 ? CrossShadow : CrossBone;
+            Color c = pass == 0 ? CrossShadow : CrossTan;
+            Frame(new Rect(m.x - r - pad, m.y - r - pad, 2f * (r + pad), 2f * (r + pad)), c, r + pad, t);   // the ring
             GUI.color = c;
             GUI.DrawTexture(new Rect(m.x - t * 0.5f, m.y - s - pad, t, len + pad), white);          // up
             GUI.DrawTexture(new Rect(m.x - t * 0.5f, m.y + g, t, len + pad), white);                // down

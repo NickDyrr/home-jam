@@ -601,7 +601,7 @@ public class Intro : MonoBehaviour
         }
 
 
-        if (t < storyEnd) { GUI.color = new Color(1f, 1f, 1f, 0.45f); GUI.Label(new Rect(x, Screen.height - 50f, w, 30), "any key to skip", hintStyle); }
+        // (The "any key to skip" hint was cut Sep 14; any key still skips.)
         GUI.color = Color.white;
     }
 
