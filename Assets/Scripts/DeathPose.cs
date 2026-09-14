@@ -9,7 +9,7 @@ using UnityEngine;
 public static class DeathPose
 {
     /// <summary>How far through the death clip the body is down. Frozen there.</summary>
-    public const float LandedAt = 0.62f;
+    public const float LandedAt = 0.47f;   // first flat contact after the clip's roll; the slide onto the side that follows is cut (was 0.62)
 
     public static IEnumerator HoldWhenDown(Animator animator, string stateName)
     {
