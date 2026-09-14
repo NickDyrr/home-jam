@@ -4,7 +4,7 @@
 
 A short top-down survival game made in 72 hours for [All Tools Allowed #2](https://itch.io/jam/all-tools-allowed-2) (theme: HOME). It's my first published game on itch.io, and my first in Unity.
 
-**Play it in the browser on itch.io:** *(link goes here once the page is live)*
+**Play it in the browser on itch.io: https://slicknickstudio.itch.io/bringthemhome
 
 ## The game
 
