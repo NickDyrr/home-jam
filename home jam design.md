@@ -194,3 +194,5 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 **Fires and the clock (Sep 13, late).** A survivor's fire goes out when they reach the house, not only when they are taken, so the map darkens as the job gets done. The end screen shows the run time from the end of the intro to the last person accounted for, with a saved best for full rescues. Nothing hints at it before then: you only find out it was a race once you have won.
 
 **Chase pressure (Sep 13, late).** A hunting stalker gains 0.45 m/s for every second of the chase, from 4 up to 8.5 (she sprints at 6.5), and the clock resets only when it loses her. Bullets still take 18% off for good. So running buys time, a bullet buys distance, and neither alone is enough for long.
+
+**Being taken costs (Sep 13, late).** When a stalker takes her she loses six rounds (spare first, then loaded) on top of whoever she was escorting. The fire glow at the screen edge now reaches 40 m instead of 70, so it only hints when a fire is close.

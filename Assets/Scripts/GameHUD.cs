@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
-    private const float GlowRange = 70f;
+    private const float GlowRange = 40f;
 
     private GUIStyle label, small, warn, big, mid, huge;
     private Texture2D white, glow;

@@ -237,6 +237,16 @@ public class Pistol : MonoBehaviour
         Reserve += rounds;
     }
 
+    /// <summary>Rounds dropped in the snow when she is taken. Spare first, then what is loaded. Returns how many went.</summary>
+    public int LoseRounds(int rounds)
+    {
+        int fromReserve = Mathf.Min(rounds, Reserve);
+        Reserve -= fromReserve;
+        int fromLoaded = Mathf.Min(rounds - fromReserve, Loaded);
+        Loaded -= fromLoaded;
+        return fromReserve + fromLoaded;
+    }
+
     private Vector3 AimDirection()
     {
         Vector3 fallback = transform.forward;

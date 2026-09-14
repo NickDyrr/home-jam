@@ -41,6 +41,8 @@ public class StalkerDirector : MonoBehaviour
 
     [Header("Caught")]
     [SerializeField] private float respawnDelay = 1.2f;
+    [Tooltip("Rounds dropped when she is taken, spare first. Being caught has to cost something.")]
+    [SerializeField] private int roundsLostWhenCaught = 6;
     [SerializeField] private Vector3 respawnPoint = new Vector3(0f, 1.1f, 0f);
 
     /// <summary>Seconds since the player last left home. Zero while inside.</summary>
@@ -244,6 +246,13 @@ public class StalkerDirector : MonoBehaviour
         foreach (Survivor s in Survivor.All)
             if (s.CurrentState == Survivor.State.Following) escorted.Add(s);
         foreach (Survivor s in escorted) s.Taken();
+
+        // And the rounds she was carrying: dropped in the snow.
+        if (Pistol.Instance != null)
+        {
+            int lost = Pistol.Instance.LoseRounds(roundsLostWhenCaught);
+            if (lost > 0 && player != null) FloatingText.Show(player.position + Vector3.up * 2.4f, $"{lost} rounds lost", 3f);
+        }
 
         yield return new WaitForSeconds(seconds);
 
