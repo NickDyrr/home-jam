@@ -43,7 +43,7 @@ public class Home : MonoBehaviour
     }
 
     [Tooltip("Scrap needed for each build, alongside the people.")]
-    [SerializeField] private int[] upgradeScrap = { 4, 8 };
+    [SerializeField] private int[] upgradeScrap = { 2, 4 };
 
     /// <summary>Scrap needed for the next house level, or 0.</summary>
     public int NextScrapNeeded
