@@ -11,7 +11,23 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class Stalker : MonoBehaviour
 {
-    public enum State { Dormant, Hunting, Retreating, Stunned, Grabbing, Striking }
+    public enum State { Dormant, Hunting, Retreating, Stunned, Grabbing, Striking, Lured }
+
+    private Vector3 lurePos;
+    private float lureUntil;
+
+    /// <summary>The bell: every stalker walks toward a point for a while, stopping at the fence, then goes quiet out there.</summary>
+    public static void Lure(Vector3 pos, float seconds)
+    {
+        foreach (Stalker s in All)
+        {
+            if (s.dismissed || s.CurrentState == State.Grabbing) continue;
+            if (s.CurrentState == State.Striking) s.strikeTarget = null;
+            s.lurePos = pos; s.lureUntil = Time.time + seconds;
+            s.huntStart = -1f;
+            s.CurrentState = State.Lured;
+        }
+    }
 
     /// <summary>Every live stalker in the scene.</summary>
     public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
@@ -208,6 +224,21 @@ public class Stalker : MonoBehaviour
                 move = knock;
                 if (Time.time >= stunUntil) CurrentState = State.Hunting;
                 break;
+
+            case State.Lured:
+            {
+                // Drawn to the bell. Walks to the edge of the yard and stands there until the
+                // pull fades, then turns back into the trees.
+                Vector3 toBell = lurePos - transform.position; toBell.y = 0f;
+                bool atFence = Refuge.Shelters(transform.position + toBell.normalized * 2.5f, 0f);
+                if (Time.time >= lureUntil)
+                {
+                    retreatDir = -toBell.normalized; retreatUntil = Time.time + yardRetreatSeconds; retreatToDormant = true;
+                    CurrentState = State.Retreating;
+                }
+                else if (!atFence && toBell.magnitude > 2f) move = toBell.normalized * Mathf.Min(maxSpeed, baseSpeed * 1.3f) * SpeedFactor;
+                break;
+            }
 
             case State.Striking:
             {

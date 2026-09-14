@@ -92,6 +92,7 @@ public class GameHUD : MonoBehaviour
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
         "T   wait for dark (at home, by day)",
+        "B   ring the bell (second house level, from the yard)",
         "Esc   pause / resume",
     };
 
@@ -154,6 +155,14 @@ public class GameHUD : MonoBehaviour
             float w = 400f;
             GUI.color = new Color(1f, 1f, 1f, 0.8f);
             GUI.Label(new Rect((Screen.width - w) * 0.5f, Screen.height - 46f, w, 30), "T   wait for dark", mid);
+            GUI.color = Color.white;
+        }
+        // The bell, when it is hers to ring.
+        if (Bell.Instance != null && Bell.Instance.CanRing && !Paused)
+        {
+            float w = 400f;
+            GUI.color = new Color(1f, 1f, 1f, 0.8f);
+            GUI.Label(new Rect((Screen.width - w) * 0.5f, Screen.height - 80f, w, 30), "B   ring the bell", mid);
             GUI.color = Color.white;
         }
 

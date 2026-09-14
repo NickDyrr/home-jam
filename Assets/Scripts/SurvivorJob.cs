@@ -52,9 +52,9 @@ public static class HomeBonuses
             case SurvivorJob.Hunter:     return "Hunter home: +4 rounds every dawn";
             case SurvivorJob.Soldier:    return "Soldier home: reloads twice as fast";
             case SurvivorJob.Scout:      return "Scout home: camp fires can be seen from further";
-            case SurvivorJob.Cook:       return "Cook home: survivors walk faster";
+            case SurvivorJob.Cook:       return "Cook home: survivors walk faster, the house glows further";
             case SurvivorJob.Firekeeper: return "Firekeeper home: your lantern reaches further";
-            case SurvivorJob.Watchman:   return "Watchman home: stalkers give up sooner";
+            case SurvivorJob.Watchman:   return "Watchman home: stalkers give up sooner, he calls out from the fence";
             default:                     return "Home safe";
         }
     }

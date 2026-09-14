@@ -23,10 +23,10 @@ public class Refuge : MonoBehaviour
         return Mathf.Abs(local.x) <= halfSize.x - margin && Mathf.Abs(local.z) <= halfSize.y - margin;
     }
 
-    /// <summary>True inside the fenced yard or any refuge.</summary>
+    /// <summary>True inside the fenced yard (grown by the porch lantern's grace) or any refuge.</summary>
     public static bool Shelters(Vector3 p, float margin = 0f)
     {
-        if (Home.Instance != null && Home.Instance.InYard(p, margin)) return true;
+        if (Home.Instance != null && Home.Instance.InYard(p, margin - Home.Instance.YardGrace)) return true;
         foreach (var r in All) if (r.Contains(p, margin)) return true;
         return false;
     }

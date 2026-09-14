@@ -19,6 +19,7 @@ public class Dread : MonoBehaviour
     private Vignette vignette;
     private float level;
     private float nextBeat;
+    private AudioSource breath;
     private Transform player;
 
     private void Start()
@@ -61,6 +62,12 @@ public class Dread : MonoBehaviour
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.SetWind(home ? 0.12f : 0.35f + 0.15f * night);
+            // Her breathing, once a real clip is dropped in: loud with something close behind her.
+            if (AudioManager.Instance.Breath != null)
+            {
+                if (breath == null) breath = AudioManager.Instance.Loop(AudioManager.Instance.Breath, player, 0f);
+                if (breath != null) breath.volume = Mathf.Lerp(breath.volume, level * 0.7f, 1f - Mathf.Exp(-2f * Time.deltaTime));
+            }
             if (level > 0.05f && Time.time >= nextBeat)
             {
                 float bpm = Mathf.Lerp(55f, 150f, level);

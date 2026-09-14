@@ -212,3 +212,7 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 **Dawn.** Stalkers turn away from the house and walk into the trees for seven seconds before they are gone, with one long low note.
 
 **Placed stalkers.** Two circle each far camp at 18-30 m; a few more scattered; none near home.
+
+**Landmarks.** A frozen pond (60, -118), a ruined shack (-108, -42) that is a refuge with a crate inside, a ridge of fifteen boulders from (-10, 120) to (70, 150), and a dead giant at (104, 38). Two dead-end trails end at a dark patch of snow.
+
+**Upgrades that change play.** Level one lights the porch lantern: the stalkers' line moves 6 m out past the fence. Level two unlocks the bell by the door: B from the yard pulls every stalker on the map toward the house for 60 s (they stop at the fence, then wander off), three minute cooldown. Cook home: the house lights reach 1.4x further. Watchman home: he calls out the direction when a stalker is within 45 m while she is in the yard. Breath loop (Resources/Audio/Breath) rises with a hunter close behind.

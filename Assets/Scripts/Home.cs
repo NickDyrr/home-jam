@@ -66,6 +66,21 @@ public class Home : MonoBehaviour
 
     private readonly List<Survivor> arrivals = new List<Survivor>();
 
+    [Header("Upgrades that change play")]
+    [Tooltip("With the first house level the porch lantern pushes the stalkers' line this far out past the fence.")]
+    [SerializeField] private float porchGrace = 6f;
+    [SerializeField] private GameObject porchLantern;
+    [SerializeField] private Bell bell;
+    [Tooltip("Cook home: the house lights reach this much further.")]
+    [SerializeField] private float cookGlowMultiplier = 1.4f;
+    [Tooltip("Watchman home: he calls out when a stalker is within this distance of the house while she is in the yard.")]
+    [SerializeField] private float watchmanRange = 45f;
+    private float nextWatchCall;
+    private Light[] houseLights; private float[] houseLightRanges;
+
+    /// <summary>Metres past the fence that still count as hers, once the porch lantern is up.</summary>
+    public float YardGrace => HouseView.Instance != null && HouseView.Instance.CurrentLevel >= 1 ? porchGrace : 0f;
+
     /// <summary>True when the point is inside the fence, by at least margin.</summary>
     public bool InYard(Vector3 p, float margin = 0.6f)
     {
@@ -102,6 +117,38 @@ public class Home : MonoBehaviour
     {
         // The clock starts the moment the intro hands over control.
         if (runStart < 0f && !Intro.Playing) runStart = Time.time;
+
+        // Porch lantern shows with the first upgrade.
+        if (porchLantern != null && porchLantern.activeSelf != (YardGrace > 0f)) porchLantern.SetActive(YardGrace > 0f);
+
+        // Cook home: the house glows further. Scale every house light off its base range.
+        if (houseLights == null)
+        {
+            houseLights = GetComponentsInChildren<Light>(true);
+            houseLightRanges = new float[houseLights.Length];
+            for (int i = 0; i < houseLights.Length; i++) houseLightRanges[i] = houseLights[i].range;
+        }
+        float glow = HomeBonuses.Has(SurvivorJob.Cook) ? cookGlowMultiplier : 1f;
+        for (int i = 0; i < houseLights.Length; i++)
+            if (houseLights[i] != null && houseLights[i].transform.parent != null && houseLights[i].transform.parent.name != "Rewards")
+                houseLights[i].range = houseLightRanges[i] * glow;
+
+        // Watchman home: a warning from the fence when something is close and she is in the yard.
+        if (HomeBonuses.Has(SurvivorJob.Watchman) && Time.time >= nextWatchCall && PlayerMovement.Instance != null && InYard(PlayerMovement.Instance.transform.position, 0f))
+        {
+            foreach (Stalker s in Stalker.All)
+            {
+                Vector3 d = s.transform.position - transform.position; d.y = 0f;
+                if (d.magnitude <= watchmanRange)
+                {
+                    nextWatchCall = Time.time + 12f;
+                    Vector3 dir = d.normalized;
+                    string where = Mathf.Abs(dir.x) > Mathf.Abs(dir.z) ? (dir.x > 0 ? "east" : "west") : (dir.z > 0 ? "north" : "south");
+                    FloatingText.Show(transform.position + Vector3.up * 3.4f, "Watchman: something to the " + where + ".", 4f);
+                    break;
+                }
+            }
+        }
 
         if (!debugUpgradeKey) return;
         var kb = UnityEngine.InputSystem.Keyboard.current;

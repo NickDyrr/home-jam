@@ -21,6 +21,7 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 - Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good. They go for the person you are escorting first. If one gets you, the run is over.
 - Rounds are scarce: twelve to start, three for each survivor home, and a crate at the farthest camps.
+- The house grows with the people in it: a porch lantern that pushes them back, then a bell that pulls every one of them to the fence while you make a run.
 
 ## Controls
 
@@ -31,6 +32,7 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 | Mouse / Left click | Aim / Shoot |
 | R | Reload |
 | T | Wait for dark (at home, by day) |
+| B | Ring the bell (second house level, from the yard) |
 | Esc | Pause and controls. Quit and Restart are on the pause screen |
 | Any key | Skip the intro |
 
