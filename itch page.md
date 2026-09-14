@@ -20,6 +20,7 @@ Out in the forest, the people who ran are still alive. By day they hide and thei
 - Bullets don't kill them. Each one slows them down, for good. Twelve to start, more for every survivor home.
 - Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good. They go for the person you are escorting first. If one gets you, the run is over.
+- Rounds are scarce: twelve to start, three for each survivor home, and a crate at the farthest camps.
 
 ## Controls
 

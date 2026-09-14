@@ -96,6 +96,22 @@ public class Stalker : MonoBehaviour
     private void OnEnable()  { All.Add(this); }
     private void OnDisable() { All.Remove(this); }
 
+    /// <summary>Dawn. It turns away from the house and walks off into the trees, then is gone.</summary>
+    public void Dismiss()
+    {
+        if (dismissed) return;
+        dismissed = true;
+        if (CurrentState == State.Grabbing) ReleasePlayer();
+        Vector3 home = Home.Instance != null ? Home.Instance.transform.position : Vector3.zero; home.y = 0f;
+        retreatDir = transform.position - home; retreatDir.y = 0f;
+        retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+        retreatUntil = Time.time + dismissSeconds;
+        retreatToDormant = false;
+        CurrentState = State.Retreating;
+    }
+    private bool dismissed;
+    [SerializeField] private float dismissSeconds = 7f;
+
     /// <summary>Something screamed nearby. A dormant stalker wakes and hunts.</summary>
     public void Alert()
     {
@@ -136,7 +152,7 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 float reach = aggroRadius;
                 if (t == player) reach *= (PlayerMovement.Instance != null && PlayerMovement.Instance.IsRunning) ? 1.2f : 0.5f;
-                if (t == player && Home.Instance != null && Home.Instance.InYard(player.position, 0f)) break;   // inside the fence she is nothing to them
+                if (t == player && Refuge.Shelters(player.position)) break;   // inside the fence or a refuge she is nothing to them
                 if (t != null && dist <= reach)
                     Wake();
                 break;
@@ -150,12 +166,12 @@ public class Stalker : MonoBehaviour
                     CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
                     break;
                 }
-                if (t == player && Home.Instance != null && Home.Instance.InYard(player.position, 0f))
+                if (t == player && Refuge.Shelters(player.position))
                 {
-                    // She made the fence. Whatever it is, it will not follow her in: it turns and
+                    // She made the fence, or the shack. It will not follow her in: it turns and
                     // walks back into the trees, and goes quiet out there.
-                    Vector3 home = Home.Instance.transform.position; home.y = 0f;
-                    retreatDir = transform.position - home; retreatDir.y = 0f;
+                    // Away from her, whichever shelter it is.
+                    retreatDir = transform.position - player.position; retreatDir.y = 0f;
                     retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
                     retreatUntil = Time.time + yardRetreatSeconds;
                     retreatToDormant = true;
@@ -179,8 +195,12 @@ public class Stalker : MonoBehaviour
             }
 
             case State.Retreating:
-                if (Time.time >= retreatUntil) { CurrentState = retreatToDormant ? State.Dormant : State.Hunting; if (retreatToDormant) huntStart = -1f; retreatToDormant = false; }
-                else move = retreatDir * retreatSpeed * SpeedFactor;
+                if (Time.time >= retreatUntil)
+                {
+                    if (dismissed) { Destroy(gameObject); return; }
+                    CurrentState = retreatToDormant ? State.Dormant : State.Hunting; if (retreatToDormant) huntStart = -1f; retreatToDormant = false;
+                }
+                else move = retreatDir * (dismissed ? 1.8f : retreatSpeed * SpeedFactor);   // dismissed: a walk, not a rout
                 break;
 
             case State.Stunned:

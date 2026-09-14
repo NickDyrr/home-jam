@@ -21,8 +21,24 @@ public class Survivor : MonoBehaviour
     /// <summary>Every live survivor in the scene.</summary>
     public static readonly List<Survivor> All = new List<Survivor>();
 
+    /// <summary>What makes escorting this one its own problem.</summary>
+    public enum Trait
+    {
+        None,
+        Hurt,       // walks slowly and cannot run
+        Skittish,   // hides again if a stalker gets close; you have to go back for them
+        Stubborn,   // will not leave until you have stood at their fire a few seconds
+    }
+
     [Header("Who")]
     [SerializeField] private SurvivorJob job = SurvivorJob.None;
+    [SerializeField] private Trait trait = Trait.None;
+    [SerializeField] private float hurtSpeedFactor = 0.62f;
+    [SerializeField] private float skittishRadius = 10f;
+    [SerializeField] private float stubbornSeconds = 3f;
+    public Trait Quirk => trait;
+    private float stayTimer;
+    private bool met, nudged;
 
     [Header("Behaviour")]
     [SerializeField] private float noticeRadius = 2.5f;
@@ -147,25 +163,45 @@ public class Survivor : MonoBehaviour
         switch (CurrentState)
         {
             case State.Waiting:
+            {
                 // Out of sight by day, at the fire by night. Only findable after dark.
                 SetHiding(!StalkerDirector.IsNight);
-                if (!hiding && toPlayer.magnitude <= noticeRadius)
+                bool near = !hiding && toPlayer.magnitude <= noticeRadius;
+                if (trait == Trait.Stubborn && !met)
+                {
+                    // Will not budge until she has stood with them a moment.
+                    stayTimer = near ? stayTimer + Time.deltaTime : 0f;
+                    if (near && !nudged) { nudged = true; FloatingText.Show(transform.position + Vector3.up * 2.4f, "Stay a moment.", 2.5f); }
+                    near = stayTimer >= stubbornSeconds;
+                }
+                if (near)
                 {
                     CurrentState = State.Following;
-                    Encounter.Play(this);
+                    if (!met) { met = true; Encounter.Play(this); }
                 }
                 break;
+            }
 
             case State.Following:
             {
                 SetHiding(false);
                 // No panic any more: with something close they just run to keep on her heels.
                 bool threatened = StalkerNear(panicRadius);
+                if (trait == Trait.Skittish && StalkerNear(skittishRadius))
+                {
+                    // Gone to ground again. She has to come back for them.
+                    CurrentState = State.Waiting;
+                    running = false;
+                    FloatingText.Show(transform.position + Vector3.up * 2.4f, "Hid again.", 2f);
+                    break;
+                }
                 float d = toPlayer.magnitude;
                 // Hysteresis so it does not flicker between walk and run.
                 if (d > runCatchUpDistance || threatened) running = true;
                 else if (d < runCatchUpDistance * 0.6f) running = false;
+                if (trait == Trait.Hurt) running = false;
                 speed = (running ? runSpeed : moveSpeed) * HomeBonuses.SurvivorSpeedMultiplier;
+                if (trait == Trait.Hurt) speed *= hurtSpeedFactor;
                 if (d > followDistance) move = toPlayer.normalized;
 
                 if (HomeZone.Instance != null && HomeZone.Instance.Contains(transform.position))

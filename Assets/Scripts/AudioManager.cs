@@ -11,7 +11,7 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
-    public AudioClip Wind, Crackle, Step, StepHeavy, Gunshot, Yell, Growl, Heartbeat;
+    public AudioClip Wind, Crackle, Step, StepHeavy, Gunshot, Yell, Growl, Heartbeat, Bell, Dawn, Breath;
 
     private readonly List<AudioSource> pool = new List<AudioSource>();
     private AudioSource windSource;
@@ -38,6 +38,9 @@ public class AudioManager : MonoBehaviour
         Yell = Resources.Load<AudioClip>("Audio/Yell") ?? ProceduralAudio.Yell();
         Growl = Resources.Load<AudioClip>("Audio/Growl") ?? ProceduralAudio.Growl();
         Heartbeat = Resources.Load<AudioClip>("Audio/Heartbeat") ?? ProceduralAudio.Heartbeat();
+        Bell = Resources.Load<AudioClip>("Audio/Bell") ?? ProceduralAudio.Bell();
+        Dawn = Resources.Load<AudioClip>("Audio/Dawn") ?? ProceduralAudio.Dawn();
+        Breath = Resources.Load<AudioClip>("Audio/Breath");   // no synthesized fallback: silent until a clip is dropped in
 
         windSource = gameObject.AddComponent<AudioSource>();
         windSource.clip = Wind; windSource.loop = true; windSource.volume = 0.35f; windSource.spatialBlend = 0f; windSource.Play();

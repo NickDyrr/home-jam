@@ -198,3 +198,17 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 **Being taken ends it (Sep 13, late).** Stalkers go for a survivor she is escorting before her. If one gets hold of her and she cannot shoot it off in the grab window, the run is over: end screen, time shown, no best. The fire glow at the screen edge reaches 40 m so it only hints when a fire is close.
 
 **Deaths that land (Sep 13, late).** A stalker that reaches a survivor winds up a swing for 0.55 s and only kills if they are still within 2.3 m when it lands; a hit on the stalker in that window breaks it off. The survivor plays a flying-back death (Mixamo "Flying Back Death", Assets/Characters/Survivors/Anims) and the body stays where it fell. Panicked survivors scream in place for one second, then run to the player and stick to her heels until she has been beside them half a second. Interior light ranges shortened so nothing shines out of the chimney. In the intro she pushes forward off the seat as she stands.
+
+## Fun pass (Sep 13, night)
+
+**Shorter clock.** 120 s day, 300 s night (was 180/420).
+
+**Scarce rounds.** Three per survivor home (was six). A crate with three rounds sits by each of the three farthest camps; walk over it.
+
+**Traits.** The girl is skittish: a stalker within 10 m sends her back into hiding and you must go back for her. The old man is hurt: 62% speed and cannot run. The soldier is stubborn: stand at his fire three seconds before he follows.
+
+**The way back.** While escorting, the next stalker group gathers between her and the house (within 70 degrees of the home direction).
+
+**Dawn.** Stalkers turn away from the house and walk into the trees for seven seconds before they are gone, with one long low note.
+
+**Placed stalkers.** Two circle each far camp at 18-30 m; a few more scattered; none near home.

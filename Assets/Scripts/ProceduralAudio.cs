@@ -115,6 +115,33 @@ public static class ProceduralAudio
         });
     }
 
+    /// <summary>A hand bell: bright strike, long ring.</summary>
+    public static AudioClip Bell()
+    {
+        return Make("Bell", 2.6f, (i, t) =>
+        {
+            float env = Mathf.Exp(-t * 1.6f);
+            float a = Mathf.Sin(t * 2f * Mathf.PI * 1244f) * env;
+            float b = Mathf.Sin(t * 2f * Mathf.PI * 2110f) * Mathf.Exp(-t * 3.2f) * 0.5f;
+            float c = Mathf.Sin(t * 2f * Mathf.PI * 3320f) * Mathf.Exp(-t * 6f) * 0.3f;
+            float strike = Noise() * Mathf.Exp(-t * 90f) * 0.6f;
+            return (a + b + c + strike) * 0.55f;
+        });
+    }
+
+    /// <summary>One long low note for the sun coming up.</summary>
+    public static AudioClip Dawn()
+    {
+        return Make("Dawn", 5.5f, (i, t) =>
+        {
+            float env = Mathf.Min(1f, t * 0.9f) * Mathf.Clamp01((5.5f - t) / 2.2f);
+            float a = Mathf.Sin(t * 2f * Mathf.PI * 110f);
+            float b = Mathf.Sin(t * 2f * Mathf.PI * 165f) * 0.5f;
+            float c = Mathf.Sin(t * 2f * Mathf.PI * 220f + Mathf.Sin(t * 1.3f) * 0.4f) * 0.35f;
+            return (a + b + c) * 0.3f * env;
+        });
+    }
+
     /// <summary>One lub-dub. Played faster as dread rises.</summary>
     public static AudioClip Heartbeat()
     {

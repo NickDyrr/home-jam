@@ -104,8 +104,9 @@ public class StalkerDirector : MonoBehaviour
         if (Retired || Suppressed) return;
 
         // The placed ones stand out there all night, whether or not she is home.
-        if (IsNight && placed.Count == 0) SpawnPlaced();
-        else if (!IsNight && placed.Count > 0) DespawnPlaced();
+        if (IsNight && placed.Count == 0 && !dawnSounded) SpawnPlaced();
+        else if (!IsNight && placed.Count > 0) DismissPlaced();
+        if (IsNight) dawnSounded = false;
 
         if (!playerOutside || respawning) return;
 
@@ -113,7 +114,7 @@ public class StalkerDirector : MonoBehaviour
 
         if (!IsNight)
         {
-            if (stalkers.Count > 0) DespawnAll();   // dawn: they slip away
+            if (stalkers.Count > 0) DismissAll();   // dawn: they turn and walk off into the trees
             return;
         }
 
@@ -156,9 +157,22 @@ public class StalkerDirector : MonoBehaviour
     {
         Vector3 p = player.position; p.y = 0f;
 
+        // Walking someone home? Then the group gathers between her and the house: the way back
+        // is never the way she came.
+        bool escorting = false;
+        foreach (Survivor s in Survivor.All) if (s.CurrentState == Survivor.State.Following) { escorting = true; break; }
+        Vector3 toHome = home - p; toHome.y = 0f;
+        float homeAngle = Mathf.Atan2(toHome.x, toHome.z) * Mathf.Rad2Deg;
+
         for (int attempt = 0; attempt < 30; attempt++)
         {
-            Vector2 dir = Random.insideUnitCircle.normalized;
+            Vector2 dir;
+            if (escorting && toHome.sqrMagnitude > 1f)
+            {
+                float a = (homeAngle + Random.Range(-70f, 70f)) * Mathf.Deg2Rad;
+                dir = new Vector2(Mathf.Sin(a), Mathf.Cos(a));
+            }
+            else dir = Random.insideUnitCircle.normalized;
             float r = Random.Range(minFromPlayer, maxFromPlayer);
             pos = p + new Vector3(dir.x, 0f, dir.y) * r;
 
@@ -187,21 +201,68 @@ public class StalkerDirector : MonoBehaviour
         stalkers.Clear();
     }
 
-    /// <summary>Fixed spots, chosen once from a seed: spread over the map, clear of home, camps and the yard.</summary>
+    private bool dawnSounded;
+
+    /// <summary>The sun is up: every roaming stalker walks off on screen, and one long note marks it.</summary>
+    private void DismissAll()
+    {
+        foreach (GameObject s in stalkers) if (s != null) { var st = s.GetComponent<Stalker>(); if (st != null) st.Dismiss(); else Destroy(s); }
+        stalkers.Clear();
+        SoundDawn();
+    }
+
+    private void DismissPlaced()
+    {
+        foreach (GameObject s in placed) if (s != null) { var st = s.GetComponent<Stalker>(); if (st != null) st.Dismiss(); else Destroy(s); }
+        placed.Clear();
+        SoundDawn();
+    }
+
+    private void SoundDawn()
+    {
+        if (dawnSounded || AudioManager.Instance == null || player == null) return;
+        dawnSounded = true;
+        AudioManager.Instance.Play(AudioManager.Instance.Dawn, player.position, 0.7f, 1000f, 1f);
+    }
+
+    /// <summary>
+    /// Fixed spots, chosen once from a seed. They stand where she wants to go: two circling each
+    /// far camp at 18-30 m, plus a few scattered ones. Never near home, never in the empty quarters.
+    /// </summary>
     private void PickPlacedSpots()
     {
         var rng = new System.Random(placedSeed);
         var spots = new List<Vector3>();
         Vector3 home = HomeZone.Instance != null ? HomeZone.Instance.transform.position : Vector3.zero; home.y = 0f;
-        for (int attempt = 0; attempt < 400 && spots.Count < placedCount; attempt++)
+        bool Clear(Vector3 p)
+        {
+            if (Mathf.Abs(p.x) > 192f || Mathf.Abs(p.z) > 192f) return false;
+            Vector3 dh = p - home; dh.y = 0f; if (dh.sqrMagnitude < placedMinFromHome * placedMinFromHome) return false;
+            foreach (Campfire c in Campfire.All) { Vector3 d = c.transform.position - p; d.y = 0f; if (d.sqrMagnitude < 14f * 14f) return false; }
+            foreach (Vector3 q in spots) if ((q - p).sqrMagnitude < 12f * 12f) return false;
+            return true;
+        }
+        // Two per far camp.
+        foreach (Campfire c in Campfire.All)
+        {
+            Vector3 cp = c.transform.position; cp.y = 0f;
+            if ((cp - home).magnitude < 60f) continue;   // the tutorial camp stays quiet
+            for (int k = 0, tries = 0; k < 2 && tries < 30; tries++)
+            {
+                float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float r = Mathf.Lerp(18f, 30f, (float)rng.NextDouble());
+                Vector3 p = cp + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
+                if (Clear(p)) { spots.Add(p); k++; }
+            }
+        }
+        // A few more out in the open, up to placedCount.
+        for (int attempt = 0; attempt < 300 && spots.Count < placedCount; attempt++)
         {
             float ang = (float)rng.NextDouble() * Mathf.PI * 2f;
             float r = Mathf.Lerp(placedMinFromHome, placedMaxFromHome, (float)rng.NextDouble());
             Vector3 p = home + new Vector3(Mathf.Cos(ang), 0f, Mathf.Sin(ang)) * r;
-            if (Mathf.Abs(p.x) > 192f || Mathf.Abs(p.z) > 192f) continue;
-            bool ok = true;
-            foreach (Campfire c in Campfire.All) { Vector3 d = c.transform.position - p; d.y = 0f; if (d.sqrMagnitude < placedMinFromCamp * placedMinFromCamp) { ok = false; break; } }
-            foreach (Vector3 q in spots) if ((q - p).sqrMagnitude < 30f * 30f) { ok = false; break; }
+            bool ok = Clear(p);
+            foreach (Vector3 q in spots) if (ok && (q - p).sqrMagnitude < 35f * 35f) ok = false;
             if (ok) spots.Add(p);
         }
         placedSpots = spots.ToArray();
