@@ -156,6 +156,9 @@ public class DayNightCycle : MonoBehaviour
         fog = Color.Lerp(fog, sunsetColor * 0.8f, edge * 0.35f);
         RenderSettings.ambientLight = ambient * AmbientScale;
         RenderSettings.fogColor = fog;
+        // URP fog on an orthographic camera under OpenGL ES (the web) paints every surface the fog
+        // colour. The fog barely shows at this camera distance anyway, so the web build goes without.
+        if (Application.platform == RuntimePlatform.WebGLPlayer) RenderSettings.fog = false;
         if (mainCamera != null && mainCamera.clearFlags == CameraClearFlags.SolidColor)
             mainCamera.backgroundColor = fog;
     }

@@ -9,6 +9,11 @@ public static class GameBoot
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
     {
+        // The browser gets the plain Forward renderer without ambient occlusion: WebGL 2 has no
+        // Forward+ and the extra passes are the first thing to misbehave there.
+        if (Application.platform == RuntimePlatform.WebGLPlayer && QualitySettings.GetQualityLevel() != 0)
+            QualitySettings.SetQualityLevel(0, true);
+
         // Statics survive a scene reload (restart): put them back.
         HouseView.ForceOutside = false;
         StalkerDirector.Suppressed = false;
