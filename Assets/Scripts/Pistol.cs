@@ -135,7 +135,7 @@ public class Pistol : MonoBehaviour
         if (animator != null)
         {
             // Armed stance fades out a few seconds after the last shot.
-            float since = Time.time - lastShotTime;
+            float since = IsReloading ? 0f : Time.time - lastShotTime;   // the gun stays up through a reload
             float armed = since < armedSeconds ? 1f : 0f;
             animator.SetFloat(ArmedHash, armed, armedBlendSeconds, Time.deltaTime);
 
@@ -151,11 +151,89 @@ public class Pistol : MonoBehaviour
         }
     }
 
+    [Header("Reload (no clip: the arm is posed here)")]
+    [Tooltip("How far the left upper arm swings down to drop the magazine and fetch the next.")]
+    [SerializeField] private float reloadArmAngle = 60f;
+    [SerializeField] private float reloadForearmAngle = 25f;
+    private float reloadStart = -10f, reloadDuration = 1f;
+    private bool magDropped;
+    private Transform lHand;
+    private GameObject heldMag;
+    private static readonly Color MagColor = new Color(0.32f, 0.33f, 0.35f);
+    private static readonly Vector3 MagSize = new Vector3(0.028f, 0.095f, 0.018f);
+
+    /// <summary>0 outside a reload, else how far through it we are.</summary>
+    private float ReloadPhase => IsReloading ? Mathf.Clamp01((Time.time - reloadStart) / Mathf.Max(0.01f, reloadDuration)) : 0f;
+
+    /// <summary>
+    /// How far the left arm is down at phase p: swings down over the first third, holds while the
+    /// old mag falls and the new one is taken, and comes back up by 85 percent.
+    /// </summary>
+    private static float ArmDown(float p)
+    {
+        if (p < 0.3f) return Mathf.SmoothStep(0f, 1f, p / 0.3f);
+        if (p < 0.55f) return 1f;
+        if (p < 0.85f) return Mathf.SmoothStep(1f, 0f, (p - 0.55f) / 0.3f);
+        return 0f;
+    }
+
+    private static GameObject MakeMag()
+    {
+        var m = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        m.name = "Magazine";
+        Destroy(m.GetComponent<Collider>());
+        m.transform.localScale = MagSize;
+        var r = m.GetComponent<Renderer>();
+        var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        mat.SetColor("_BaseColor", MagColor); mat.SetFloat("_Smoothness", 0.35f); mat.SetFloat("_Metallic", 0.6f);
+        r.sharedMaterial = mat;
+        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        return m;
+    }
+
+    /// <summary>The magazine in her hand during the back half of the reload, then the empty one on the snow.</summary>
+    private void ReloadProps(float p)
+    {
+        if (lHand == null && animator != null && animator.isHuman) lHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
+        // The old one leaves her hand at the bottom of the swing.
+        if (IsReloading && !magDropped && p >= 0.3f)
+        {
+            magDropped = true;
+            Vector3 from = lHand != null ? lHand.position : transform.position + Vector3.up * 0.8f;
+            var dropped = MakeMag();
+            dropped.transform.localScale = MagSize * 2.1f;   // her rig is scaled up; the one on the snow matches what was in her hand
+            dropped.transform.position = from;
+            dropped.transform.rotation = Random.rotation;
+            dropped.AddComponent<DroppedMag>();
+        }
+        // The fresh one is in her hand while the arm comes back up.
+        bool holding = IsReloading && p >= 0.4f && p < 0.85f && lHand != null;
+        if (holding && heldMag == null)
+        {
+            heldMag = MakeMag();
+            heldMag.transform.SetParent(lHand, false);
+            heldMag.transform.localPosition = new Vector3(0.03f, -0.02f, 0.02f);
+            heldMag.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+        }
+        else if (!holding && heldMag != null) { Destroy(heldMag); heldMag = null; }
+    }
+
     private void LateUpdate()
     {
         // Recoil, applied after the animator has posed the rig this frame.
         kick = Mathf.Lerp(kick, 0f, 1f - Mathf.Exp(-kickRecover * Time.deltaTime));
         if (kick < 0.001f) kick = 0f;
+
+        // Reload: the left arm drops away from the gun and comes back with the next magazine.
+        float phase = ReloadPhase;
+        ReloadProps(phase);
+        float down = IsReloading ? ArmDown(phase) : 0f;
+        if (down > 0f)
+        {
+            Vector3 axis = transform.right;
+            if (lUpperArm != null) lUpperArm.rotation = Quaternion.AngleAxis(reloadArmAngle * down, axis) * lUpperArm.rotation;
+            if (lLowerArm != null) lLowerArm.rotation = Quaternion.AngleAxis(reloadForearmAngle * down, axis) * lLowerArm.rotation;
+        }
 
         if (kick > 0f)
         {
@@ -224,8 +302,10 @@ public class Pistol : MonoBehaviour
     private IEnumerator Reload()
     {
         IsReloading = true;
+        reloadStart = Time.time; reloadDuration = reloadSeconds * HomeBonuses.ReloadMultiplier; magDropped = false;
+        lastShotTime = Time.time;   // arms up for it, as if she had just fired
         if (animator != null && HasParameter(animator, "Reload")) animator.SetTrigger("Reload");   // the clip, once one is in
-        yield return new WaitForSeconds(reloadSeconds * HomeBonuses.ReloadMultiplier);
+        yield return new WaitForSeconds(reloadDuration);
         int need = magazineSize - Loaded;
         int take = Mathf.Min(need, Reserve);
         Loaded += take;
