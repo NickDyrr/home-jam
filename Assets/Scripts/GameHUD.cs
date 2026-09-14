@@ -12,7 +12,7 @@ public class GameHUD : MonoBehaviour
 {
     private const float GlowRange = 70f;
 
-    private GUIStyle label, small, warn, big, mid;
+    private GUIStyle label, small, warn, big, mid, huge;
     private Texture2D white, glow;
     private bool restarting;
 
@@ -27,6 +27,7 @@ public class GameHUD : MonoBehaviour
         Intro.SetTextColor(big, new Color(0.97f, 0.96f, 0.93f));
         mid = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true };
         Intro.SetTextColor(mid, new Color(0.97f, 0.96f, 0.93f));
+        huge = new GUIStyle(big) { fontSize = 72 };
         white = new Texture2D(1, 1); white.SetPixel(0, 0, Color.white); white.Apply();
 
         // Soft radial blob for the fire glow.
@@ -181,8 +182,15 @@ public class GameHUD : MonoBehaviour
         GUI.color = Color.white;
         float w = Mathf.Min(1000f, Screen.width - 80f), x = (Screen.width - w) * 0.5f;
         int nights = StalkerDirector.Instance != null ? StalkerDirector.Instance.Nights : 0;
-        GUI.Label(new Rect(x, Screen.height * 0.36f, w, 70), Home.Instance.EndText, big);
-        GUI.Label(new Rect(x, Screen.height * 0.36f + 80f, w, 40), $"Nights survived: {nights}", mid);
-        GUI.Label(new Rect(x, Screen.height * 0.36f + 130f, w, 40), "R to play again", mid);
+        var h = Home.Instance;
+        float y = Screen.height * 0.3f;
+        GUI.Label(new Rect(x, y, w, 70), h.EndText, big); y += 90f;
+        // The reveal: it was a race all along.
+        GUI.Label(new Rect(x, y, w, 40), h.Won ? "Your time" : "Time", mid); y += 40f;
+        GUI.Label(new Rect(x, y, w, 80), Home.FormatTime(h.RunSeconds), huge); y += 90f;
+        if (h.Won && h.NewBest) { GUI.Label(new Rect(x, y, w, 40), "New best", mid); y += 40f; }
+        else if (h.BestSeconds >= 0f) { GUI.Label(new Rect(x, y, w, 40), "Best: " + Home.FormatTime(h.BestSeconds), mid); y += 40f; }
+        GUI.Label(new Rect(x, y, w, 40), $"Nights: {nights}", mid); y += 60f;
+        GUI.Label(new Rect(x, y, w, 40), "R to play again", mid);
     }
 }

@@ -55,6 +55,15 @@ public class Home : MonoBehaviour
     public bool Ended { get; private set; }
     public string EndText { get; private set; } = "";
 
+    /// <summary>Seconds from the end of the intro to the moment everyone was accounted for. The score.</summary>
+    public float RunSeconds { get; private set; }
+    /// <summary>Best full-rescue time saved on this machine, or -1 if none.</summary>
+    public float BestSeconds { get; private set; } = -1f;
+    /// <summary>True when this run set the saved best.</summary>
+    public bool NewBest { get; private set; }
+    private float runStart = -1f;
+    private const string BestKey = "HOME.BestSeconds";
+
     private readonly List<Survivor> arrivals = new List<Survivor>();
 
     /// <summary>True when the point is inside the fence, by at least margin.</summary>
@@ -89,14 +98,22 @@ public class Home : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-#if ENABLE_INPUT_SYSTEM
     private void Update()
     {
+        // The clock starts the moment the intro hands over control.
+        if (runStart < 0f && !Intro.Playing) runStart = Time.time;
+
         if (!debugUpgradeKey) return;
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb != null && kb.uKey.wasPressedThisFrame) Upgrade();
     }
-#endif
+
+    /// <summary>mm:ss for the end screen.</summary>
+    public static string FormatTime(float seconds)
+    {
+        int s = Mathf.Max(0, Mathf.RoundToInt(seconds));
+        return $"{s / 60}:{s % 60:00}";
+    }
 
     private void OnDawn()
     {
@@ -153,14 +170,25 @@ public class Home : MonoBehaviour
         if (SurvivorsHome + SurvivorsLost < SurvivorsTotal) return;
 
         Ended = true;
+        RunSeconds = runStart >= 0f ? Time.time - runStart : 0f;
         if (SurvivorsLost == 0)
         {
             Won = true;
             EndText = "Everyone is home.";
+            // Only a full rescue counts for the record.
+            BestSeconds = PlayerPrefs.GetFloat(BestKey, -1f);
+            if (BestSeconds < 0f || RunSeconds < BestSeconds)
+            {
+                NewBest = true;
+                BestSeconds = RunSeconds;
+                PlayerPrefs.SetFloat(BestKey, RunSeconds);
+                PlayerPrefs.Save();
+            }
         }
         else
         {
             EndText = $"{SurvivorsHome} made it home. {SurvivorsLost} did not.";
+            BestSeconds = PlayerPrefs.GetFloat(BestKey, -1f);
         }
         if (StalkerDirector.Instance != null) StalkerDirector.Instance.Retire();
     }

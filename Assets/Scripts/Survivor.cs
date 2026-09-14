@@ -68,6 +68,7 @@ public class Survivor : MonoBehaviour
     private int routeIndex;
     private Renderer[] renderers;
     private bool hiding;
+    private Campfire camp;
 
     /// <summary>By day a waiting survivor is hidden away and cannot be found.</summary>
     public bool IsHiding => hiding;
@@ -79,6 +80,11 @@ public class Survivor : MonoBehaviour
         if (p != null) player = p.transform;
         if (animator == null) animator = GetComponentInChildren<Animator>();
         renderers = GetComponentsInChildren<Renderer>(true);
+    }
+
+    private void Start()
+    {
+        camp = Campfire.Nearest(transform.position, 6f);   // their own fire; it dies when they are home or gone
     }
 
     private void SetHiding(bool hide)
@@ -95,7 +101,7 @@ public class Survivor : MonoBehaviour
     public void Taken()
     {
         Debug.Log($"Survivor '{name}' was taken.");
-        Campfire fire = Campfire.Nearest(transform.position, 6f);
+        Campfire fire = camp != null ? camp : Campfire.Nearest(transform.position, 6f);
         if (fire != null) fire.PutOut();
         if (Home.Instance != null) Home.Instance.SurvivorLost(this);
         Destroy(gameObject);
@@ -242,11 +248,12 @@ public class Survivor : MonoBehaviour
         }
     }
 
-    /// <summary>Inside the house: counted, and off to a spot.</summary>
+    /// <summary>Inside the house: counted, and off to a spot. Their fire out there goes out.</summary>
     private void Arrive()
     {
         CurrentState = State.Settling;
         running = false;
+        if (camp != null) camp.PutOut();
         settleSpot = Home.Instance != null ? Home.Instance.SurvivorArrived(this) : transform.position;
     }
 
