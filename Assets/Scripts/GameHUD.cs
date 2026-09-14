@@ -306,11 +306,18 @@ public class GameHUD : MonoBehaviour
         GUI.matrix = m;
 
         // Letters stay upright, just past the arm tips.
+        // Letters sit at the arm tips, a quarter turn apart, so the rose reads as a rose; only
+        // north is taken from the world. (The camera's tilt would otherwise squash them into a diamond.)
         float r = radius * 0.62f;
-        DrawAt(c + north * r, "N", compassNorth);
-        DrawAt(c + OnScreen(Vector3.right) * r, "E", compassSmall);
-        DrawAt(c + OnScreen(Vector3.back) * r, "S", compassSmall);
-        DrawAt(c + OnScreen(Vector3.left) * r, "W", compassSmall);
+        Vector2 Tip(float extraDeg)
+        {
+            float a = (northAng + extraDeg) * Mathf.Deg2Rad;
+            return new Vector2(Mathf.Sin(a), -Mathf.Cos(a));
+        }
+        DrawAt(c + Tip(0f) * r, "N", compassNorth);
+        DrawAt(c + Tip(90f) * r, "E", compassSmall);
+        DrawAt(c + Tip(180f) * r, "S", compassSmall);
+        DrawAt(c + Tip(270f) * r, "W", compassSmall);
 
         // The needle: home, when she is away from it.
         if (Home.Instance != null && !(HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome))

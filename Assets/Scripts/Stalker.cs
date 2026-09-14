@@ -115,7 +115,7 @@ public class Stalker : MonoBehaviour
 
     [Header("Grab")]
     [Tooltip("Seconds it holds the player before she is taken. A pistol hit in that window breaks the grab.")]
-    [SerializeField] private float grabSeconds = 2.2f;
+    [SerializeField] private float grabSeconds = 0.8f;
 
     private float grabUntil;
     private PlayerMovement grabbedMovement;

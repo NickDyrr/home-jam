@@ -139,6 +139,7 @@ public class Survivor : MonoBehaviour
             animator.SetBool(HurtHash, false);        // so the injured states cannot pull it out of the death
             animator.SetFloat(SpeedHash, 0f);
             animator.SetTrigger(DieHash);
+            StartCoroutine(DeathPose.HoldWhenDown(animator, "Die"));   // down, and stays down
         }
         if (controller != null) controller.enabled = false;            // the body is not a wall
         var prints = GetComponent<FootprintEmitter>(); if (prints != null) prints.enabled = false;

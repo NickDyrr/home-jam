@@ -361,7 +361,9 @@ public class StalkerDirector : MonoBehaviour
             if (animator.layerCount > 1) animator.SetLayerWeight(1, 0f);   // the gun arm lets go
             animator.SetTrigger("Die");
             var prints = player.GetComponent<FootprintEmitter>(); if (prints != null) prints.enabled = false;
-            yield return new WaitForSeconds(deathSeconds);
+            float until = Time.time + deathSeconds;
+            yield return DeathPose.HoldWhenDown(animator, "Die");
+            while (Time.time < until) yield return null;
         }
         if (Home.Instance != null) Home.Instance.PlayerTaken();
     }
