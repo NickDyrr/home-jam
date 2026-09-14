@@ -20,6 +20,7 @@ public class Notebook : MonoBehaviour
         "The others hide by day. After dark they light their fires.",
         "Bullets don't kill them. Each one slows them down. I have twelve. Everyone I bring back has a few to spare.",
         "Running is loud, and loud brings them. Walking is much safer.",
+        "They go for whoever is with me first. If they get me, that is the end.",
         "The more people I bring home, the more we can expand.",
     };
 

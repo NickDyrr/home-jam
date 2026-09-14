@@ -195,4 +195,4 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 
 **Chase pressure (Sep 13, late).** A hunting stalker gains 0.45 m/s for every second of the chase, from 4 up to 8.5 (she sprints at 6.5), and the clock resets only when it loses her. Bullets still take 18% off for good. So running buys time, a bullet buys distance, and neither alone is enough for long.
 
-**Being taken costs (Sep 13, late).** When a stalker takes her she loses six rounds (spare first, then loaded) on top of whoever she was escorting. The fire glow at the screen edge now reaches 40 m instead of 70, so it only hints when a fire is close.
+**Being taken ends it (Sep 13, late).** Stalkers go for a survivor she is escorting before her. If one gets hold of her and she cannot shoot it off in the grab window, the run is over: end screen, time shown, no best. The fire glow at the screen edge reaches 40 m so it only hints when a fire is close.

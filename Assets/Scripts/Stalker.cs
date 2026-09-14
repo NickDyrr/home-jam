@@ -237,15 +237,24 @@ public class Stalker : MonoBehaviour
     }
 
     /// <summary>Nearest of: the player, any survivor currently following. Flat distance.</summary>
+    /// <summary>
+    /// The one it goes for. A survivor she is escorting comes first: the nearest of them, if any is
+    /// within loseRadius. Only with nobody to take does it turn on her.
+    /// </summary>
     private Transform Nearest(out float distance)
     {
         Transform best = null;
         float bestSq = float.MaxValue;
 
-        Consider(player, ref best, ref bestSq);
         foreach (Survivor s in Survivor.All)
             if (s.CurrentState == Survivor.State.Following || s.CurrentState == Survivor.State.Panicked)
                 Consider(s.transform, ref best, ref bestSq);
+        float lose = loseRadius * HomeBonuses.StalkerLoseMultiplier;
+        if (best == null || bestSq > lose * lose)
+        {
+            best = null; bestSq = float.MaxValue;
+            Consider(player, ref best, ref bestSq);
+        }
 
         distance = best != null ? Mathf.Sqrt(bestSq) : float.MaxValue;
         return best;

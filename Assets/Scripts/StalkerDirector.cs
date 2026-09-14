@@ -8,8 +8,8 @@ using UnityEngine;
 /// They all vanish when the player gets home. Tracks time outside for the
 /// speed ramp, and handles the player being caught.
 ///
-/// Being caught does NOT reload the scene. Survivors already home stay home.
-/// The player respawns inside, any survivor being escorted is lost.
+/// A survivor she is escorting is what they go for first; she is the fallback.
+/// If one takes her, the run is over.
 /// </summary>
 public class StalkerDirector : MonoBehaviour
 {
@@ -39,11 +39,6 @@ public class StalkerDirector : MonoBehaviour
     private readonly List<GameObject> placed = new List<GameObject>();
     private Vector3[] placedSpots;
 
-    [Header("Caught")]
-    [SerializeField] private float respawnDelay = 1.2f;
-    [Tooltip("Rounds dropped when she is taken, spare first. Being caught has to cost something.")]
-    [SerializeField] private int roundsLostWhenCaught = 6;
-    [SerializeField] private Vector3 respawnPoint = new Vector3(0f, 1.1f, 0f);
 
     /// <summary>Seconds since the player last left home. Zero while inside.</summary>
     public float TimeOutside { get; private set; }
@@ -227,48 +222,20 @@ public class StalkerDirector : MonoBehaviour
         placed.Clear();
     }
 
+    /// <summary>It got her. That is the end of the run: the house falls quiet and the end screen shows.</summary>
     public void PlayerCaught()
     {
         if (respawning) return;
         respawning = true;
         TimesCaught++;
-        Debug.Log($"Player caught ({TimesCaught}). Respawning at home.");
-        StartCoroutine(RespawnAfter(respawnDelay));
-    }
+        Debug.Log("Player caught. Game over.");
 
-    private IEnumerator RespawnAfter(float seconds)
-    {
         PlayerMovement movement = player != null ? player.GetComponent<PlayerMovement>() : null;
         if (movement != null) movement.enabled = false;
+        var pistol = player != null ? player.GetComponent<Pistol>() : null;
+        if (pistol != null) pistol.enabled = false;
 
-        // Whoever was being escorted is lost. Copy the list: Taken() destroys.
-        var escorted = new List<Survivor>();
-        foreach (Survivor s in Survivor.All)
-            if (s.CurrentState == Survivor.State.Following) escorted.Add(s);
-        foreach (Survivor s in escorted) s.Taken();
-
-        // And the rounds she was carrying: dropped in the snow.
-        if (Pistol.Instance != null)
-        {
-            int lost = Pistol.Instance.LoseRounds(roundsLostWhenCaught);
-            if (lost > 0 && player != null) FloatingText.Show(player.position + Vector3.up * 2.4f, $"{lost} rounds lost", 3f);
-        }
-
-        yield return new WaitForSeconds(seconds);
-
-        DespawnAll();
-        TimeOutside = 0f;
-
-        if (player != null)
-        {
-            CharacterController cc = player.GetComponent<CharacterController>();
-            if (cc != null) cc.enabled = false;
-            player.position = respawnPoint;
-            if (cc != null) cc.enabled = true;
-            Physics.SyncTransforms();
-        }
-
-        if (movement != null) movement.enabled = true;
-        respawning = false;
+        if (Home.Instance != null) Home.Instance.PlayerTaken();
+        Retire();
     }
 }

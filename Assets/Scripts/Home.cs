@@ -193,6 +193,20 @@ public class Home : MonoBehaviour
         if (StalkerDirector.Instance != null) StalkerDirector.Instance.Retire();
     }
 
+    /// <summary>A stalker took her. The run ends here, however many were home.</summary>
+    public void PlayerTaken()
+    {
+        if (Ended) return;
+        Ended = true;
+        Won = false;
+        RunSeconds = runStart >= 0f ? Time.time - runStart : 0f;
+        BestSeconds = PlayerPrefs.GetFloat(BestKey, -1f);
+        int outThere = Mathf.Max(0, SurvivorsTotal - SurvivorsHome - SurvivorsLost);
+        EndText = SurvivorsHome > 0
+            ? $"They took her. {SurvivorsHome} home, {outThere} still out there."
+            : "They took her.";
+    }
+
     /// <summary>Go up one house level and re-seat everyone already home.</summary>
     public void Upgrade()
     {
