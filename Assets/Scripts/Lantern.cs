@@ -37,6 +37,7 @@ public class Lantern : MonoBehaviour
         IsOn = lit > 0.5f;
         lantern.enabled = lit > 0.02f;
         lantern.intensity = baseIntensity * lit;
-        lantern.range = Mathf.Lerp(lantern.range, baseRange * HomeBonuses.LanternRangeMultiplier, 1f - Mathf.Exp(-2f * Time.deltaTime));
+        float found = Inventory.BetterLantern ? 1.5f : 1f;   // the hunter's lantern
+        lantern.range = Mathf.Lerp(lantern.range, baseRange * HomeBonuses.LanternRangeMultiplier * found, 1f - Mathf.Exp(-2f * Time.deltaTime));
     }
 }

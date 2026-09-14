@@ -34,6 +34,32 @@ public class Stalker : MonoBehaviour
     /// <summary>Every live stalker in the scene.</summary>
     public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
 
+    /// <summary>A noise at a point: every stalker within radius that is not busy with someone goes to look, then stands there quiet.</summary>
+    public static void LureNear(Vector3 pos, float radius, float seconds)
+    {
+        float sq = radius * radius;
+        foreach (Stalker s in All)
+        {
+            if (s.dismissed || s.CurrentState == State.Grabbing || s.CurrentState == State.Striking) continue;
+            Vector3 d = s.transform.position - pos; d.y = 0f;
+            if (d.sqrMagnitude > sq) continue;
+            s.lurePos = pos; s.lureUntil = Time.time + seconds;
+            s.huntStart = -1f;
+            s.CurrentState = State.Lured;
+        }
+    }
+
+    /// <summary>Caught in a trap: held where it stands for a while, then it carries on.</summary>
+    public void Trapped(float seconds)
+    {
+        if (CurrentState == State.Grabbing) ReleasePlayer();
+        strikeTarget = null;
+        knock = Vector3.zero;
+        stunUntil = Time.time + seconds;
+        CurrentState = State.Stunned;
+        if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Growl, transform.position, 1f, 40f, 0.6f);
+    }
+
     [Header("Light")]
     [Tooltip("A burst of light (the muzzle flash) sends them running for this long, then they stand quiet out there.")]
     [SerializeField] private float scareSeconds = 4f;

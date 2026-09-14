@@ -91,6 +91,7 @@ public class GameHUD : MonoBehaviour
         "W A S D   move",
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
+        "F   throw a flare      G   throw a can      V   set a trap",
         "T   wait for dark (at home, by day)",
         "B   ring the bell (second house level, from the yard)",
         "Esc   pause / resume",
@@ -167,9 +168,84 @@ public class GameHUD : MonoBehaviour
         }
 
         DrawFireGlow();
-        if (!Paused && !(Home.Instance != null && Home.Instance.Ended)) DrawCompass();
+        bool live = !Paused && !(Home.Instance != null && Home.Instance.Ended);
+        if (live) { DrawCompass(); DrawItemBar(); DrawToast(); }
         DrawEnd();
         DrawPause();
+    }
+
+    // ---- toast: a found page, read where she stands ----
+    private static string toastText; private static float toastUntil, toastLife;
+    private GUIStyle toastStyle;
+
+    /// <summary>A few lines shown large for a while, without stopping the game.</summary>
+    public static void Toast(string text, float seconds) { toastText = text; toastUntil = Time.time + seconds; toastLife = seconds; }
+
+    private void DrawToast()
+    {
+        if (string.IsNullOrEmpty(toastText) || Time.time >= toastUntil) return;
+        if (toastStyle == null)
+        {
+            toastStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Italic, alignment = TextAnchor.MiddleCenter, wordWrap = true };
+            Intro.SetTextColor(toastStyle, new Color(0.95f, 0.93f, 0.86f));
+        }
+        float left = toastUntil - Time.time;
+        float a = Mathf.Min(1f, left / 0.6f) * Mathf.Min(1f, (toastLife - left) / 0.4f);
+        float w = Mathf.Min(760f, Screen.width - 80f);
+        float h = toastStyle.CalcHeight(new GUIContent(toastText), w) + 8f;
+        Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, Screen.height * 0.62f - h * 0.5f, w, h), toastText, toastStyle, a);
+    }
+
+    // ---- the item bar: what she carries, along the bottom ----
+    private GUIStyle countStyle, keyStyle, nameStyle;
+
+    private void DrawItemBar()
+    {
+        if (countStyle == null)
+        {
+            countStyle = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerRight };
+            Intro.SetTextColor(countStyle, new Color(0.97f, 0.96f, 0.93f));
+            keyStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.UpperLeft };
+            Intro.SetTextColor(keyStyle, new Color(1f, 0.85f, 0.45f));
+            nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(nameStyle, new Color(0.97f, 0.96f, 0.93f, 0.85f));
+        }
+        // Only what she has.
+        var shown = new System.Collections.Generic.List<ItemKind>();
+        foreach (var k in Inventory.BarOrder) if (Inventory.Count(k) > 0) shown.Add(k);
+        if (shown.Count == 0) return;
+
+        const float slot = 54f, gap = 8f, pad = 6f;
+        float total = shown.Count * slot + (shown.Count - 1) * gap;
+        float x0 = (Screen.width - total) * 0.5f, y0 = Screen.height - slot - 14f;
+        // Hover shows the name and how it is used.
+        Vector2 mouse = Event.current.mousePosition;
+        string hover = null;
+
+        GUI.color = new Color(0f, 0f, 0f, 0.45f);
+        GUI.DrawTexture(new Rect(x0 - pad - 4f, y0 - pad, total + (pad + 4f) * 2f, slot + pad * 2f), white);
+        for (int i = 0; i < shown.Count; i++)
+        {
+            var k = shown[i];
+            var r = new Rect(x0 + i * (slot + gap), y0, slot, slot);
+            GUI.color = new Color(1f, 1f, 1f, 0.08f);
+            GUI.DrawTexture(r, white);
+            GUI.color = Color.white;
+            var icon = ItemIcons.Get(k);
+            if (icon != null) GUI.DrawTexture(new Rect(r.x + 5f, r.y + 5f, slot - 10f, slot - 10f), icon, ScaleMode.ScaleToFit, true);
+            int n = Inventory.Count(k);
+            if (n > 1 || k == ItemKind.Scrap || k == ItemKind.Page || k == ItemKind.MapScrap)
+                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), n.ToString(), countStyle, 1f);
+            string key = ItemInfo.Key(k);
+            if (key.Length > 0) Intro.DrawLegible(new Rect(r.x + 4f, r.y + 2f, 20f, 16f), key, keyStyle, 1f);
+            if (r.Contains(mouse)) hover = ItemInfo.Name(k) + ".  " + ItemInfo.Hint(k);
+        }
+        GUI.color = Color.white;
+        if (hover != null)
+        {
+            float w = Mathf.Min(700f, Screen.width - 60f);
+            Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, y0 - 30f, w, 24f), hover, nameStyle, 1f);
+        }
     }
 
     private Texture2D rose, needle;
@@ -318,6 +394,20 @@ public class GameHUD : MonoBehaviour
         DrawAt(c + Tip(90f) * r, "E", compassSmall);
         DrawAt(c + Tip(180f) * r, "S", compassSmall);
         DrawAt(c + Tip(270f) * r, "W", compassSmall);
+
+        // Camps a map scrap has marked: small warm dots on the ring, gone once that camp is empty.
+        foreach (var s in Inventory.Revealed)
+        {
+            if (s == null || s.CurrentState != Survivor.State.Waiting) continue;
+            Vector3 to = s.transform.position - pp; to.y = 0f;
+            if (to.sqrMagnitude < 1f) continue;
+            Vector2 v = OnScreen(to.normalized);
+            Vector2 at = c + v * (radius * 0.93f);
+            GUI.color = new Color(1f, 0.62f, 0.3f, 0.95f);
+            GUI.DrawTexture(new Rect(at.x - 4f, at.y - 4f, 8f, 8f), glow);
+            GUI.DrawTexture(new Rect(at.x - 2f, at.y - 2f, 4f, 4f), white);
+            GUI.color = Color.white;
+        }
 
         // The needle: home, when she is away from it.
         if (Home.Instance != null && !(HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome))

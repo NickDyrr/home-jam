@@ -64,11 +64,17 @@ public class Notebook : MonoBehaviour
         if (kb == null || Intro.Playing || GameHUD.Paused) return;
         if (open)
         {
+            // Left and right turn the pages (her own notes first, then what she has found); anything else closes it.
+            int pages = 1 + Inventory.Pages.Count;
+            if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame) { pageIndex = (pageIndex + 1) % pages; return; }
+            if (kb.leftArrowKey.wasPressedThisFrame || kb.aKey.wasPressedThisFrame) { pageIndex = (pageIndex + pages - 1) % pages; return; }
             if (kb.anyKey.wasPressedThisFrame || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)) SetOpen(false);
             return;
         }
-        if (Near && kb.eKey.wasPressedThisFrame) SetOpen(true);
+        if (Near && kb.eKey.wasPressedThisFrame) { pageIndex = 0; SetOpen(true); }
     }
+
+    private int pageIndex;
 
     private void SetOpen(bool on)
     {
@@ -95,13 +101,27 @@ public class Notebook : MonoBehaviour
         GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), black);
         GUI.color = Color.white;
         float w = Mathf.Min(820f, Screen.width - 80f), x = (Screen.width - w) * 0.5f, y = Screen.height * 0.16f;
-        GUI.Label(new Rect(x, y, w, 50), Page[0], title); y += 70f;
-        for (int i = 1; i < Page.Length; i++)
+        int pages = 1 + Inventory.Pages.Count;
+        if (pageIndex >= pages) pageIndex = 0;
+        if (pageIndex == 0)
         {
-            if (Page[i].Length == 0) { y += 8f; continue; }
-            float h = body.CalcHeight(new GUIContent(Page[i]), w);
-            GUI.Label(new Rect(x, y, w, h), Page[i], body); y += h + 14f;
+            GUI.Label(new Rect(x, y, w, 50), Page[0], title); y += 70f;
+            for (int i = 1; i < Page.Length; i++)
+            {
+                if (Page[i].Length == 0) { y += 8f; continue; }
+                float h = body.CalcHeight(new GUIContent(Page[i]), w);
+                GUI.Label(new Rect(x, y, w, h), Page[i], body); y += h + 14f;
+            }
         }
-        GUI.Label(new Rect(x, Screen.height - 70f, w, 40), "any key to close", close);
+        else
+        {
+            // A page someone else wrote, found out there.
+            GUI.Label(new Rect(x, y, w, 50), "Found in the snow", title); y += 70f;
+            string text = Inventory.Pages[pageIndex - 1];
+            float h = body.CalcHeight(new GUIContent(text), w);
+            GUI.Label(new Rect(x, y, w, h), text, body);
+        }
+        string foot = pages > 1 ? $"page {pageIndex + 1} of {pages}     left / right to turn     any other key to close" : "any key to close";
+        GUI.Label(new Rect(x, Screen.height - 70f, w, 40), foot, close);
     }
 }

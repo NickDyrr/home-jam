@@ -38,6 +38,7 @@ public class Refuge : MonoBehaviour
             Vector3 d = f.Position - p; d.y = 0f;
             if (d.sqrMagnitude <= reach * reach) return true;
         }
+        if (Flare.Shelters(p, margin)) return true;
         return false;
     }
 }

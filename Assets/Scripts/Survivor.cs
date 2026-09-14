@@ -145,6 +145,14 @@ public class Survivor : MonoBehaviour
         var prints = GetComponent<FootprintEmitter>(); if (prints != null) prints.enabled = false;
     }
 
+    /// <summary>A medkit or a blanket: the quirk is gone for good.</summary>
+    public void Cure(string message)
+    {
+        trait = Trait.None;
+        if (animator != null) animator.SetBool(HurtHash, false);
+        FloatingText.Show(transform.position + Vector3.up * 2.4f, message, 3.5f);
+    }
+
     /// <summary>Already home, but the house changed shape: walk to a new spot.</summary>
     public void Resettle(Vector3 spot)
     {
@@ -171,6 +179,9 @@ public class Survivor : MonoBehaviour
                 // Out of sight by day, at the fire by night. Only findable after dark.
                 SetHiding(!StalkerDirector.IsNight);
                 bool near = !hiding && toPlayer.magnitude <= noticeRadius;
+                // What she carries for them, used the moment she reaches them.
+                if (near && trait == Trait.Skittish && Inventory.Take(ItemKind.Blanket)) Cure("You wrap her in the blanket. She'll stay with you now.");
+                if (near && trait == Trait.Hurt && Inventory.Take(ItemKind.Medkit)) Cure("You bind his leg. He can keep up.");
                 if (near && trait == Trait.Skittish && StalkerNear(skittishRadius, true))
                 {
                     // Will not step out with one of them hunting this close. Scare it off first.

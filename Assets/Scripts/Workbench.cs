@@ -39,10 +39,12 @@ public class Workbench : MonoBehaviour
             prompt.gameObject.SetActive(near);
             if (near)
             {
-                if (Time.time < noteUntil) prompt.text = $"Not enough survivors to build.\n{need - home} more.";
+                int scrapNeed = Home.Instance.NextScrapNeeded, scrap = Inventory.Count(ItemKind.Scrap);
+                if (Time.time < noteUntil)
+                    prompt.text = home < need ? $"Not enough survivors to build.\n{need - home} more." : $"Not enough scrap to build.\n{scrapNeed - scrap} more.";
                 else if (need < 0) prompt.text = "Nothing more to build";
                 else if (enough) prompt.text = "E   Build out the house";
-                else prompt.text = $"Build out the house\n{home} / {need} survivors home";
+                else prompt.text = $"Build out the house\n{home} / {need} survivors home,  {scrap} / {scrapNeed} scrap";
                 if (cam != null) prompt.transform.rotation = cam.rotation;
             }
         }

@@ -19,6 +19,11 @@ public static class GameBoot
         StalkerDirector.Suppressed = false;
         DoorOpener.HoldClosed = false;
         DayNightCycle.AmbientScale = 1f;
+        Inventory.Reset();
+
+        // Her hands: the keys that use what she finds.
+        var player = GameObject.FindWithTag("Player");
+        if (player != null && player.GetComponent<ItemUse>() == null) player.AddComponent<ItemUse>();
 
         AudioManager.Ensure();
         var systems = new GameObject("GameSystems");

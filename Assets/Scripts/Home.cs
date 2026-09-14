@@ -42,8 +42,22 @@ public class Home : MonoBehaviour
         }
     }
 
-    /// <summary>Enough people are home to build the next level.</summary>
-    public bool CanBuildNext => NextUpgradeNeeded >= 0 && SurvivorsHome >= NextUpgradeNeeded;
+    [Tooltip("Scrap needed for each build, alongside the people.")]
+    [SerializeField] private int[] upgradeScrap = { 4, 8 };
+
+    /// <summary>Scrap needed for the next house level, or 0.</summary>
+    public int NextScrapNeeded
+    {
+        get
+        {
+            if (HouseView.Instance == null || !HouseView.Instance.CanUpgrade) return 0;
+            int next = HouseView.Instance.CurrentLevel;
+            return upgradeScrap != null && next < upgradeScrap.Length ? upgradeScrap[next] : 0;
+        }
+    }
+
+    /// <summary>Enough people are home, and enough scrap found, to build the next level.</summary>
+    public bool CanBuildNext => NextUpgradeNeeded >= 0 && SurvivorsHome >= NextUpgradeNeeded && Inventory.Count(ItemKind.Scrap) >= NextScrapNeeded;
     [Tooltip("Debug: press U to upgrade the house without bringing anyone home.")]
     [SerializeField] private bool debugUpgradeKey = true;
 
@@ -265,6 +279,7 @@ public class Home : MonoBehaviour
     public void Upgrade()
     {
         if (HouseView.Instance == null || !HouseView.Instance.CanUpgrade) return;
+        Inventory.Take(ItemKind.Scrap, Mathf.Min(NextScrapNeeded, Inventory.Count(ItemKind.Scrap)));   // the debug key builds for free
         HouseView.Instance.Upgrade();
         Debug.Log($"Home upgraded to level {HouseView.Instance.CurrentLevel}.");
 
