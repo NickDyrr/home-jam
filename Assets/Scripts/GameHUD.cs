@@ -107,9 +107,10 @@ public class GameHUD : MonoBehaviour
         foreach (var line in ControlLines) { GUI.Label(new Rect(x, y, w, 32), line, mid); y += 32f; }
         y += 24f;
         GUI.Label(new Rect(x, y, w, 30), "Any key to resume", small2); y += 44f;
-        if (Button(x, y, w, "Resume", 0, 3)) SetPaused(false);
-        if (Button(x, y, w, "Restart", 1, 3)) Restart();
-        if (Button(x, y, w, "Quit", 2, 3)) Quit();
+        int n = CanQuit ? 3 : 2;
+        if (Button(x, y, w, "Resume", 0, n)) SetPaused(false);
+        if (Button(x, y, w, "Restart", 1, n)) Restart();
+        if (CanQuit && Button(x, y, w, "Quit", 2, n)) Quit();
     }
 
     /// <summary>One of n buttons in a row across width w at height y. Returns true when clicked.</summary>
@@ -128,6 +129,9 @@ public class GameHUD : MonoBehaviour
         SetPaused(false);
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
+
+    /// <summary>A browser tab cannot close itself, so the web build shows no Quit.</summary>
+    private static bool CanQuit => Application.platform != RuntimePlatform.WebGLPlayer;
 
     private static void Quit()
     {
@@ -206,7 +210,7 @@ public class GameHUD : MonoBehaviour
         if (h.Won && h.NewBest) { GUI.Label(new Rect(x, y, w, 40), "New best", mid); y += 40f; }
         else if (h.BestSeconds >= 0f) { GUI.Label(new Rect(x, y, w, 40), "Best: " + Home.FormatTime(h.BestSeconds), mid); y += 40f; }
         GUI.Label(new Rect(x, y, w, 40), $"Nights: {nights}", mid); y += 60f;
-        if (Button(x, y, w, "Restart", 0, 2)) Restart();
-        if (Button(x, y, w, "Quit", 1, 2)) Quit();
+        if (Button(x, y, w, "Restart", 0, CanQuit ? 2 : 1)) Restart();
+        if (CanQuit && Button(x, y, w, "Quit", 1, 2)) Quit();
     }
 }
