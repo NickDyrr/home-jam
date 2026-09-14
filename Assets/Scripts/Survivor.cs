@@ -75,6 +75,7 @@ public class Survivor : MonoBehaviour
     private static readonly int SittingHash = Animator.StringToHash("Sitting");
     private static readonly int PanicHash = Animator.StringToHash("Panic");
     private static readonly int DieHash = Animator.StringToHash("Die");
+    private static readonly int HurtHash = Animator.StringToHash("Hurt");
     private float panicStart;
 
     private CharacterController controller;
@@ -135,6 +136,7 @@ public class Survivor : MonoBehaviour
             animator.SetBool(PanicHash, false);
             animator.SetBool(ScaredHash, false);
             animator.SetBool(RunHash, false);
+            animator.SetBool(HurtHash, false);        // so the injured states cannot pull it out of the death
             animator.SetFloat(SpeedHash, 0f);
             animator.SetTrigger(DieHash);
         }
@@ -307,6 +309,7 @@ public class Survivor : MonoBehaviour
             animator.SetBool(RunHash, moving && running && (CurrentState == State.Following || CurrentState == State.Panicked));
             animator.SetBool(ScaredHash, CurrentState == State.Waiting);
             animator.SetBool(PanicHash, screamingNow);
+            animator.SetBool(HurtHash, trait == Trait.Hurt && CurrentState != State.Waiting);
             animator.SetBool(SittingHash, false);   // they stand and idle at home; nothing to sit on at their spots
         }
     }

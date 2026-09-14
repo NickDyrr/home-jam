@@ -36,7 +36,8 @@ public class Intro : MonoBehaviour
     private float shotB;                      // when shot B starts (= second-to-last line)
     private float cutStart, cut, storyEnd, end;
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
-    private const float StandAfter = 1.2f;
+    private const float StandAfter = 0.6f;
+    private const float StandUpSpeed = 1.6f;                      // the StandUp state plays at this speed in the controller
     private const float RiseSeconds = 0.7f;                       // speed and height ease in over this as she rises
     private const float RisePush = 0.45f, RisePushSeconds = 0.4f; // hips forward off the seat as she stands
     private const float TurnSeconds = 0.6f;                       // the turn to the door once her steps are done
@@ -65,6 +66,21 @@ public class Intro : MonoBehaviour
     private GUIStyle title, sub, hintStyle;
     private Texture2D black;
     private static readonly int SittingHash = Animator.StringToHash("Sitting");
+    private static readonly int StandUpHash = Animator.StringToHash("StandUp");
+    private float standClip;
+
+    private static bool HasParameter(Animator a, string name)
+    {
+        foreach (var p in a.parameters) if (p.name == name) return true;
+        return false;
+    }
+
+    private static float ClipLength(Animator a, string clipName)
+    {
+        if (a.runtimeAnimatorController == null) return 0f;
+        foreach (var c in a.runtimeAnimatorController.animationClips) if (c != null && c.name == clipName) return c.length;
+        return 0f;
+    }
 
     private void Start()
     {
@@ -188,7 +204,16 @@ public class Intro : MonoBehaviour
         if (t >= cut && !insideNow) CutInside();
         if (insideNow)
         {
-            if (!stood && t >= cut + StandAfter) { stood = true; if (playerAnim != null) playerAnim.SetBool(SittingHash, false); }
+            if (!stood && t >= cut + StandAfter)
+            {
+                stood = true;
+                if (playerAnim != null)
+                {
+                    // A real stand-up clip if the controller has one; the walk waits for it to finish.
+                    playerAnim.SetBool(SittingHash, false);
+                    if (HasParameter(playerAnim, "StandUp")) { playerAnim.SetTrigger(StandUpHash); standClip = ClipLength(playerAnim, "StandUp") / StandUpSpeed; }
+                }
+            }
             if (stood)
             {
                 // She gets up and walks off in one motion: the walk cycle starts as she rises and
@@ -196,8 +221,10 @@ public class Intro : MonoBehaviour
                 // rises to standing height over the first moments, then turns to face the door.
                 // The controller is off for the whole intro; she is moved by hand.
                 float since = t - (cut + StandAfter);
-                bool walking = walked < StepsForward;
-                if (walking) walked = Mathf.Min(StepsForward, walked + StepSpeed * Ease(since / RiseSeconds) * Time.deltaTime);
+                // With a stand-up clip, the steps begin as it ends; without one, they ease in over the rise.
+                float walkStart = standClip > 0f ? Mathf.Max(0f, standClip - 0.25f) : 0f;
+                bool walking = walked < StepsForward && since >= walkStart;
+                if (walking) walked = Mathf.Min(StepsForward, walked + StepSpeed * Ease((since - walkStart) / RiseSeconds) * Time.deltaTime);
                 // Standing up carries the hips forward off the seat before the first step lands,
                 // so her legs come out of the cushion rather than through it.
                 float push = RisePush * Ease(since / RisePushSeconds);
