@@ -257,7 +257,7 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 if (t == null || dist > loseRadius * HomeBonuses.StalkerLoseMultiplier)
                 {
-                    CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
+                    CurrentState = State.Dormant; huntStart = -1f; hitsThisChase = 0;   // lost her: the chase clock resets
                     break;
                 }
                 if (Refuge.Shelters(t.position))
@@ -404,14 +404,32 @@ public class Stalker : MonoBehaviour
     /// </summary>
     public void Hit(Vector3 impulse)
     {
-        hits++;
+        hits++; hitsThisChase++;
         if (CurrentState == State.Grabbing) ReleasePlayer();
         knock = impulse;
         knock.y = 0f;
         stunUntil = Time.time + hitStagger;
-        spookedUntil = Mathf.Max(spookedUntil, Time.time + scareSeconds + spookedSeconds);
+        // They learn. Early on one round sends it running; later it takes two, then three in the same chase.
+        if (hitsThisChase >= ShotsToDriveOff)
+        {
+            spookedUntil = Mathf.Max(spookedUntil, Time.time + scareSeconds + spookedSeconds);
+            hitsThisChase = 0;
+        }
         CurrentState = State.Stunned;
         if (glow != null) glow.intensity = huntingGlow * 2f;
+    }
+
+    private int hitsThisChase;
+
+    /// <summary>Rounds it takes, in one chase, to make it run: one on the first night, two late that night and on the second, three from the third.</summary>
+    public static int ShotsToDriveOff
+    {
+        get
+        {
+            int nights = StalkerDirector.Instance != null ? StalkerDirector.Instance.Nights : 0;
+            float progress = DayNightCycle.Instance != null ? DayNightCycle.Instance.NightProgress : 0f;
+            return Mathf.Clamp(1 + nights + (progress > 0.7f ? 1 : 0), 1, 3);
+        }
     }
 
     /// <summary>Nearest of: the player, any survivor currently following. Flat distance.</summary>

@@ -185,37 +185,72 @@ public class ItemUse : MonoBehaviour
         return transform.position + d;
     }
 
+    public static ItemUse Instance { get; private set; }
+    private void Awake() { Instance = this; }
+    private void OnDestroy() { if (Instance == this) Instance = null; }
+
+    private bool CanAct()
+    {
+        if (Intro.Playing || GameHUD.Paused || Encounter.Active) return false;
+        var pm = GetComponent<PlayerMovement>(); if (pm != null && (pm.CutsceneLocked || pm.Grabbed)) return false;
+        if (Home.Instance != null && Home.Instance.Ended) return false;
+        return true;
+    }
+
     private void Update()
     {
         var kb = UnityEngine.InputSystem.Keyboard.current;
-        if (kb == null || Intro.Playing || GameHUD.Paused || Encounter.Active) return;
-        var pm = GetComponent<PlayerMovement>(); if (pm != null && (pm.CutsceneLocked || pm.Grabbed)) return;
-        if (Home.Instance != null && Home.Instance.Ended) return;
+        if (kb == null || !CanAct()) return;
+        if (kb.fKey.wasPressedThisFrame) Use(ItemKind.Flare, AimPoint(throwRange));
+        if (kb.gKey.wasPressedThisFrame) Use(ItemKind.Noisemaker, AimPoint(throwRange * 1.5f));
+        if (kb.vKey.wasPressedThisFrame) Use(ItemKind.Trap, transform.position);
+    }
 
-        if (kb.fKey.wasPressedThisFrame && Inventory.Take(ItemKind.Flare))
+    /// <summary>A click on the item bar: throwables go the way she is facing; anything else does nothing.</summary>
+    public void UseFromBar(ItemKind kind)
+    {
+        if (!CanAct()) return;
+        switch (kind)
         {
-            Vector3 to = AimPoint(throwRange); Vector3 from = transform.position + Vector3.up * 1.1f + transform.forward * 0.4f;
-            var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
-            vis.transform.localScale = new Vector3(0.05f, 0.16f, 0.05f);
-            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.25f)); vis.GetComponent<Renderer>().sharedMaterial = m;
-            float secs = flareSeconds;
-            Thrown.Launch(vis, from, new Vector3(to.x, 0.05f, to.z), 0.6f, p => Flare.Ignite(p, secs));
-            FacePoint(to);
+            case ItemKind.Flare: Use(kind, transform.position + transform.forward * throwRange * 0.6f); break;
+            case ItemKind.Noisemaker: Use(kind, transform.position + transform.forward * throwRange); break;
+            case ItemKind.Trap: Use(kind, transform.position); break;
         }
-        if (kb.gKey.wasPressedThisFrame && Inventory.Take(ItemKind.Noisemaker))
+    }
+
+    /// <summary>Spend one and put it in the world. Returns false if she has none.</summary>
+    public bool Use(ItemKind kind, Vector3 target)
+    {
+        if (!Inventory.Take(kind)) return false;
+        Vector3 from = transform.position + Vector3.up * 1.1f + transform.forward * 0.4f;
+        switch (kind)
         {
-            Vector3 to = AimPoint(throwRange * 1.5f); Vector3 from = transform.position + Vector3.up * 1.1f + transform.forward * 0.4f;
-            var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
-            vis.transform.localScale = new Vector3(0.1f, 0.07f, 0.1f);
-            var m = new Material(Shader.Find("Universal Render Pipeline/Lit")); m.SetColor("_BaseColor", new Color(0.7f, 0.72f, 0.76f)); m.SetFloat("_Metallic", 0.8f); vis.GetComponent<Renderer>().sharedMaterial = m;
-            Thrown.Launch(vis, from, new Vector3(to.x, 0.05f, to.z), 0.8f, Noisemaker.Land);
-            FacePoint(to);
+            case ItemKind.Flare:
+            {
+                var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
+                vis.transform.localScale = new Vector3(0.05f, 0.16f, 0.05f);
+                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.25f)); vis.GetComponent<Renderer>().sharedMaterial = m;
+                float secs = flareSeconds;
+                Thrown.Launch(vis, from, new Vector3(target.x, 0.05f, target.z), 0.6f, p => Flare.Ignite(p, secs));
+                FacePoint(target);
+                return true;
+            }
+            case ItemKind.Noisemaker:
+            {
+                var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
+                vis.transform.localScale = new Vector3(0.1f, 0.07f, 0.1f);
+                var m = new Material(Shader.Find("Universal Render Pipeline/Lit")); m.SetColor("_BaseColor", new Color(0.7f, 0.72f, 0.76f)); m.SetFloat("_Metallic", 0.8f); vis.GetComponent<Renderer>().sharedMaterial = m;
+                Thrown.Launch(vis, from, new Vector3(target.x, 0.05f, target.z), 0.8f, Noisemaker.Land);
+                FacePoint(target);
+                return true;
+            }
+            case ItemKind.Trap:
+                BearTrap.Set(transform.position + transform.forward * 0.9f);
+                FloatingText.Show(transform.position + Vector3.up * 1.6f, "Trap set.", 1.5f);
+                return true;
         }
-        if (kb.vKey.wasPressedThisFrame && Inventory.Take(ItemKind.Trap))
-        {
-            BearTrap.Set(transform.position + transform.forward * 0.9f);
-            FloatingText.Show(transform.position + Vector3.up * 1.6f, "Trap set.", 1.5f);
-        }
+        Inventory.Add(kind);   // not something she uses by hand: put it back
+        return false;
     }
 
     private void FacePoint(Vector3 p)

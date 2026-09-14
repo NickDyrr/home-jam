@@ -41,10 +41,8 @@ public class FootprintEmitter : MonoBehaviour
         if (stepLoop != null) stepLoop.volume = 0f;
     }
 
-    [Tooltip("Only this much of a long step recording is used, from its start; the rest is never played.")]
-    [SerializeField] private float loopUseFraction = 0.5f;
-    [Tooltip("Skip this many seconds at the head of the recording when wrapping.")]
-    [SerializeField] private float loopHead = 0.5f;
+    private const float loopUseFraction = 0.3f;   // only the first third of the recording is clean
+    private const float loopHead = 0.5f;
 
     /// <summary>
     /// A recording of someone walking (longer than a second or two) is looped while this walker

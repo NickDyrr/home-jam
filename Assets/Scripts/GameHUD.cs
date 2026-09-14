@@ -198,6 +198,15 @@ public class GameHUD : MonoBehaviour
 
     // ---- the item bar: what she carries, along the bottom ----
     private GUIStyle countStyle, keyStyle, nameStyle;
+    private static Rect barRect;
+
+    /// <summary>True while the mouse is over the item bar, so a click there is not a shot.</summary>
+    public static bool MouseOverBar()
+    {
+        if (barRect.width <= 0f || Mouse.current == null) return false;
+        Vector2 m = Mouse.current.position.ReadValue();
+        return barRect.Contains(new Vector2(m.x, Screen.height - m.y));
+    }
 
     private void DrawItemBar()
     {
@@ -210,10 +219,11 @@ public class GameHUD : MonoBehaviour
             nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter };
             Intro.SetTextColor(nameStyle, new Color(0.97f, 0.96f, 0.93f, 0.85f));
         }
-        // Only what she has.
+        // Weapons first (the pistol, always), then only what she has.
         var shown = new System.Collections.Generic.List<ItemKind>();
+        if (Pistol.Instance != null) shown.Add(ItemKind.Pistol);
         foreach (var k in Inventory.BarOrder) if (Inventory.Count(k) > 0) shown.Add(k);
-        if (shown.Count == 0) return;
+        if (shown.Count == 0) { barRect = Rect.zero; return; }
 
         const float slot = 54f, gap = 8f, pad = 6f;
         float total = shown.Count * slot + (shown.Count - 1) * gap;
@@ -221,21 +231,49 @@ public class GameHUD : MonoBehaviour
         // Hover shows the name and how it is used.
         Vector2 mouse = Event.current.mousePosition;
         string hover = null;
+        bool click = Event.current.type == EventType.MouseDown && Event.current.button == 0;
 
+        barRect = new Rect(x0 - pad - 4f, y0 - pad, total + (pad + 4f) * 2f, slot + pad * 2f);
         GUI.color = new Color(0f, 0f, 0f, 0.45f);
-        GUI.DrawTexture(new Rect(x0 - pad - 4f, y0 - pad, total + (pad + 4f) * 2f, slot + pad * 2f), white);
+        GUI.DrawTexture(barRect, white);
         for (int i = 0; i < shown.Count; i++)
         {
             var k = shown[i];
             var r = new Rect(x0 + i * (slot + gap), y0, slot, slot);
-            GUI.color = new Color(1f, 1f, 1f, 0.08f);
-            GUI.DrawTexture(r, white);
+            if (click && r.Contains(mouse))
+            {
+                // A click on a slot uses it (or does nothing); the gun never sees this click.
+                if (ItemUse.Instance != null) ItemUse.Instance.UseFromBar(k);
+                Event.current.Use();
+            }
+            bool weapon = k == ItemKind.Pistol;
+            if (weapon)
+            {
+                // The one in her hand: a gold frame.
+                GUI.color = new Color(1f, 0.82f, 0.4f, 0.9f);
+                GUI.DrawTexture(new Rect(r.x - 2f, r.y - 2f, slot + 4f, slot + 4f), white);
+                GUI.color = new Color(0.08f, 0.08f, 0.1f, 1f);
+                GUI.DrawTexture(r, white);
+            }
+            else
+            {
+                GUI.color = new Color(1f, 1f, 1f, 0.08f);
+                GUI.DrawTexture(r, white);
+            }
             GUI.color = Color.white;
             var icon = ItemIcons.Get(k);
             if (icon != null) GUI.DrawTexture(new Rect(r.x + 5f, r.y + 5f, slot - 10f, slot - 10f), icon, ScaleMode.ScaleToFit, true);
-            int n = Inventory.Count(k);
-            if (n > 1 || k == ItemKind.Scrap || k == ItemKind.Page || k == ItemKind.MapScrap)
-                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), n.ToString(), countStyle, 1f);
+            if (weapon)
+            {
+                var pist = Pistol.Instance;
+                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), pist.Loaded + "|" + pist.Reserve, countStyle, 1f);
+            }
+            else
+            {
+                int n = Inventory.Count(k);
+                if (n > 1 || k == ItemKind.Scrap || k == ItemKind.Page || k == ItemKind.MapScrap)
+                    Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), n.ToString(), countStyle, 1f);
+            }
             string key = ItemInfo.Key(k);
             if (key.Length > 0) Intro.DrawLegible(new Rect(r.x + 4f, r.y + 2f, 20f, 16f), key, keyStyle, 1f);
             if (r.Contains(mouse)) hover = ItemInfo.Name(k) + ".  " + ItemInfo.Hint(k);

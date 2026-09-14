@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>Everything she can pick up and carry. Ammo stays with the pistol; these are the rest.</summary>
-public enum ItemKind { Flare, Noisemaker, Trap, MapScrap, Page, Medkit, Blanket, Scrap, Lantern, Backpack }
+public enum ItemKind { Flare, Noisemaker, Trap, MapScrap, Page, Medkit, Blanket, Scrap, Lantern, Backpack, Pistol }
 
 /// <summary>What she is carrying. Static so the HUD and the world can both read it; reset on boot.</summary>
 public static class Inventory
@@ -62,6 +62,7 @@ public static class ItemInfo
             case ItemKind.Scrap: return "Scrap";
             case ItemKind.Lantern: return "Hunter's lantern";
             case ItemKind.Backpack: return "Backpack";
+            case ItemKind.Pistol: return "Pistol";
         }
         return k.ToString();
     }
@@ -74,6 +75,7 @@ public static class ItemInfo
             case ItemKind.Flare: return "F";
             case ItemKind.Noisemaker: return "G";
             case ItemKind.Trap: return "V";
+            case ItemKind.Pistol: return "1";
         }
         return "";
     }
@@ -82,6 +84,7 @@ public static class ItemInfo
     {
         switch (k)
         {
+            case ItemKind.Pistol: return "Left click to shoot, R to reload. Bullets slow them; a hit sends one running.";
             case ItemKind.Flare: return "F  throw. Burns twenty seconds. They will not come into its light.";
             case ItemKind.Noisemaker: return "G  throw. Every one of them nearby goes to see what made the noise.";
             case ItemKind.Trap: return "V  set it at your feet. Holds the first one that steps in it.";
@@ -250,6 +253,21 @@ public static class ItemIcons
                 Fill(p => Box(p, new Vector2(0f, -0.05f), new Vector2(0.2f, 0.3f), 0.04f), glass);
                 Fill(p => Box(p, new Vector2(0f, 0.45f), new Vector2(0.12f, 0.06f)), frame);
                 Fill(p => Mathf.Abs(Circle(p, new Vector2(0f, 0.6f), 0.14f)) - 0.035f, frame);
+                break;
+            }
+            case ItemKind.Pistol:
+            {
+                Color steel = new Color(0.22f, 0.23f, 0.27f), grip = new Color(0.32f, 0.22f, 0.14f), edge = new Color(0.6f, 0.62f, 0.68f);
+                // Slide and barrel, pointing right.
+                Fill(p => Box(p, new Vector2(0.02f, 0.18f), new Vector2(0.62f, 0.15f), 0.04f) + 0.03f, ink);
+                Fill(p => Box(p, new Vector2(0.02f, 0.18f), new Vector2(0.62f, 0.15f), 0.04f), steel);
+                Fill(p => Box(p, new Vector2(0.02f, 0.29f), new Vector2(0.58f, 0.025f)), edge, 0.7f);
+                // Grip, raked back.
+                Fill(p => Box(Rot(p - new Vector2(-0.3f, -0.22f), 18f), Vector2.zero, new Vector2(0.13f, 0.3f), 0.05f) + 0.03f, ink);
+                Fill(p => Box(Rot(p - new Vector2(-0.3f, -0.22f), 18f), Vector2.zero, new Vector2(0.13f, 0.3f), 0.05f), grip);
+                // Trigger guard and trigger.
+                Fill(p => Mathf.Abs(Circle(p, new Vector2(0.02f, -0.1f), 0.14f)) - 0.03f, steel);
+                Fill(p => Box(p, new Vector2(0.03f, -0.08f), new Vector2(0.025f, 0.08f)), edge);
                 break;
             }
             case ItemKind.Backpack:

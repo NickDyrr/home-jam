@@ -121,7 +121,7 @@ public class Pistol : MonoBehaviour
         Mouse mouse = Mouse.current;
         Keyboard kb = Keyboard.current;
 
-        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil) TryFire();
+        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil && !GameHUD.MouseOverBar()) TryFire();
         if (kb != null && kb.rKey.wasPressedThisFrame) TryReload();
 
         // Face the cursor for a moment after a shot so the pose reads.
