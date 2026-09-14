@@ -402,9 +402,9 @@ public class Stalker : MonoBehaviour
     /// Pistol hit. Shoved back along the shot for a beat, then it wheels and runs from her; slower
     /// from now on. Breaks a grab. Never kills.
     /// </summary>
-    public void Hit(Vector3 impulse)
+    public void Hit(Vector3 impulse, int weight = 1)
     {
-        hits++; hitsThisChase++;
+        hits += weight; hitsThisChase += weight;
         if (CurrentState == State.Grabbing) ReleasePlayer();
         knock = impulse;
         knock.y = 0f;

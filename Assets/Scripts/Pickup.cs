@@ -110,6 +110,35 @@ public class Pickup : MonoBehaviour
                 Part(PrimitiveType.Cube, new Vector3(0f, 0.16f, 0f), new Vector3(0.16f, 0.3f, 0.16f), Quaternion.identity, Lit(new Color(0.2f, 0.2f, 0.22f), 0.5f, 0.8f));
                 Part(PrimitiveType.Cube, new Vector3(0f, 0.16f, 0f), new Vector3(0.12f, 0.2f, 0.12f), Quaternion.identity, Lit(new Color(1f, 0.85f, 0.45f), 0.8f));
                 break;
+            case ItemKind.Rifle:
+            {
+                Quaternion lay = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.04f, 0.2f), new Vector3(0.035f, 0.04f, 0.62f), lay, Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f));
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.035f, -0.2f), new Vector3(0.045f, 0.07f, 0.34f), lay, Lit(new Color(0.36f, 0.24f, 0.14f), 0.3f));
+                break;
+            }
+            case ItemKind.Bow:
+            {
+                Quaternion lay = Quaternion.Euler(90f, Random.Range(0f, 360f), 0f);
+                for (int i = 0; i < 6; i++)
+                {
+                    float a = Mathf.Lerp(-60f, 60f, i / 5f) * Mathf.Deg2Rad;
+                    Vector3 p = lay * new Vector3(0f, Mathf.Sin(a) * 0.55f, Mathf.Cos(a) * 0.55f - 0.4f);
+                    Part(PrimitiveType.Cylinder, p + Vector3.up * 0.03f, new Vector3(0.025f, 0.12f, 0.025f), lay * Quaternion.Euler(a * Mathf.Rad2Deg, 0f, 0f), Lit(new Color(0.3f, 0.2f, 0.12f), 0.3f));
+                }
+                break;
+            }
+            case ItemKind.RifleAmmo:
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.05f, 0f), new Vector3(0.18f, 0.1f, 0.12f), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Lit(new Color(0.35f, 0.3f, 0.2f), 0.2f));
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.105f, 0f), new Vector3(0.12f, 0.004f, 0.06f), Quaternion.identity, Lit(new Color(0.8f, 0.62f, 0.25f), 0.5f, 0.8f));
+                break;
+            case ItemKind.Arrow:
+            {
+                Quaternion lay = Quaternion.Euler(90f, Random.Range(0f, 360f), 0f);
+                for (int i = 0; i < Mathf.Min(3, Mathf.Max(1, amount)); i++)
+                    Part(PrimitiveType.Cylinder, new Vector3(i * 0.05f - 0.05f, 0.02f, 0f), new Vector3(0.018f, 0.36f, 0.018f), lay * Quaternion.Euler(0f, 0f, i * 6f), Lit(new Color(0.55f, 0.42f, 0.25f), 0.3f));
+                break;
+            }
             case ItemKind.Backpack:
                 Part(PrimitiveType.Cube, new Vector3(0f, 0.18f, 0f), new Vector3(0.36f, 0.36f, 0.26f), Quaternion.Euler(Random.Range(-15f, 15f), Random.Range(0f, 360f), 70f), Lit(new Color(0.42f, 0.38f, 0.28f), 0.05f));
                 Part(PrimitiveType.Cube, new Vector3(0.1f, 0.12f, 0.1f), new Vector3(0.22f, 0.18f, 0.12f), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Lit(new Color(0.32f, 0.28f, 0.2f), 0.05f));
@@ -174,6 +203,22 @@ public class Pickup : MonoBehaviour
             case ItemKind.Lantern:
                 Inventory.BetterLantern = true; Inventory.Add(ItemKind.Lantern);
                 FloatingText.Show(at, "The hunter's lantern. Your light reaches further.", 3f);
+                break;
+            case ItemKind.Rifle:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.Rifle, Mathf.Max(amount, 1));
+                FloatingText.Show(at, "A rifle, and " + Mathf.Max(amount, 1) + " rounds. Loud.", 3f);
+                break;
+            case ItemKind.Bow:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.Bow, Mathf.Max(amount, 1));
+                FloatingText.Show(at, "A bow, and " + Mathf.Max(amount, 1) + " arrows. Quiet.", 3f);
+                break;
+            case ItemKind.RifleAmmo:
+                if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.Rifle, amount);
+                FloatingText.Show(at, "+" + amount + " rifle rounds", 2.5f);
+                break;
+            case ItemKind.Arrow:
+                if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.Bow, amount);
+                FloatingText.Show(at, "+" + amount + (amount == 1 ? " arrow" : " arrows"), 2f);
                 break;
             default:
                 Inventory.Add(kind, amount);

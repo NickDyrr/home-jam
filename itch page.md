@@ -33,6 +33,7 @@ When it came, the others ran for the trees. They're still out there. By day they
 | Mouse / Left click | Aim / Shoot |
 | R | Reload |
 | F / G / V | Throw a flare / throw a can / set a bear trap |
+| 1 / 2 / 3 | Pistol / rifle / bow, once you have found them |
 | E | Read the notebook, build at the workbench |
 | T | Wait for dark (at home, by day) |
 | B | Ring the bell (second house level, from the yard) |

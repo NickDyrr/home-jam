@@ -92,6 +92,7 @@ public class GameHUD : MonoBehaviour
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
         "F   throw a flare      G   throw a can      V   set a trap",
+        "1 2 3   pistol, rifle, bow (once found)",
         "T   wait for dark (at home, by day)",
         "B   ring the bell (second house level, from the yard)",
         "Esc   pause / resume",
@@ -219,9 +220,15 @@ public class GameHUD : MonoBehaviour
             nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter };
             Intro.SetTextColor(nameStyle, new Color(0.97f, 0.96f, 0.93f, 0.85f));
         }
-        // Weapons first (the pistol, always), then only what she has.
+        // Weapons first (the pistol always, the others once found), then only what she has.
         var shown = new System.Collections.Generic.List<ItemKind>();
-        if (Pistol.Instance != null) shown.Add(ItemKind.Pistol);
+        var guns = Pistol.Instance;
+        if (guns != null)
+        {
+            shown.Add(ItemKind.Pistol);
+            if (guns.Owns(WeaponKind.Rifle)) shown.Add(ItemKind.Rifle);
+            if (guns.Owns(WeaponKind.Bow)) shown.Add(ItemKind.Bow);
+        }
         foreach (var k in Inventory.BarOrder) if (Inventory.Count(k) > 0) shown.Add(k);
         if (shown.Count == 0) { barRect = Rect.zero; return; }
 
@@ -246,11 +253,14 @@ public class GameHUD : MonoBehaviour
                 if (ItemUse.Instance != null) ItemUse.Instance.UseFromBar(k);
                 Event.current.Use();
             }
-            bool weapon = k == ItemKind.Pistol;
+            bool weapon = k == ItemKind.Pistol || k == ItemKind.Rifle || k == ItemKind.Bow;
+            WeaponKind wk = k == ItemKind.Rifle ? WeaponKind.Rifle : k == ItemKind.Bow ? WeaponKind.Bow : WeaponKind.Pistol;
+            bool inHand = weapon && guns != null && guns.Current == wk;
+            if (click && weapon && r.Contains(mouse) && guns != null) { guns.Equip(wk); Event.current.Use(); }
             if (weapon)
             {
-                // The one in her hand: a gold frame.
-                GUI.color = new Color(1f, 0.82f, 0.4f, 0.9f);
+                // The one in her hand gets a gold frame; the others a dim one.
+                GUI.color = inHand ? new Color(1f, 0.82f, 0.4f, 0.9f) : new Color(1f, 1f, 1f, 0.25f);
                 GUI.DrawTexture(new Rect(r.x - 2f, r.y - 2f, slot + 4f, slot + 4f), white);
                 GUI.color = new Color(0.08f, 0.08f, 0.1f, 1f);
                 GUI.DrawTexture(r, white);
@@ -265,8 +275,8 @@ public class GameHUD : MonoBehaviour
             if (icon != null) GUI.DrawTexture(new Rect(r.x + 5f, r.y + 5f, slot - 10f, slot - 10f), icon, ScaleMode.ScaleToFit, true);
             if (weapon)
             {
-                var pist = Pistol.Instance;
-                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), pist.Loaded + "|" + pist.Reserve, countStyle, 1f);
+                string ammo = wk == WeaponKind.Bow ? (guns.LoadedOf(wk) + guns.ReserveOf(wk)).ToString() : guns.LoadedOf(wk) + "|" + guns.ReserveOf(wk);
+                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), ammo, countStyle, 1f);
             }
             else
             {
