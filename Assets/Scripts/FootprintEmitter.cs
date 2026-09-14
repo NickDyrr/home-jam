@@ -41,8 +41,11 @@ public class FootprintEmitter : MonoBehaviour
         if (stepLoop != null) stepLoop.volume = 0f;
     }
 
-    private const float loopUseFraction = 0.3f;   // only the first third of the recording is clean
-    private const float loopHead = 0.5f;
+    // Only the first couple of seconds of the recording are looped: further in it wanders (odd steps, a scrape).
+    private const float loopHead = 0.2f;
+    private const float loopEndSeconds = 2.4f;
+    // Every walker's steps, scaled together: the mix was a little loud.
+    private const float stepGain = 0.65f;
 
     /// <summary>
     /// A recording of someone walking (longer than a second or two) is looped while this walker
@@ -51,7 +54,7 @@ public class FootprintEmitter : MonoBehaviour
     private bool UseLoop(AudioClip clip) => clip != null && clip.length > 1.5f;
 
     /// <summary>Where the usable part of the recording ends.</summary>
-    private float LoopEnd(AudioClip clip) => Mathf.Max(loopHead + 2f, clip.length * Mathf.Clamp01(loopUseFraction));
+    private float LoopEnd(AudioClip clip) => Mathf.Min(clip.length, loopEndSeconds);
 
     private void LateUpdate()
     {
@@ -88,7 +91,7 @@ public class FootprintEmitter : MonoBehaviour
                 // Fade with distance from the player, the way the manager's one-shots do.
                 float dist = PlayerMovement.Instance != null ? Vector3.Distance(PlayerMovement.Instance.transform.position, pos) : 0f;
                 float near = 1f - Mathf.Clamp01(dist / 24f) * Mathf.Clamp01(dist / 24f);
-                float wantVol = moving ? stepVolume * (heavy ? 1.4f : 1f) * near : 0f;
+                float wantVol = moving ? stepVolume * stepGain * (heavy ? 1.4f : 1f) * near : 0f;
                 float wantPitch = (heavy ? 0.8f : 1f) * Mathf.Lerp(1f, runPitch, Mathf.InverseLerp(4.5f, 6.5f, speed));
                 stepLoop.volume = Mathf.Lerp(stepLoop.volume, wantVol, 1f - Mathf.Exp(-10f * Time.deltaTime));
                 stepLoop.pitch = Mathf.Lerp(stepLoop.pitch, wantPitch, 1f - Mathf.Exp(-6f * Time.deltaTime));
@@ -118,7 +121,7 @@ public class FootprintEmitter : MonoBehaviour
             bool heavy = printSize > 0.5f;
             var clip = heavy ? AudioManager.Instance.StepHeavy : AudioManager.Instance.Step;
             if (!UseLoop(clip))
-                AudioManager.Instance.Play(clip, pos, heavy ? 0.8f : 0.35f, heavy ? 30f : 18f, Random.Range(0.9f, 1.1f));
+                AudioManager.Instance.Play(clip, pos, (heavy ? 0.8f : 0.35f) * stepGain, heavy ? 30f : 18f, Random.Range(0.9f, 1.1f));
         }
     }
 }

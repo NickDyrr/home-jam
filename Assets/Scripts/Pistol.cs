@@ -201,6 +201,9 @@ public class Pistol : MonoBehaviour
         if (k == WeaponKind.Bow) return;   // the bow is out of the game; the kind stays so nothing shifts
         owned[(int)k] = true;
         if (ammo > 0) AddAmmo(k, ammo);
+        // It comes loaded: whatever fits the magazine goes in, the rest is spare. (It used to arrive empty, and every find began with a reload.)
+        int pl = Pool(k);
+        if (pl >= 0 && loaded[(int)k] == 0) { int take = Mathf.Min(StatsOf(k).magazine, pool[pl]); loaded[(int)k] += take; pool[pl] -= take; }
         Equip(k);
     }
 
@@ -270,16 +273,69 @@ public class Pistol : MonoBehaviour
         return g;
     }
 
-    /// <summary>A model root in the pistol's frame on the gun socket, scaled so one unit is one metre.</summary>
-    private GameObject InPistolFrame(string name)
+    [Header("Primitive guns")]
+    [Tooltip("Where a built gun's grip sits, in metres from the point on the pistol's bore line above her wrist: x right, y up, z forward. The pistol's own grip is about here.")]
+    [SerializeField] private Vector3 gripInHand = new Vector3(0f, -0.07f, 0.09f);
+    [Tooltip("The rifle clips (Mixamo's rifle set) grip with the hand turned differently from the pistol clips. Long guns are turned by this, in the socket's frame, so the barrel points where she aims in the rifle fire pose. Measured in play, not guessed.")]
+    [SerializeField] private Vector3 rifleStanceOffset = new Vector3(54.2f, 92.1f, 66.1f);
+    [Tooltip("The same turn for the carry (idle, walk, run): with the aim's turn the rifle clips hang the muzzle at the ground, so the carry gets its own, and the two blend on the aim weight.")]
+    [SerializeField] private Vector3 rifleCarryOffset = new Vector3(25.6f, 40.2f, 25.4f);
+    [Tooltip("Roll about the barrel on top of that: sets which way the gun's top faces in her hand.")]
+    [SerializeField] private float rifleStanceRoll = -40f;
+    private readonly System.Collections.Generic.Dictionary<Transform, Quaternion> longGunLook = new System.Collections.Generic.Dictionary<Transform, Quaternion>();
+
+    private float runBlend;
+
+    /// <summary>
+    /// Long guns turn between the carry offset and the aim offset as the aim pose comes up. The
+    /// run clip grips like the fire clip, so a run uses the aim turn too (the carry turn would
+    /// point it at the sky there).
+    /// </summary>
+    private void PoseLongGuns()
     {
-        Vector3 fwd = muzzle != null ? gunSocket.InverseTransformDirection((muzzle.position - pistolModel.transform.position).normalized) : Vector3.forward;
+        bool running = movement != null && movement.IsRunning;
+        runBlend = Mathf.MoveTowards(runBlend, running ? 1f : 0f, Time.deltaTime / 0.2f);
+        Quaternion turn = Quaternion.Slerp(Quaternion.Euler(rifleCarryOffset), Quaternion.Euler(rifleStanceOffset), Mathf.Max(aimWeight, runBlend));
+        Quaternion roll = Quaternion.AngleAxis(rifleStanceRoll, Vector3.forward);
+        foreach (var kv in longGunLook) if (kv.Key != null) kv.Key.localRotation = turn * kv.Value * roll;
+    }
+
+    /// <summary>
+    /// A model root on the gun socket, scaled so one unit is one metre, with +z along the pistol's
+    /// barrel and +y its top, sitting on the bore line straight above her wrist. The pistol mesh
+    /// decides the axes: the barrel is its longest side, the top its second, both signed toward the muzzle.
+    /// (Root-to-muzzle was used before, and that line climbs 50 degrees off the barrel: every long gun stood on end.)
+    /// </summary>
+    private GameObject InPistolFrame(string name, bool rifleStance = false)
+    {
+        var pm = pistolModel.transform;
+        Vector3 fwdLocal = Vector3.forward, upLocal = Vector3.up;
+        var mf = pistolModel.GetComponentInChildren<MeshFilter>();
+        if (mf != null && mf.sharedMesh != null && muzzle != null)
+        {
+            Vector3 size = mf.sharedMesh.bounds.size, m = pm.InverseTransformPoint(muzzle.position) - mf.sharedMesh.bounds.center;
+            int a = size.x >= size.y && size.x >= size.z ? 0 : size.y >= size.z ? 1 : 2;
+            int b = a == 0 ? (size.y >= size.z ? 1 : 2) : a == 1 ? (size.x >= size.z ? 0 : 2) : (size.x >= size.y ? 0 : 1);
+            fwdLocal = Axis(a) * Mathf.Sign(m[a]); upLocal = Axis(b) * Mathf.Sign(m[b] == 0f ? 1f : m[b]);
+        }
+        Vector3 wrist = pm.InverseTransformPoint(gunSocket.position);
+        Vector3 bore = wrist + upLocal * Vector3.Dot((muzzle != null ? pm.InverseTransformPoint(muzzle.position) : wrist) - wrist, upLocal);
         float k = 1f / Mathf.Max(0.0001f, gunSocket.lossyScale.x);
         var go = new GameObject(name); go.transform.SetParent(gunSocket, false);
-        go.transform.localPosition = pistolModel.transform.localPosition;
-        go.transform.localRotation = Quaternion.LookRotation(fwd, gunSocket.InverseTransformDirection(Vector3.up));
+        go.transform.localPosition = gunSocket.InverseTransformPoint(pm.TransformPoint(bore));
+        go.transform.localRotation = Quaternion.LookRotation(pm.localRotation * fwdLocal, pm.localRotation * upLocal);
+        if (rifleStance) { longGunLook[go.transform] = go.transform.localRotation; go.transform.localRotation = Quaternion.Euler(rifleCarryOffset) * go.transform.localRotation * Quaternion.AngleAxis(rifleStanceRoll, Vector3.forward); }
         go.transform.localScale = Vector3.one * k;
         return go;
+    }
+
+    private static Vector3 Axis(int i) => i == 0 ? Vector3.right : i == 1 ? Vector3.up : Vector3.forward;
+
+    /// <summary>Slides a built gun so its grip (model metres) lands in her hand.</summary>
+    private void HoldAt(GameObject model, Vector3 grip)
+    {
+        Vector3 d = gripInHand - grip;
+        foreach (Transform c in model.transform) c.localPosition += d;
     }
 
     private Transform MuzzleAt(GameObject model, Vector3 local)
@@ -295,43 +351,43 @@ public class Pistol : MonoBehaviour
         var wood = Lit(new Color(0.36f, 0.24f, 0.14f), 0.3f, 0f); var darkWood = Lit(new Color(0.3f, 0.2f, 0.12f), 0.3f, 0f);
 
         // Rifle.
-        var rm = InPistolFrame("RifleModel");
+        var rm = InPistolFrame("RifleModel", true);
         Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.28f), new Vector3(0.035f, 0.04f, 0.62f), Quaternion.identity, dark);
         Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.005f, 0.22f), new Vector3(0.045f, 0.05f, 0.34f), Quaternion.identity, wood);
         Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.16f), new Vector3(0.04f, 0.09f, 0.24f), Quaternion.Euler(-12f, 0f, 0f), wood);
         Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.06f, 0.1f), new Vector3(0.02f, 0.03f, 0.1f), Quaternion.identity, dark);
-        models[(int)WeaponKind.Rifle] = rm; muzzles[(int)WeaponKind.Rifle] = MuzzleAt(rm, new Vector3(0f, 0.02f, 0.6f));
+        models[(int)WeaponKind.Rifle] = rm; muzzles[(int)WeaponKind.Rifle] = MuzzleAt(rm, new Vector3(0f, 0.02f, 0.6f)); HoldAt(rm, new Vector3(0f, -0.05f, -0.16f));
 
         // Shotgun: shorter, two barrels side by side, fat stock.
-        var sg = InPistolFrame("ShotgunModel");
+        var sg = InPistolFrame("ShotgunModel", true);
         Part(sg.transform, PrimitiveType.Cube, new Vector3(-0.02f, 0.02f, 0.22f), new Vector3(0.035f, 0.035f, 0.5f), Quaternion.identity, dark);
         Part(sg.transform, PrimitiveType.Cube, new Vector3(0.02f, 0.02f, 0.22f), new Vector3(0.035f, 0.035f, 0.5f), Quaternion.identity, dark);
         Part(sg.transform, PrimitiveType.Cube, new Vector3(0f, -0.01f, 0.16f), new Vector3(0.075f, 0.05f, 0.24f), Quaternion.identity, wood);
         Part(sg.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.15f), new Vector3(0.05f, 0.1f, 0.26f), Quaternion.Euler(-12f, 0f, 0f), wood);
-        models[(int)WeaponKind.Shotgun] = sg; muzzles[(int)WeaponKind.Shotgun] = MuzzleAt(sg, new Vector3(0f, 0.02f, 0.48f));
+        models[(int)WeaponKind.Shotgun] = sg; muzzles[(int)WeaponKind.Shotgun] = MuzzleAt(sg, new Vector3(0f, 0.02f, 0.48f)); HoldAt(sg, new Vector3(0f, -0.05f, -0.15f));
 
         // Flare gun: a stubby orange pistol.
         var fg = InPistolFrame("FlareGunModel");
         Part(fg.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.08f), new Vector3(0.05f, 0.06f, 0.2f), Quaternion.identity, Lit(new Color(0.9f, 0.4f, 0.12f), 0.4f, 0f));
         Part(fg.transform, PrimitiveType.Cube, new Vector3(0f, -0.06f, -0.03f), new Vector3(0.035f, 0.1f, 0.05f), Quaternion.Euler(15f, 0f, 0f), Lit(new Color(0.25f, 0.12f, 0.06f), 0.3f, 0f));
-        models[(int)WeaponKind.FlareGun] = fg; muzzles[(int)WeaponKind.FlareGun] = MuzzleAt(fg, new Vector3(0f, 0.02f, 0.2f));
+        models[(int)WeaponKind.FlareGun] = fg; muzzles[(int)WeaponKind.FlareGun] = MuzzleAt(fg, new Vector3(0f, 0.02f, 0.2f)); HoldAt(fg, new Vector3(0f, -0.06f, -0.03f));
 
         // Auto rifle: black, boxy, a curved magazine hanging under it.
-        var ar = InPistolFrame("AutoRifleModel");
+        var ar = InPistolFrame("AutoRifleModel", true);
         Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.26f), new Vector3(0.035f, 0.04f, 0.5f), Quaternion.identity, dark);
         Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.01f, -0.02f), new Vector3(0.05f, 0.07f, 0.34f), Quaternion.identity, black);
         Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, -0.09f, 0.02f), new Vector3(0.035f, 0.14f, 0.06f), Quaternion.Euler(15f, 0f, 0f), black);
         Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, -0.03f, -0.24f), new Vector3(0.035f, 0.06f, 0.16f), Quaternion.identity, dark);
         Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.065f, 0f), new Vector3(0.02f, 0.02f, 0.2f), Quaternion.identity, dark);
-        models[(int)WeaponKind.AutoRifle] = ar; muzzles[(int)WeaponKind.AutoRifle] = MuzzleAt(ar, new Vector3(0f, 0.02f, 0.52f));
+        models[(int)WeaponKind.AutoRifle] = ar; muzzles[(int)WeaponKind.AutoRifle] = MuzzleAt(ar, new Vector3(0f, 0.02f, 0.52f)); HoldAt(ar, new Vector3(0f, -0.09f, 0.02f));
 
         // Sniper: a long barrel, dark stock, a scope on top.
-        var sn = InPistolFrame("SniperModel");
+        var sn = InPistolFrame("SniperModel", true);
         Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.38f), new Vector3(0.03f, 0.03f, 0.84f), Quaternion.identity, dark);
         Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, -0.005f, 0.14f), new Vector3(0.045f, 0.05f, 0.44f), Quaternion.identity, darkWood);
         Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.2f), new Vector3(0.04f, 0.09f, 0.26f), Quaternion.Euler(-12f, 0f, 0f), darkWood);
         Part(sn.transform, PrimitiveType.Cylinder, new Vector3(0f, 0.075f, 0.02f), new Vector3(0.035f, 0.11f, 0.035f), Quaternion.Euler(90f, 0f, 0f), dark);
-        models[(int)WeaponKind.Sniper] = sn; muzzles[(int)WeaponKind.Sniper] = MuzzleAt(sn, new Vector3(0f, 0.02f, 0.8f));
+        models[(int)WeaponKind.Sniper] = sn; muzzles[(int)WeaponKind.Sniper] = MuzzleAt(sn, new Vector3(0f, 0.02f, 0.8f)); HoldAt(sn, new Vector3(0f, -0.05f, -0.2f));
 
         // The bow sits in her left hand, a tall arc with a string.
         Transform hand = lHand != null ? lHand : gunSocket;
@@ -510,6 +566,7 @@ public class Pistol : MonoBehaviour
             gunSocket.localRotation = socketBaseRot * Quaternion.Euler(-kickAngle * kick * Stats.kickScale, 0f, 0f);
             gunSocket.localPosition = socketBasePos + socketBaseRot * (Vector3.back * kickBack * kick * Stats.kickScale);
         }
+        PoseLongGuns();
     }
 
     private void TryFire()

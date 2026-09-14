@@ -43,7 +43,7 @@ public class AudioManager : MonoBehaviour
         Breath = Resources.Load<AudioClip>("Audio/Breath");   // no synthesized fallback: silent until a clip is dropped in
 
         windSource = gameObject.AddComponent<AudioSource>();
-        windSource.clip = Wind; windSource.loop = true; windSource.volume = 0.35f; windSource.spatialBlend = 0f; windSource.Play();
+        windSource.clip = Wind; windSource.loop = true; windSource.volume = 0.22f; windSource.spatialBlend = 0f; windSource.Play();
     }
 
     private void OnDestroy()

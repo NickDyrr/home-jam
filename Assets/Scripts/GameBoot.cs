@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Creates the runtime-only systems (audio, dread, HUD) when a scene starts,
@@ -9,6 +10,16 @@ public static class GameBoot
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
     {
+        // This runs once per launch. A restart reloads the scene, which used to come up with no
+        // HUD, no meeting scene, no intro and no trails: hook every load after the first too.
+        Setup();
+        SceneManager.sceneLoaded += (scene, mode) => Setup();
+    }
+
+    private static void Setup()
+    {
+        if (GameObject.Find("GameSystems") != null) return;   // already set up for this scene
+
         // The browser gets the plain Forward renderer without ambient occlusion: WebGL 2 has no
         // Forward+ and the extra passes are the first thing to misbehave there.
         if (Application.platform == RuntimePlatform.WebGLPlayer)

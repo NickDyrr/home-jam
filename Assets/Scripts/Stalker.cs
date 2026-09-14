@@ -54,6 +54,7 @@ public class Stalker : MonoBehaviour
     {
         if (CurrentState == State.Grabbing) ReleasePlayer();
         strikeTarget = null;
+        CancelSwing();
         knock = Vector3.zero;
         stunUntil = Time.time + seconds;
         CurrentState = State.Stunned;
@@ -93,8 +94,8 @@ public class Stalker : MonoBehaviour
     private float fleeStart;
     private float huntSpeed;
 
-    /// <summary>It leaves at the same pace it arrived: the speed of its last approach, after the bullets.</summary>
-    private float FleeSpeed => Mathf.Max(baseSpeed * SpeedFactor, Mathf.Min(huntSpeed, maxSpeed * SpeedFactor));
+    /// <summary>It leaves at the same pace it arrived: the speed of its last approach. (The round that sent it off no longer caps this; it slows the next approach instead.)</summary>
+    private float FleeSpeed => huntSpeed > 0f ? huntSpeed : baseSpeed * SpeedFactor;
 
     /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
     private void Flee(Vector3 from)
@@ -154,6 +155,17 @@ public class Stalker : MonoBehaviour
     private Survivor strikeTarget;
     private float strikeAt;
 
+    [Header("Swing")]
+    [Tooltip("Speed of the swipe clip up to the moment it lands. The grab and strike windows shrink by the same factor.")]
+    [SerializeField] private float swingWindupSpeed = 1.25f;
+    [Tooltip("Speed of the rest of the swipe, once it has landed or missed. It stands still until the swing is done, so keep this quick.")]
+    [SerializeField] private float swingRecoverSpeed = 3f;
+    private const float SwipeLands = 0.8f;            // seconds into the swipe clip, at speed 1, where the blow lands
+    private const float SwipeExit = 0.9f;             // the controller leaves the Swipe state at this fraction of the clip
+    private float swipeLength = 2.43f;                // read from the clip in Awake; this is the Mixamo swipe
+    private float swingUntil;                         // it stands where it is until then
+    private bool hasSwipeSpeed;
+
     [Header("Animation (optional)")]
     [SerializeField] private Animator animator;
 
@@ -168,6 +180,7 @@ public class Stalker : MonoBehaviour
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int StunnedHash = Animator.StringToHash("Stunned");
     private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int SwipeSpeedHash = Animator.StringToHash("SwipeSpeed");
 
     private CharacterController controller;
     private Transform player;
@@ -184,7 +197,32 @@ public class Stalker : MonoBehaviour
         if (glow == null) glow = GetComponentInChildren<Light>();
         if (glow != null) glow.intensity = dormantGlow;
         if (animator == null) animator = GetComponentInChildren<Animator>();
+        if (animator != null)
+        {
+            foreach (var prm in animator.parameters) if (prm.nameHash == SwipeSpeedHash) hasSwipeSpeed = true;
+            if (animator.runtimeAnimatorController != null)
+                foreach (var c in animator.runtimeAnimatorController.animationClips) if (c != null && c.name == "swiping") swipeLength = c.length;
+        }
     }
+
+    /// <summary>The swing starts: the clip runs at the windup speed until it lands.</summary>
+    private void BeginSwing()
+    {
+        if (animator == null) return;
+        if (hasSwipeSpeed) animator.SetFloat(SwipeSpeedHash, swingWindupSpeed);
+        animator.SetTrigger(AttackHash);
+        swingUntil = Time.time + SwipeLands / swingWindupSpeed + (swipeLength * SwipeExit - SwipeLands) / swingRecoverSpeed;
+    }
+
+    /// <summary>The blow has landed or missed: the rest of the swing plays fast, and it stands until that is done.</summary>
+    private void SwingLanded()
+    {
+        if (animator != null && hasSwipeSpeed) animator.SetFloat(SwipeSpeedHash, swingRecoverSpeed);
+        swingUntil = Time.time + (swipeLength * SwipeExit - SwipeLands) / swingRecoverSpeed;
+    }
+
+    /// <summary>Something cut the swing short (a round, a trap): nothing left to stand still for.</summary>
+    private void CancelSwing() { swingUntil = 0f; }
 
     private void OnEnable()  { All.Add(this); }
     private void OnDisable() { All.Remove(this); }
@@ -337,6 +375,7 @@ public class Stalker : MonoBehaviour
                 if (toS.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(toS.normalized, Vector3.up);
                 if (Time.time >= strikeAt)
                 {
+                    SwingLanded();
                     if (toS.magnitude <= strikeReach)
                     {
                         strikeTarget.Taken();
@@ -358,6 +397,7 @@ public class Stalker : MonoBehaviour
                 if (toP.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(toP.normalized, Vector3.up);
                 if (Time.time >= grabUntil)
                 {
+                    SwingLanded();
                     ReleasePlayer();
                     if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
                     // Done with her. It backs off into the dark and leaves her where she fell.
@@ -369,6 +409,9 @@ public class Stalker : MonoBehaviour
                 break;
             }
         }
+
+        // Mid-swing it stands its ground; it used to run on with the swipe still playing and slide at her.
+        if (Time.time < swingUntil && CurrentState != State.Stunned && !dismissed) move = Vector3.zero;
 
         Vector3 velocity = move;
         velocity.y = controller.isGrounded ? -1f : -9.81f;
@@ -406,6 +449,7 @@ public class Stalker : MonoBehaviour
     {
         hits += weight; hitsThisChase += weight;
         if (CurrentState == State.Grabbing) ReleasePlayer();
+        CancelSwing();
         knock = impulse;
         knock.y = 0f;
         stunUntil = Time.time + hitStagger;
@@ -467,25 +511,25 @@ public class Stalker : MonoBehaviour
 
     private void Catch(Transform target)
     {
-        if (animator != null) animator.SetTrigger(AttackHash);
         Survivor s = target.GetComponent<Survivor>();
         if (s != null)
         {
             // The swing takes a moment to land. If the survivor is still in reach when it does,
             // they go down; a round in the stalker before then breaks it off.
+            BeginSwing();
             strikeTarget = s;
-            strikeAt = Time.time + strikeWindup;
+            strikeAt = Time.time + strikeWindup / swingWindupSpeed;
             CurrentState = State.Striking;
             return;
         }
 
         // The player: grab her. She has a moment to put a round in it.
         if (CurrentState == State.Grabbing) return;
+        BeginSwing();
         CurrentState = State.Grabbing;
-        grabUntil = Time.time + grabSeconds;
+        grabUntil = Time.time + grabSeconds / swingWindupSpeed;
         grabbedMovement = player.GetComponent<PlayerMovement>();
         if (grabbedMovement != null) grabbedMovement.Grabbed = true;
-        if (animator != null) animator.SetTrigger(AttackHash);
         if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Growl, transform.position, 1f, 40f, 0.7f);
     }
 

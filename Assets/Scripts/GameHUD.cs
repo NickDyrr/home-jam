@@ -173,7 +173,48 @@ public class GameHUD : MonoBehaviour
         if (live) { DrawCompass(); DrawItemBar(); DrawToast(); }
         DrawEnd();
         DrawPause();
+        DrawCrosshair(live);
     }
+
+    // ---- crosshair: the mouse, while the game is live ----
+    [Header("Crosshair")]
+    [Tooltip("Half-size of the crosshair in pixels: the ticks reach this far from the centre.")]
+    [SerializeField] private float crosshairSize = 11f;
+    [Tooltip("Gap between the centre and the start of each tick.")]
+    [SerializeField] private float crosshairGap = 4f;
+    private static readonly Color CrossBone = new Color(0.97f, 0.94f, 0.86f, 0.95f);
+    private static readonly Color CrossShadow = new Color(0f, 0f, 0f, 0.6f);
+
+    /// <summary>
+    /// Four bone-coloured ticks and a dot, over a soft dark shadow so it reads on snow and in the
+    /// dark. The system pointer is hidden while it shows and comes back for the pause and end
+    /// screens, where there are buttons to click.
+    /// </summary>
+    private void DrawCrosshair(bool live)
+    {
+        bool show = live && !Intro.Playing;
+        if (Cursor.visible == show) Cursor.visible = !show;
+        if (!show) return;
+        Vector2 m = Event.current.mousePosition;
+        float s = crosshairSize, g = crosshairGap, len = s - g;
+        // Shadow pass first, one pixel fatter, then the ticks.
+        for (int pass = 0; pass < 2; pass++)
+        {
+            float t = pass == 0 ? 4f : 2f;           // tick thickness
+            float pad = pass == 0 ? 1f : 0f;         // the shadow reaches a pixel further
+            Color c = pass == 0 ? CrossShadow : CrossBone;
+            GUI.color = c;
+            GUI.DrawTexture(new Rect(m.x - t * 0.5f, m.y - s - pad, t, len + pad), white);          // up
+            GUI.DrawTexture(new Rect(m.x - t * 0.5f, m.y + g, t, len + pad), white);                // down
+            GUI.DrawTexture(new Rect(m.x - s - pad, m.y - t * 0.5f, len + pad, t), white);          // left
+            GUI.DrawTexture(new Rect(m.x + g, m.y - t * 0.5f, len + pad, t), white);                // right
+            float d = pass == 0 ? 4f : 2f;
+            GUI.DrawTexture(new Rect(m.x - d * 0.5f, m.y - d * 0.5f, d, d), white);                 // the dot
+        }
+        GUI.color = Color.white;
+    }
+
+    private void OnDisable() { Cursor.visible = true; }
 
     // ---- toast: a found page, read where she stands ----
     private static string toastText; private static float toastUntil, toastLife;

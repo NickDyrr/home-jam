@@ -61,7 +61,7 @@ public class Dread : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.SetWind(home ? 0.12f : 0.35f + 0.15f * night);
+            AudioManager.Instance.SetWind(home ? 0.08f : 0.22f + 0.1f * night);   // was 0.12 / 0.35 + 0.15: a little loud
             // Her breathing, once a real clip is dropped in: loud with something close behind her.
             if (AudioManager.Instance.Breath != null)
             {
