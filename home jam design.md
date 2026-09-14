@@ -145,7 +145,7 @@ Everything above the cut line: walk out, escort home, be afraid, watch the house
 
 **Finding people.** No listen key (removed Sep 13: it made survivors too easy to find and the run too short). You search the forest for their camp fires; the longer you are out, the more nights you spend out there.
 
-**Escort is a job.** A hunting stalker within 8 m makes the survivor panic: they freeze and yell (wakes dormant stalkers within 18 m). They only move again once the player stands within 2.2 m for half a second. Five-second cooldown before they can panic again.
+**Escort is a job.** (Scream removed Sep 13.) A stalker within 8 m makes a following survivor run to stay on her heels; the stalker goes for them first and its swing takes half a second to land, so a shot in that window saves them.
 
 **Jobs.** Each survivor brings a home bonus: Hunter (+4 rounds each dawn), Soldier (reload twice as fast), Scout (camp fire light reaches x1.6), Cook (survivors walk faster), Firekeeper (lantern reach x1.5), Watchman (stalkers give up sooner).
 

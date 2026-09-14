@@ -6,10 +6,9 @@ using UnityEngine;
 /// walking, or running when it falls behind. The moment it is inside the
 /// HomeZone it counts as home and walks to its settle spot, then sits.
 ///
-/// Escorting is a job: when a stalker gets close the survivor panics, freezes
-/// and screams (which wakes nearby stalkers). They only move again once the
-/// player comes right up to them for a moment. Each survivor has a job that
-/// gives the home a bonus once they are through the door.
+/// When a stalker gets close a following survivor runs to stay on her heels.
+/// Each survivor has a job that gives the home a bonus once they are through
+/// the door.
 ///
 /// Animation is optional: if a humanoid Animator is found in children it is
 /// driven with Speed (0..1), Run, Scared and Sitting parameters.
@@ -36,7 +35,7 @@ public class Survivor : MonoBehaviour
     [SerializeField] private float settleTolerance = 0.25f;
 
     [Header("Panic")]
-    [Tooltip("A hunting stalker this close makes the survivor freeze.")]
+    [Tooltip("A stalker this close makes a following survivor run.")]
     [SerializeField] private float panicRadius = 8f;
     [Tooltip("The player must be this close to get them moving again.")]
     [SerializeField] private float calmRadius = 2.2f;
@@ -160,15 +159,11 @@ public class Survivor : MonoBehaviour
             case State.Following:
             {
                 SetHiding(false);
-                if (Time.time >= panicOkAfter && StalkerNear(panicRadius))
-                {
-                    Panic();
-                    break;
-                }
-
+                // No panic any more: with something close they just run to keep on her heels.
+                bool threatened = StalkerNear(panicRadius);
                 float d = toPlayer.magnitude;
                 // Hysteresis so it does not flicker between walk and run.
-                if (d > runCatchUpDistance) running = true;
+                if (d > runCatchUpDistance || threatened) running = true;
                 else if (d < runCatchUpDistance * 0.6f) running = false;
                 speed = (running ? runSpeed : moveSpeed) * HomeBonuses.SurvivorSpeedMultiplier;
                 if (d > followDistance) move = toPlayer.normalized;
