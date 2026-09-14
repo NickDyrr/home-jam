@@ -562,26 +562,28 @@ public class Pistol : MonoBehaviour
         // Scatter, if the weapon has any.
         Vector3 dir = w.spread > 0f ? Quaternion.Euler(0f, Random.Range(-w.spread, w.spread), 0f) * aimDir : aimDir;
 
-        RaycastHit[] hits = Physics.SphereCastAll(origin, w.shotRadius, dir, w.range, ~0, QueryTriggerInteraction.Ignore);
+        // First, what is in the way: a tree, a rock, a wall. The round goes no further than that.
+        Vector3 stop = origin + dir * w.range; float stopAt = w.range;
+        foreach (RaycastHit h in Physics.RaycastAll(origin, dir, w.range, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (h.transform.root == transform.root || h.collider.GetComponentInParent<Stalker>() != null || h.collider.GetComponentInParent<Survivor>() != null) continue;
+            if (h.distance < stopAt) { stopAt = h.distance; stop = h.point; }
+        }
+
+        // Then any stalker in the path, but only nearer than that. Shooting through the trees wastes the round.
+        RaycastHit[] hits = Physics.SphereCastAll(origin, w.shotRadius, dir, stopAt, ~0, QueryTriggerInteraction.Ignore);
         float best = float.MaxValue;
         Stalker target = null;
         foreach (RaycastHit h in hits)
         {
             if (h.transform.root == transform.root) continue;
             Stalker s = h.collider.GetComponentInParent<Stalker>();
-            if (s == null) continue;
+            if (s == null || h.distance > stopAt) continue;
             if (Current == WeaponKind.Shotgun) { s.Hit(dir * w.knockback, w.hitWeight); if (h.distance < best) { best = h.distance; target = s; } continue; }   // the spread takes everything in it
             if (h.distance < best) { best = h.distance; target = s; }
         }
         if (target != null && Current != WeaponKind.Shotgun) target.Hit(dir * w.knockback, w.hitWeight);
-
-        // Where it stopped: the stalker, a tree, the snow, or the end of its reach.
-        Vector3 stop = origin + dir * w.range; float stopAt = w.range; bool hitSomething = target != null;
-        foreach (RaycastHit h in Physics.RaycastAll(origin, dir, w.range, ~0, QueryTriggerInteraction.Ignore))
-        {
-            if (h.transform.root == transform.root || h.collider.GetComponentInParent<Stalker>() != null) continue;
-            if (h.distance < stopAt) { stopAt = h.distance; stop = h.point; }
-        }
+        bool hitSomething = target != null;
         if (target != null && best < stopAt) { stop = origin + dir * best; stopAt = best; }
         Vector3 from = mz != null ? mz.position : origin;
         if (quiet) Arrow.Loose(from, stop, dir, target == null || Random.value < 0.5f);
