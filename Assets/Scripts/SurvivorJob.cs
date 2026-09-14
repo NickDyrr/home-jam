@@ -37,10 +37,10 @@ public static class HomeBonuses
         {
             case SurvivorJob.Hunter:     return "I could see your windows from here. I just couldn't cross that open ground.";
             case SurvivorJob.Soldier:    return "Stay behind me. No. In front. Just move.";
-            case SurvivorJob.Scout:      return "I saw your light from the ridge. So did they.";
+            case SurvivorJob.Scout:      return "My leg's done. I can walk, but I can't run. Keep the light between us and them.";
             case SurvivorJob.Cook:       return "Is the house still standing? Then there's soup.";
-            case SurvivorJob.Firekeeper: return "Don't let it go out. Never let it go out.";
-            case SurvivorJob.Watchman:   return "They circle. They always circle. Walk, don't run.";
+            case SurvivorJob.Firekeeper: return "Don't let it go out. The fire's the only thing they won't cross.";
+            case SurvivorJob.Watchman:   return "They circle just past the firelight. Walk. Every sound brings them closer.";
             default:                     return "You came.";
         }
     }

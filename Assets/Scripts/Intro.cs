@@ -19,7 +19,7 @@ public class Intro : MonoBehaviour
         "They come as far as my fence. They don't like the light.",
         "Bullets won't kill them. A hit slows one down, and sends it running. But it'll come back.",
         "Those stuck out in the woods move by day, and keep their fires at night.",
-        "I'll find them. And bring them home.",
+        "I'll find them. And I'll bring them home.",
     };
 
     // Where she sits: the armchair by the fire, facing into the room.

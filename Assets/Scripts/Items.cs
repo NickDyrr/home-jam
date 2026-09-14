@@ -89,11 +89,11 @@ public static class ItemInfo
             case ItemKind.MapScrap: return "M";
             case ItemKind.Pistol: return "1";
             case ItemKind.Rifle: return "2";
-            case ItemKind.Bow: return "3";
-            case ItemKind.Shotgun: return "4";
-            case ItemKind.FlareGun: return "5";
-            case ItemKind.AutoRifle: return "6";
-            case ItemKind.Sniper: return "7";
+            case ItemKind.Shotgun: return "3";
+            case ItemKind.FlareGun: return "4";
+            case ItemKind.AutoRifle: return "5";
+            case ItemKind.Sniper: return "6";
+
         }
         return "";
     }

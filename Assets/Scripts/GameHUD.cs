@@ -92,7 +92,7 @@ public class GameHUD : MonoBehaviour
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
         "G   throw a can      V   set a trap      M   read a map scrap",
-        "1 to 7   pistol, rifle, bow, shotgun, flare gun, auto rifle, sniper (once found)",
+        "1 to 6   pistol, rifle, shotgun, flare gun, auto rifle, sniper (once found)",
         "T   wait for dark (at home, by day)",
         "B   ring the bell (second house level, from the yard)",
         "Esc   pause / resume",

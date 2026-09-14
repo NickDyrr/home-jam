@@ -198,6 +198,7 @@ public class Pistol : MonoBehaviour
     /// <summary>A weapon found out there. It comes with what was beside it.</summary>
     public void Give(WeaponKind k, int ammo)
     {
+        if (k == WeaponKind.Bow) return;   // the bow is out of the game; the kind stays so nothing shifts
         owned[(int)k] = true;
         if (ammo > 0) AddAmmo(k, ammo);
         Equip(k);
@@ -373,11 +374,10 @@ public class Pistol : MonoBehaviour
         {
             if (kb.digit1Key.wasPressedThisFrame) Equip(WeaponKind.Pistol);
             if (kb.digit2Key.wasPressedThisFrame) Equip(WeaponKind.Rifle);
-            if (kb.digit3Key.wasPressedThisFrame) Equip(WeaponKind.Bow);
-            if (kb.digit4Key.wasPressedThisFrame) Equip(WeaponKind.Shotgun);
-            if (kb.digit5Key.wasPressedThisFrame) Equip(WeaponKind.FlareGun);
-            if (kb.digit6Key.wasPressedThisFrame) Equip(WeaponKind.AutoRifle);
-            if (kb.digit7Key.wasPressedThisFrame) Equip(WeaponKind.Sniper);
+            if (kb.digit3Key.wasPressedThisFrame) Equip(WeaponKind.Shotgun);
+            if (kb.digit4Key.wasPressedThisFrame) Equip(WeaponKind.FlareGun);
+            if (kb.digit5Key.wasPressedThisFrame) Equip(WeaponKind.AutoRifle);
+            if (kb.digit6Key.wasPressedThisFrame) Equip(WeaponKind.Sniper);
         }
         bool trigger = mouse != null && (Stats.automatic ? mouse.leftButton.isPressed : mouse.leftButton.wasPressedThisFrame);
         if (trigger && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil && !GameHUD.MouseOverBar()) TryFire();
