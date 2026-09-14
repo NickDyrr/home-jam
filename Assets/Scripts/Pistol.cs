@@ -582,8 +582,8 @@ public class Pistol : MonoBehaviour
 
         if (Loaded <= 0)
         {
-            if ((Current == WeaponKind.Bow && Reserve > 0) || (Current != WeaponKind.Bow && Current != WeaponKind.FlareGun && Reserve > 0 && w.automatic)) { TryReload(); return; }
-            if (Current == WeaponKind.Bow && Reserve > 0) { TryReload(); return; }
+            // Empty: any gun with spares reloads itself on the trigger (R still reloads early).
+            if (Current != WeaponKind.FlareGun && Reserve > 0) { TryReload(); return; }
             Debug.Log("Click. Empty.");
             nextFireTime = Time.time + 0.2f;
             return;
@@ -592,6 +592,8 @@ public class Pistol : MonoBehaviour
         if (Current == WeaponKind.FlareGun) { if (!Inventory.Take(ItemKind.Flare)) return; }
         else loaded[(int)Current]--;
         nextFireTime = Time.time + w.fireCooldown;
+        // The last round: she reloads on her own once the shot has settled.
+        if (Current != WeaponKind.FlareGun && loaded[(int)Current] == 0 && Reserve > 0) StartCoroutine(ReloadAfter(w.fireCooldown, Current));
         kick = 1f;
         bool quiet = Current == WeaponKind.Bow;
         if (quiet)
@@ -654,6 +656,13 @@ public class Pistol : MonoBehaviour
         }
         else if (Current == WeaponKind.Sniper) { Tracer.Spawn(from, stop, hitSomething); Tracer.Spawn(from, stop, hitSomething); }   // a brighter line
         else Tracer.Spawn(from, stop, hitSomething);
+    }
+
+    /// <summary>An automatic reload after the magazine ran dry, unless she has switched guns or started one herself.</summary>
+    private IEnumerator ReloadAfter(float seconds, WeaponKind k)
+    {
+        yield return new WaitForSeconds(seconds);
+        if (Current == k && !IsReloading && LoadedOf(k) == 0) TryReload();
     }
 
     private void TryReload()

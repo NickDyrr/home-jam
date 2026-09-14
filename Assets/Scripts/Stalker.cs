@@ -24,9 +24,9 @@ public class Stalker : MonoBehaviour
         foreach (Stalker s in All)
         {
             if (s.dismissed || s.CurrentState == State.Grabbing) continue;
-            if (s.CurrentState == State.Striking) s.strikeTarget = null;
+            if (s.CurrentState == State.Striking) { s.strikeTarget = null; s.strikeTransform = null; }
             s.lurePos = pos; s.lureUntil = Time.time + seconds;
-            s.huntStart = -1f;
+            s.huntStart = -1f; s.phase = Phase.Swipe;
             s.CurrentState = State.Lured;
         }
     }
@@ -44,7 +44,7 @@ public class Stalker : MonoBehaviour
             Vector3 d = s.transform.position - pos; d.y = 0f;
             if (d.sqrMagnitude > sq) continue;
             s.lurePos = pos; s.lureUntil = Time.time + seconds;
-            s.huntStart = -1f;
+            s.huntStart = -1f; s.phase = Phase.Swipe;
             s.CurrentState = State.Lured;
         }
     }
@@ -53,7 +53,7 @@ public class Stalker : MonoBehaviour
     public void Trapped(float seconds)
     {
         if (CurrentState == State.Grabbing) ReleasePlayer();
-        strikeTarget = null;
+        strikeTarget = null; strikeTransform = null;
         CancelSwing();
         knock = Vector3.zero;
         stunUntil = Time.time + seconds;
@@ -100,10 +100,10 @@ public class Stalker : MonoBehaviour
     /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
     private void Flee(Vector3 from)
     {
-        strikeTarget = null;
+        strikeTarget = null; strikeTransform = null;
         retreatDir = transform.position - from; retreatDir.y = 0f;
         retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
-        fleeStart = Time.time;                    // the turn is a real turn and the run builds from a walk
+        fleeStart = Time.time; phase = Phase.Swipe;   // the turn is a real turn and the run builds from a walk; the next chase starts with a swipe
         retreatUntil = Time.time + scareSeconds;
         retreatToDormant = true;
         huntStart = -1f;
@@ -150,10 +150,21 @@ public class Stalker : MonoBehaviour
     [Header("Strike")]
     [Tooltip("Seconds from the swing starting to it landing. A hit in this window saves the survivor.")]
     [SerializeField] private float strikeWindup = 0.55f;
-    [Tooltip("The survivor must still be this close when the swing lands.")]
+    [Tooltip("The target must still be this close when the swing lands.")]
     [SerializeField] private float strikeReach = 2.3f;
-    private Survivor strikeTarget;
+    [Tooltip("Moving faster than this when the swipe lands, and it misses. (The grab, second time round, lands anyway.)")]
+    [SerializeField] private float swipeDodgeSpeed = 0.5f;
+    private Transform strikeTransform;      // whoever the swing is for: her or a survivor
+    private Survivor strikeTarget;          // the survivor, when it is one
     private float strikeAt;
+
+    /// <summary>
+    /// A chase has three phases. Chase; then the first time it reaches someone it swipes, which
+    /// misses anyone still moving; then, having missed, it grabs, and a grab holds even a runner.
+    /// The phase resets when the chase ends.
+    /// </summary>
+    private enum Phase { Swipe, Grab }
+    private Phase phase = Phase.Swipe;
 
     [Header("Swing")]
     [Tooltip("Speed of the swipe clip up to the moment it lands. The grab and strike windows shrink by the same factor.")]
@@ -295,7 +306,7 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 if (t == null || dist > loseRadius * HomeBonuses.StalkerLoseMultiplier)
                 {
-                    CurrentState = State.Dormant; huntStart = -1f; hitsThisChase = 0;   // lost her: the chase clock resets
+                    CurrentState = State.Dormant; huntStart = -1f; hitsThisChase = 0; phase = Phase.Swipe;   // lost her: the chase clock resets
                     break;
                 }
                 if (Refuge.Shelters(t.position))
@@ -370,13 +381,15 @@ public class Stalker : MonoBehaviour
 
             case State.Striking:
             {
-                if (strikeTarget == null || strikeTarget.CurrentState == Survivor.State.Dead) { CurrentState = State.Hunting; break; }
-                Vector3 toS = strikeTarget.transform.position - transform.position; toS.y = 0f;
+                if (strikeTransform == null || (strikeTarget != null && strikeTarget.CurrentState == Survivor.State.Dead)) { strikeTransform = null; strikeTarget = null; CurrentState = State.Hunting; break; }
+                Vector3 toS = strikeTransform.position - transform.position; toS.y = 0f;
                 if (toS.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(toS.normalized, Vector3.up);
                 if (Time.time >= strikeAt)
                 {
                     SwingLanded();
-                    if (toS.magnitude <= strikeReach)
+                    // A swipe only lands on someone standing still; the grab lands on anyone in reach.
+                    bool lands = toS.magnitude <= strikeReach && (phase == Phase.Grab || !IsMoving(strikeTransform));
+                    if (lands && strikeTarget != null)
                     {
                         strikeTarget.Taken();
                         retreatDir = transform.position - player.position; retreatDir.y = 0f;
@@ -384,8 +397,9 @@ public class Stalker : MonoBehaviour
                         retreatUntil = Time.time + retreatSeconds;
                         CurrentState = State.Retreating;
                     }
-                    else CurrentState = State.Hunting;     // they got clear of the swing
-                    strikeTarget = null;
+                    else if (lands) GrabPlayer(false);      // she stood still: it has her
+                    else { phase = Phase.Grab; CurrentState = State.Hunting; }   // missed: next time it grabs
+                    strikeTransform = null; strikeTarget = null;
                 }
                 break;
             }
@@ -403,7 +417,7 @@ public class Stalker : MonoBehaviour
                     // Done with her. It backs off into the dark and leaves her where she fell.
                     retreatDir = transform.position - player.position; retreatDir.y = 0f;
                     retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
-                    retreatUntil = Time.time + yardRetreatSeconds; retreatToDormant = true; huntStart = -1f;
+                    retreatUntil = Time.time + yardRetreatSeconds; retreatToDormant = true; huntStart = -1f; phase = Phase.Swipe;
                     CurrentState = State.Retreating;
                 }
                 break;
@@ -512,20 +526,33 @@ public class Stalker : MonoBehaviour
     private void Catch(Transform target)
     {
         Survivor s = target.GetComponent<Survivor>();
-        if (s != null)
+        if (phase == Phase.Swipe || s != null)
         {
-            // The swing takes a moment to land. If the survivor is still in reach when it does,
-            // they go down; a round in the stalker before then breaks it off.
+            // The swing takes a moment to land. A swipe misses anyone who keeps moving; a grab
+            // (the second time it reaches a survivor) lands on anyone still in reach. A round in
+            // the stalker before it lands breaks it off.
             BeginSwing();
-            strikeTarget = s;
+            strikeTransform = target; strikeTarget = s;
             strikeAt = Time.time + strikeWindup / swingWindupSpeed;
             CurrentState = State.Striking;
             return;
         }
+        GrabPlayer(true);   // grab phase, and it is her: it has her, running or not
+    }
 
-        // The player: grab her. She has a moment to put a round in it.
+    /// <summary>Faster than a shuffle, flat.</summary>
+    private bool IsMoving(Transform t)
+    {
+        var cc = t.GetComponent<CharacterController>();
+        Vector3 v = cc != null && cc.enabled ? cc.velocity : Vector3.zero; v.y = 0f;
+        return v.magnitude > swipeDodgeSpeed;
+    }
+
+    /// <summary>It has her. She has a moment to put a round in it; then she is taken.</summary>
+    private void GrabPlayer(bool swing)
+    {
         if (CurrentState == State.Grabbing) return;
-        BeginSwing();
+        if (swing) BeginSwing();
         CurrentState = State.Grabbing;
         grabUntil = Time.time + grabSeconds / swingWindupSpeed;
         grabbedMovement = player.GetComponent<PlayerMovement>();

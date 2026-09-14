@@ -45,7 +45,7 @@ public class FootprintEmitter : MonoBehaviour
     private const float loopHead = 0.2f;
     private const float loopEndSeconds = 2.4f;
     // Every walker's steps, scaled together: the mix was a little loud.
-    private const float stepGain = 0.65f;
+    private const float stepGain = 0.45f;   // was 0.65: still too loud
 
     /// <summary>
     /// A recording of someone walking (longer than a second or two) is looped while this walker
