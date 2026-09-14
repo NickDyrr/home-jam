@@ -16,8 +16,8 @@ public class Trails : MonoBehaviour
     [Tooltip("Old tracks: greyer than fresh ones and part filled in.")]
     [SerializeField] private Color tint = new Color(0.47f, 0.53f, 0.68f, 1f);
     [SerializeField] private float cutoff = 0.62f;
-    [Tooltip("How far from the camp the trail begins, toward home.")]
-    [SerializeField] private float minLength = 45f, maxLength = 70f;
+    [Tooltip("How far from home every trail begins: just past the fence, so a short walk in any direction finds one.")]
+    [SerializeField] private float startFromHome = 28f;
     [SerializeField] private float wobble = 6f;
 
     public static Trails Instance { get; private set; }
@@ -47,8 +47,8 @@ public class Trails : MonoBehaviour
             Vector3 toHome = home - end; float dist = toHome.magnitude; if (dist < 20f) continue;
             toHome /= dist;
             Vector3 side = Vector3.Cross(Vector3.up, toHome);
-            float length = Mathf.Min(Mathf.Lerp(35f, 55f, (float)rng.NextDouble()), dist - 16f);
-            Vector3 start = end + toHome * length + side * (((float)rng.NextDouble() * 2f - 1f) * 10f);
+            // From just outside the yard, like every other set of tracks: nothing marks this one as a lie.
+            Vector3 start = end + toHome * (dist - startFromHome) + side * (((float)rng.NextDouble() * 2f - 1f) * 5f);
             LayTrail(fm, rng, start, end, 0f);
             var stain = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             stain.name = "Stain"; Destroy(stain.GetComponent<Collider>());
@@ -85,12 +85,11 @@ public class Trails : MonoBehaviour
             }
             vias.Sort((a, b) => b.along.CompareTo(a.along));   // farthest from the camp first
 
-            // Start on the home side, off the straight line, but never inside the yard.
-            float length = Mathf.Min(Mathf.Lerp(minLength, maxLength, (float)rng.NextDouble()), dist - 16f);
-            if (vias.Count > 0) length = Mathf.Min(vias[0].along + 12f, dist - 16f);
+            // Every trail begins just outside the yard: they all ran from this house. Pick one at the
+            // fence and follow it out; what it passes, and where it ends, is the search.
+            float length = dist - startFromHome;
             if (length < 12f) continue;
-            float lateral = vias.Count > 0 ? Vector3.Dot(vias[0].pos - camp, side) + ((float)rng.NextDouble() * 2f - 1f) * 4f
-                                           : ((float)rng.NextDouble() * 2f - 1f) * 15f;
+            float lateral = ((float)rng.NextDouble() * 2f - 1f) * 5f;
             Vector3 start = camp + toHome * length + side * lateral;
             for (int guard = 0; guard < 10 && Home.Instance != null && Home.Instance.InYard(start, -3f); guard++)
                 start = camp + toHome * (length -= 5f) + side * lateral;

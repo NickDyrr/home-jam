@@ -26,6 +26,12 @@ public class AmmoBox : MonoBehaviour
     private Light glow;
     private float phase;
 
+    /// <summary>Every crate still lying out there.</summary>
+    public static readonly System.Collections.Generic.List<AmmoBox> All = new System.Collections.Generic.List<AmmoBox>();
+    private void OnEnable()  { All.Add(this); }
+    private void OnDisable() { All.Remove(this); }
+    public Vector3 Position => transform.position;
+
     private void Awake() { Setup(); }
 
     /// <summary>Own materials with emission on, and the glow light. Redone if a script reload wiped it.</summary>

@@ -334,7 +334,12 @@ public class GameHUD : MonoBehaviour
         GUI.Label(new Rect(at.x - 12f, at.y - 11f, 24f, 22f), text, style);
     }
 
-    /// <summary>Warm glow at the screen edge toward each burning fire that is near but off screen.</summary>
+    private const float CrateGlowRange = 26f;
+
+    /// <summary>
+    /// Warm glow at the screen edge toward each burning fire that is near but off screen, and a
+    /// smaller gold one toward any crate close by.
+    /// </summary>
     private void DrawFireGlow()
     {
         var cam = Camera.main; var p = GameObject.FindWithTag("Player");
@@ -343,25 +348,36 @@ public class GameHUD : MonoBehaviour
         foreach (var f in Campfire.All)
         {
             if (!f.Lit) continue;
-            Vector3 d = f.Position - pp; d.y = 0f;
-            float dist = d.magnitude;
-            if (dist > GlowRange) continue;
-            Vector3 sp = cam.WorldToScreenPoint(f.Position);
-            if (sp.z < 0f) continue;
-            float sx = sp.x, sy = Screen.height - sp.y;
-            bool onScreen = sx > 0f && sx < Screen.width && sy > 0f && sy < Screen.height;
-            if (onScreen) continue;
-            // Slide the point to the screen edge along the line from the centre.
-            Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            Vector2 v = new Vector2(sx, sy) - c;
-            float k = Mathf.Min(c.x / Mathf.Max(1f, Mathf.Abs(v.x)), c.y / Mathf.Max(1f, Mathf.Abs(v.y)));
-            Vector2 e = c + v * k;
-            float a = Mathf.Clamp01(1f - dist / GlowRange);
-            float size = Mathf.Lerp(160f, 320f, a);
-            GUI.color = new Color(1f, 0.62f, 0.3f, 0.85f * a);
-            GUI.DrawTexture(new Rect(e.x - size * 0.5f, e.y - size * 0.5f, size, size), glow);
+            EdgeGlow(cam, pp, f.Position, GlowRange, new Color(1f, 0.62f, 0.3f), 160f, 320f, 0.85f);
+        }
+        foreach (var b in AmmoBox.All)
+        {
+            if (b == null) continue;
+            EdgeGlow(cam, pp, b.Position, CrateGlowRange, new Color(1f, 0.8f, 0.3f), 90f, 170f, 0.7f);
         }
         GUI.color = Color.white;
+    }
+
+    /// <summary>A soft blob at the screen edge toward a world point, if it is within range and off screen.</summary>
+    private void EdgeGlow(Camera cam, Vector3 from, Vector3 target, float range, Color colour, float minSize, float maxSize, float alpha)
+    {
+        Vector3 d = target - from; d.y = 0f;
+        float dist = d.magnitude;
+        if (dist > range) return;
+        Vector3 sp = cam.WorldToScreenPoint(target);
+        if (sp.z < 0f) return;
+        float sx = sp.x, sy = Screen.height - sp.y;
+        bool onScreen = sx > 0f && sx < Screen.width && sy > 0f && sy < Screen.height;
+        if (onScreen) return;
+        // Slide the point to the screen edge along the line from the centre.
+        Vector2 c = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        Vector2 v = new Vector2(sx, sy) - c;
+        float k = Mathf.Min(c.x / Mathf.Max(1f, Mathf.Abs(v.x)), c.y / Mathf.Max(1f, Mathf.Abs(v.y)));
+        Vector2 e = c + v * k;
+        float a = Mathf.Clamp01(1f - dist / range);
+        float size = Mathf.Lerp(minSize, maxSize, a);
+        GUI.color = new Color(colour.r, colour.g, colour.b, alpha * a);
+        GUI.DrawTexture(new Rect(e.x - size * 0.5f, e.y - size * 0.5f, size, size), glow);
     }
 
 

@@ -60,13 +60,15 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    [Tooltip("How fast it runs from light: a steady run, not a sprint. Bullets slow this too, but never to a walk.")]
-    [SerializeField] private float fleeSpeed = 6.5f;
     [Tooltip("Seconds for the run to come up to speed after it turns.")]
     [SerializeField] private float fleeWindup = 0.7f;
     [Tooltip("The stagger on a hit before it turns and runs. Short: the bullet is a shove, not a stun.")]
     [SerializeField] private float hitStagger = 0.25f;
     private float fleeStart;
+    private float huntSpeed;
+
+    /// <summary>It leaves at the same pace it arrived: the speed of its last approach, after the bullets.</summary>
+    private float FleeSpeed => Mathf.Max(baseSpeed * SpeedFactor, Mathf.Min(huntSpeed, maxSpeed * SpeedFactor));
 
     /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
     private void Flee(Vector3 from)
@@ -255,6 +257,7 @@ public class Stalker : MonoBehaviour
                 if (huntStart < 0f) huntStart = Time.time;
                 float chase = Time.time - huntStart;
                 float speed = Mathf.Min(maxSpeed, baseSpeed + chase * huntAccel) * SpeedFactor;
+                huntSpeed = speed;                        // remembered: it runs off at the pace it came in at
                 move = to.normalized * speed;
                 break;
             }
@@ -270,7 +273,7 @@ public class Stalker : MonoBehaviour
                 {
                     // Scared: it turns, then the run builds up over the first moments and holds.
                     float up = Mathf.SmoothStep(0f, 1f, (Time.time - fleeStart) / Mathf.Max(0.05f, fleeWindup));
-                    move = retreatDir * Mathf.Lerp(1.5f, fleeSpeed * Mathf.Max(0.7f, SpeedFactor), up);
+                    move = retreatDir * Mathf.Lerp(1.5f, FleeSpeed, up);
                 }
                 else move = retreatDir * (retreatSpeed * SpeedFactor);
                 break;
