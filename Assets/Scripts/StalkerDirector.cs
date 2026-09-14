@@ -296,7 +296,27 @@ public class StalkerDirector : MonoBehaviour
         var pistol = player != null ? player.GetComponent<Pistol>() : null;
         if (pistol != null) pistol.enabled = false;
 
-        if (Home.Instance != null) Home.Instance.PlayerTaken();
         Retire();
+        StartCoroutine(FallAndEnd());
+    }
+
+    [Tooltip("Seconds her death plays before the end screen.")]
+    [SerializeField] private float deathSeconds = 2.6f;
+
+    /// <summary>She goes down where she stands, and only then is the run over.</summary>
+    private IEnumerator FallAndEnd()
+    {
+        var animator = player != null ? player.GetComponentInChildren<Animator>() : null;
+        if (animator != null && animator.runtimeAnimatorController != null)
+        {
+            animator.SetFloat("Speed", 0f);
+            animator.SetBool("Run", false);
+            animator.SetFloat("Armed", 0f);
+            if (animator.layerCount > 1) animator.SetLayerWeight(1, 0f);   // the gun arm lets go
+            animator.SetTrigger("Die");
+            var prints = player.GetComponent<FootprintEmitter>(); if (prints != null) prints.enabled = false;
+            yield return new WaitForSeconds(deathSeconds);
+        }
+        if (Home.Instance != null) Home.Instance.PlayerTaken();
     }
 }

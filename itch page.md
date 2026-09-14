@@ -10,14 +10,14 @@ The snow came early. Something came down with it. Find the fires. Bring them hom
 
 It's her house. They come as far as the fence and no further, and she doesn't know why.
 
-Out in the forest, the people who ran are still alive. By day they hide and their fires go cold. Only after dark do they dare to light them. So it's in the dark you go looking.
+When it came, the others ran for the trees. They're still out there. By day they hide and their fires go cold. After dark they light them, because light is the one thing that keeps it back. So it's in the dark you go looking.
 
 **HOME** is a short survival game about going out at night to bring people back. Read the tracks in the snow. Watch for the glow of a fire between the trees. Your lantern is how you see, and how they see you. Get everyone home and the house grows.
 
 - A ten-minute day, most of it night. Night is when you work.
 - Six survivors, scattered far. Each one home makes the house stronger: more rounds, faster reloads, a longer reach for your lantern.
-- Stalkers wake to light and noise. Sprinting is loud. A shot is louder.
-- Bullets don't kill them. Each one slows them down, for good. Twelve to start, more for every survivor home.
+- Light scares them away. Sound draws them closer. A burning fire is ground they won't cross.
+- Bullets don't kill them. Each one slows them down, for good, and the flash sends the near ones running. The bang carries further than the flash.
 - Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good. They go for the person you are escorting first. If one gets you, the run is over.
 - Rounds are scarce: twelve to start, three for each survivor home, and a crate at the farthest camps.

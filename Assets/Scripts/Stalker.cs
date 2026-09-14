@@ -6,6 +6,8 @@ using UnityEngine;
 /// is nearest. Gives up and goes dormant again if the nearest one gets past
 /// loseRadius. It gets faster the longer a chase lasts, and slower for every bullet it takes.
 /// A pistol hit staggers it, knocks it back and slows it for good; it never dies.
+/// Light scares it and sound draws it: the muzzle flash sends any near it running for a
+/// while, the bang wakes those further out, and a burning fire is ground it will not cross.
 /// Never seen clearly; it is a silhouette with a cold glow.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
@@ -31,6 +33,44 @@ public class Stalker : MonoBehaviour
 
     /// <summary>Every live stalker in the scene.</summary>
     public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
+
+    [Header("Light")]
+    [Tooltip("A burst of light (the muzzle flash) sends them running for this long, then they stand quiet out there.")]
+    [SerializeField] private float scareSeconds = 4f;
+    [Tooltip("After a scare, seconds before it will notice her again unless she walks right into it.")]
+    [SerializeField] private float spookedSeconds = 5f;
+    private float spookedUntil;
+
+    /// <summary>
+    /// Light. Every stalker within radius of the flash turns and runs from it, then goes quiet
+    /// where it stops. It only holds while she keeps away; linger, or come back, and it wakes.
+    /// One holding her is not let go by light alone; that takes a round in it.
+    /// </summary>
+    public static void Scare(Vector3 pos, float radius)
+    {
+        float sq = radius * radius;
+        foreach (Stalker s in All)
+        {
+            if (s.dismissed || s.CurrentState == State.Grabbing) continue;
+            Vector3 d = s.transform.position - pos; d.y = 0f;
+            if (d.sqrMagnitude > sq) continue;
+            s.spookedUntil = Time.time + s.scareSeconds + s.spookedSeconds;
+            if (s.CurrentState == State.Stunned) continue;     // it runs when it can stand again
+            s.Flee(pos);
+        }
+    }
+
+    /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
+    private void Flee(Vector3 from)
+    {
+        strikeTarget = null;
+        retreatDir = transform.position - from; retreatDir.y = 0f;
+        retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+        retreatUntil = Time.time + scareSeconds;
+        retreatToDormant = true;
+        huntStart = -1f;
+        CurrentState = State.Retreating;
+    }
 
     [Header("Awareness")]
     [SerializeField] private float aggroRadius = 14f;
@@ -168,7 +208,8 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 float reach = aggroRadius;
                 if (t == player) reach *= (PlayerMovement.Instance != null && PlayerMovement.Instance.IsRunning) ? 1.2f : 0.5f;
-                if (t == player && Refuge.Shelters(player.position)) break;   // inside the fence or a refuge she is nothing to them
+                if (t != null && Refuge.Shelters(t.position)) break;   // inside the fence, a refuge or firelight, nothing to them
+                if (Time.time < spookedUntil) reach = Mathf.Min(reach, 4f);   // just scared off: only if she walks into it
                 if (t != null && dist <= reach)
                     Wake();
                 break;
@@ -182,12 +223,11 @@ public class Stalker : MonoBehaviour
                     CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
                     break;
                 }
-                if (t == player && Refuge.Shelters(player.position))
+                if (Refuge.Shelters(t.position))
                 {
-                    // She made the fence, or the shack. It will not follow her in: it turns and
-                    // walks back into the trees, and goes quiet out there.
-                    // Away from her, whichever shelter it is.
-                    retreatDir = transform.position - player.position; retreatDir.y = 0f;
+                    // They made the fence, the shack or a burning fire. It will not follow into the
+                    // light: it turns and walks back into the trees, and goes quiet out there.
+                    retreatDir = transform.position - t.position; retreatDir.y = 0f;
                     retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
                     retreatUntil = Time.time + yardRetreatSeconds;
                     retreatToDormant = true;
@@ -222,7 +262,12 @@ public class Stalker : MonoBehaviour
             case State.Stunned:
                 knock = Vector3.Lerp(knock, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * Time.deltaTime));
                 move = knock;
-                if (Time.time >= stunUntil) CurrentState = State.Hunting;
+                if (Time.time >= stunUntil)
+                {
+                    // Back on its feet. If the flash reached it, it runs from where she stood.
+                    if (Time.time < spookedUntil) Flee(player.position);
+                    else CurrentState = State.Hunting;
+                }
                 break;
 
             case State.Lured:
@@ -269,8 +314,12 @@ public class Stalker : MonoBehaviour
                 if (Time.time >= grabUntil)
                 {
                     ReleasePlayer();
-                    CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
                     if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
+                    // Done with her. It backs off into the dark and leaves her where she fell.
+                    retreatDir = transform.position - player.position; retreatDir.y = 0f;
+                    retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+                    retreatUntil = Time.time + yardRetreatSeconds; retreatToDormant = true; huntStart = -1f;
+                    CurrentState = State.Retreating;
                 }
                 break;
             }

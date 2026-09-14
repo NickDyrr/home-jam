@@ -37,7 +37,7 @@ public class Survivor : MonoBehaviour
     [SerializeField] private float skittishRadius = 10f;
     [SerializeField] private float stubbornSeconds = 3f;
     public Trait Quirk => trait;
-    private float stayTimer;
+    private float stayTimer, nextRefusal;
     private bool met, nudged;
 
     [Header("Behaviour")]
@@ -169,6 +169,12 @@ public class Survivor : MonoBehaviour
                 // Out of sight by day, at the fire by night. Only findable after dark.
                 SetHiding(!StalkerDirector.IsNight);
                 bool near = !hiding && toPlayer.magnitude <= noticeRadius;
+                if (near && trait == Trait.Skittish && StalkerNear(skittishRadius, true))
+                {
+                    // Will not step out with one of them hunting this close. Scare it off first.
+                    near = false;
+                    if (Time.time >= nextRefusal) { nextRefusal = Time.time + 4f; FloatingText.Show(transform.position + Vector3.up * 2.4f, "Not with that thing here.", 2.5f); }
+                }
                 if (trait == Trait.Stubborn && !met)
                 {
                     // Will not budge until she has stood with them a moment.
@@ -189,11 +195,12 @@ public class Survivor : MonoBehaviour
                 SetHiding(false);
                 // No panic any more: with something close they just run to keep on her heels.
                 bool threatened = StalkerNear(panicRadius);
-                if (trait == Trait.Skittish && StalkerNear(skittishRadius))
+                if (trait == Trait.Skittish && StalkerNear(skittishRadius, true))
                 {
-                    // Gone to ground again. She has to come back for them.
+                    // Gone to ground again. She has to drive it off and come back for them.
                     CurrentState = State.Waiting;
                     running = false;
+                    nextRefusal = Time.time + 2f;
                     FloatingText.Show(transform.position + Vector3.up * 2.4f, "Hid again.", 2f);
                     break;
                 }
@@ -323,12 +330,14 @@ public class Survivor : MonoBehaviour
         settleSpot = Home.Instance != null ? Home.Instance.SurvivorArrived(this) : transform.position;
     }
 
-    private bool StalkerNear(float radius)
+    /// <summary>A stalker within radius. huntingOnly ignores the ones standing quiet or running off.</summary>
+    private bool StalkerNear(float radius, bool huntingOnly = false)
     {
         float sq = radius * radius;
         foreach (Stalker s in Stalker.All)
         {
             if (s.CurrentState == Stalker.State.Stunned) continue;
+            if (huntingOnly && s.CurrentState != Stalker.State.Hunting && s.CurrentState != Stalker.State.Striking) continue;
             Vector3 d = s.transform.position - transform.position; d.y = 0f;
             if (d.sqrMagnitude <= sq) return true;
         }
