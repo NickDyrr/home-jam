@@ -224,12 +224,19 @@ public class Pistol : MonoBehaviour
     private IEnumerator Reload()
     {
         IsReloading = true;
+        if (animator != null && HasParameter(animator, "Reload")) animator.SetTrigger("Reload");   // the clip, once one is in
         yield return new WaitForSeconds(reloadSeconds * HomeBonuses.ReloadMultiplier);
         int need = magazineSize - Loaded;
         int take = Mathf.Min(need, Reserve);
         Loaded += take;
         Reserve -= take;
         IsReloading = false;
+    }
+
+    private static bool HasParameter(Animator a, string name)
+    {
+        foreach (var p in a.parameters) if (p.name == name) return true;
+        return false;
     }
 
     /// <summary>Rounds earned at home. Only called when a survivor is through the door.</summary>

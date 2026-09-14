@@ -60,12 +60,18 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    /// <summary>Turn away from a point and run, then stand dormant out there.</summary>
+    [Tooltip("How fast it runs from light. Bullets slow this too, but never to a walk.")]
+    [SerializeField] private float fleeSpeed = 9f;
+    [Tooltip("The stagger on a hit before it turns and runs. Short: the bullet is a shove, not a stun.")]
+    [SerializeField] private float hitStagger = 0.2f;
+
+    /// <summary>Turn away from a point on the spot and run, then stand dormant out there.</summary>
     private void Flee(Vector3 from)
     {
         strikeTarget = null;
         retreatDir = transform.position - from; retreatDir.y = 0f;
         retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+        transform.rotation = Quaternion.LookRotation(retreatDir, Vector3.up);   // no slow turn: it wheels and goes
         retreatUntil = Time.time + scareSeconds;
         retreatToDormant = true;
         huntStart = -1f;
@@ -256,7 +262,9 @@ public class Stalker : MonoBehaviour
                     if (dismissed) { Destroy(gameObject); return; }
                     CurrentState = retreatToDormant ? State.Dormant : State.Hunting; if (retreatToDormant) huntStart = -1f; retreatToDormant = false;
                 }
-                else move = retreatDir * (dismissed ? 1.8f : retreatSpeed * SpeedFactor);   // dismissed: a walk, not a rout
+                else if (dismissed) move = retreatDir * 1.8f;                                              // dawn: a walk, not a rout
+                else if (Time.time < spookedUntil) move = retreatDir * (fleeSpeed * Mathf.Max(0.7f, SpeedFactor));   // scared: a flat run
+                else move = retreatDir * (retreatSpeed * SpeedFactor);
                 break;
 
             case State.Stunned:
@@ -353,14 +361,18 @@ public class Stalker : MonoBehaviour
         }
     }
 
-    /// <summary>Pistol hit. Knocked back along the shot, staggered briefly, and slower from now on. Breaks a grab. Never kills.</summary>
+    /// <summary>
+    /// Pistol hit. Shoved back along the shot for a beat, then it wheels and runs from her; slower
+    /// from now on. Breaks a grab. Never kills.
+    /// </summary>
     public void Hit(Vector3 impulse)
     {
         hits++;
         if (CurrentState == State.Grabbing) ReleasePlayer();
         knock = impulse;
         knock.y = 0f;
-        stunUntil = Time.time + stunSeconds;
+        stunUntil = Time.time + hitStagger;
+        spookedUntil = Mathf.Max(spookedUntil, Time.time + scareSeconds + spookedSeconds);
         CurrentState = State.Stunned;
         if (glow != null) glow.intensity = huntingGlow * 2f;
     }

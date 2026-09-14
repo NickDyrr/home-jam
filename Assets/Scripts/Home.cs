@@ -70,6 +70,7 @@ public class Home : MonoBehaviour
     [Tooltip("With the first house level the porch lantern pushes the stalkers' line this far out past the fence.")]
     [SerializeField] private float porchGrace = 6f;
     [SerializeField] private GameObject porchLantern;
+    private DoorOpener lanternDoor;
     [SerializeField] private Bell bell;
     [Tooltip("Cook home: the house lights reach this much further.")]
     [SerializeField] private float cookGlowMultiplier = 1.4f;
@@ -118,8 +119,14 @@ public class Home : MonoBehaviour
         // The clock starts the moment the intro hands over control.
         if (runStart < 0f && !Intro.Playing) runStart = Time.time;
 
-        // Porch lantern shows with the first upgrade.
+        // Porch lantern shows with the first upgrade, and hangs beside whichever door the house has now.
         if (porchLantern != null && porchLantern.activeSelf != (YardGrace > 0f)) porchLantern.SetActive(YardGrace > 0f);
+        if (porchLantern != null && porchLantern.activeSelf && DoorOpener.Active.Count > 0 && DoorOpener.Active[0] != lanternDoor)
+        {
+            lanternDoor = DoorOpener.Active[0];
+            Vector3 side = Vector3.Cross(lanternDoor.Outward, Vector3.up);
+            porchLantern.transform.position = lanternDoor.Doorway + lanternDoor.Outward * 1.0f + side * 0.55f + Vector3.up * 2.3f;
+        }
 
         // Cook home: the house glows further. Scale every house light off its base range.
         if (houseLights == null)
@@ -275,6 +282,20 @@ public class Home : MonoBehaviour
             Vector3 toward = (transform.position - reward.position);
             toward.y = 0f;
             spot = reward.position + toward.normalized * 0.8f;
+        }
+        // Never in the doorway: a lamp by the door still means standing well inside it.
+        if (DoorOpener.Active.Count > 0)
+        {
+            Vector3 doorway = DoorOpener.Active[0].Doorway;
+            Vector3 away = spot - doorway; away.y = 0f;
+            const float clear = 2.4f;
+            if (away.magnitude < clear)
+            {
+                Vector3 inward = -DoorOpener.Active[0].Outward; inward.y = 0f;
+                if (inward.sqrMagnitude < 0.01f) inward = (transform.position - doorway).normalized;
+                spot = doorway + inward.normalized * clear + Vector3.Cross(Vector3.up, inward.normalized) * (index % 2 == 0 ? 0.9f : -0.9f);
+                spot.y = 0f;
+            }
         }
         return spot;
     }

@@ -150,6 +150,7 @@ public class Survivor : MonoBehaviour
         if (CurrentState != State.Home && CurrentState != State.Settling) return;
         settleSpot = spot;
         running = false;
+        if (controller != null) controller.enabled = true;   // walking again
         CurrentState = State.Settling;
     }
 
@@ -284,6 +285,8 @@ public class Survivor : MonoBehaviour
 
             case State.Home:
             {
+                // Standing about indoors they are never in her way: she walks through them.
+                if (controller != null && controller.enabled) controller.enabled = false;
                 // Face the front door rather than whatever wall the spot happens to be near.
                 if (DoorOpener.Active.Count > 0)
                 {
@@ -300,7 +303,7 @@ public class Survivor : MonoBehaviour
 
         Vector3 velocity = move * speed;
         velocity.y = controller.isGrounded ? -1f : -9.81f;
-        controller.Move(velocity * Time.deltaTime);
+        if (controller.enabled) controller.Move(velocity * Time.deltaTime);
 
         bool screamingNow = CurrentState == State.Panicked && Time.time < panicStart + screamSeconds;
         if (!screamingNow && move.sqrMagnitude > 0.001f)
