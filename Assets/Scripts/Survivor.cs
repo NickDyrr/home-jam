@@ -17,7 +17,7 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class Survivor : MonoBehaviour
 {
-    public enum State { Waiting, Following, Panicked, Entering, Settling, Home }
+    public enum State { Waiting, Following, Panicked, Entering, Settling, Home, Dead }
 
     /// <summary>Every live survivor in the scene.</summary>
     public static readonly List<Survivor> All = new List<Survivor>();
@@ -45,6 +45,8 @@ public class Survivor : MonoBehaviour
     [SerializeField] private float panicCooldown = 5f;
     [Tooltip("The scream wakes dormant stalkers within this range.")]
     [SerializeField] private float screamRadius = 18f;
+    [Tooltip("How long they stand and scream before running for the player.")]
+    [SerializeField] private float screamSeconds = 1.0f;
 
     [Header("Animation (optional)")]
     [SerializeField] private Animator animator;
@@ -57,6 +59,8 @@ public class Survivor : MonoBehaviour
     private static readonly int ScaredHash = Animator.StringToHash("Scared");
     private static readonly int SittingHash = Animator.StringToHash("Sitting");
     private static readonly int PanicHash = Animator.StringToHash("Panic");
+    private static readonly int DieHash = Animator.StringToHash("Die");
+    private float panicStart;
 
     private CharacterController controller;
     private Transform player;
@@ -97,14 +101,30 @@ public class Survivor : MonoBehaviour
     private void OnEnable()  { All.Add(this); }
     private void OnDisable() { All.Remove(this); }
 
-    /// <summary>The stalker got this one. Unrealized value, gone, and their camp fire dies.</summary>
+    /// <summary>
+    /// The stalker got this one. They go down where they stand and stay there; their camp fire
+    /// dies, and the count moves on without them.
+    /// </summary>
     public void Taken()
     {
+        if (CurrentState == State.Dead) return;
         Debug.Log($"Survivor '{name}' was taken.");
+        CurrentState = State.Dead;
+        All.Remove(this);
         Campfire fire = camp != null ? camp : Campfire.Nearest(transform.position, 6f);
         if (fire != null) fire.PutOut();
         if (Home.Instance != null) Home.Instance.SurvivorLost(this);
-        Destroy(gameObject);
+
+        if (animator != null)
+        {
+            animator.SetBool(PanicHash, false);
+            animator.SetBool(ScaredHash, false);
+            animator.SetBool(RunHash, false);
+            animator.SetFloat(SpeedHash, 0f);
+            animator.SetTrigger(DieHash);
+        }
+        if (controller != null) controller.enabled = false;            // the body is not a wall
+        var prints = GetComponent<FootprintEmitter>(); if (prints != null) prints.enabled = false;
     }
 
     /// <summary>Already home, but the house changed shape: walk to a new spot.</summary>
@@ -118,7 +138,7 @@ public class Survivor : MonoBehaviour
 
     private void Update()
     {
-        if (player == null) return;
+        if (player == null || CurrentState == State.Dead) return;
 
         Vector3 move = Vector3.zero;
         float speed = moveSpeed * HomeBonuses.SurvivorSpeedMultiplier;
@@ -185,11 +205,22 @@ public class Survivor : MonoBehaviour
 
             case State.Panicked:
             {
-                // Frozen. Turn toward the player, and only move again once they are right here.
-                if (toPlayer.sqrMagnitude > 0.01f)
+                // A scream where they stand, then they bolt for her and stay on her heels until
+                // she has been beside them a moment.
+                bool screaming = Time.time < panicStart + screamSeconds;
+                if (screaming)
                 {
-                    Quaternion look = Quaternion.LookRotation(toPlayer.normalized, Vector3.up);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+                    if (toPlayer.sqrMagnitude > 0.01f)
+                    {
+                        Quaternion look = Quaternion.LookRotation(toPlayer.normalized, Vector3.up);
+                        transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
+                    }
+                }
+                else if (toPlayer.magnitude > followDistance)
+                {
+                    running = true;
+                    speed = runSpeed * HomeBonuses.SurvivorSpeedMultiplier;
+                    move = toPlayer.normalized;
                 }
                 if (toPlayer.magnitude <= calmRadius) calmTimer += Time.deltaTime;
                 else calmTimer = 0f;
@@ -231,7 +262,8 @@ public class Survivor : MonoBehaviour
         velocity.y = controller.isGrounded ? -1f : -9.81f;
         controller.Move(velocity * Time.deltaTime);
 
-        if (CurrentState != State.Panicked && move.sqrMagnitude > 0.001f)
+        bool screamingNow = CurrentState == State.Panicked && Time.time < panicStart + screamSeconds;
+        if (!screamingNow && move.sqrMagnitude > 0.001f)
         {
             Quaternion look = Quaternion.LookRotation(move, Vector3.up);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeed * Time.deltaTime);
@@ -241,9 +273,9 @@ public class Survivor : MonoBehaviour
         {
             bool moving = move.sqrMagnitude > 0.001f;
             animator.SetFloat(SpeedHash, moving ? 1f : 0f, 0.1f, Time.deltaTime);
-            animator.SetBool(RunHash, moving && running && CurrentState == State.Following);
+            animator.SetBool(RunHash, moving && running && (CurrentState == State.Following || CurrentState == State.Panicked));
             animator.SetBool(ScaredHash, CurrentState == State.Waiting);
-            animator.SetBool(PanicHash, CurrentState == State.Panicked);
+            animator.SetBool(PanicHash, screamingNow);
             animator.SetBool(SittingHash, false);   // they stand and idle at home; nothing to sit on at their spots
         }
     }
@@ -274,6 +306,7 @@ public class Survivor : MonoBehaviour
         CurrentState = State.Panicked;
         running = false;
         calmTimer = 0f;
+        panicStart = Time.time;
         Debug.Log($"Survivor '{name}' panics.");
         if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Yell, transform.position, 1f, 40f, Random.Range(0.9f, 1.15f));
         // The scream carries. Dormant stalkers nearby wake up.

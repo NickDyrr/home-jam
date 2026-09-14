@@ -38,6 +38,7 @@ public class Intro : MonoBehaviour
     private const float FadeToBlack = 0.8f, FadeFromBlack = 0.8f;
     private const float StandAfter = 1.2f;
     private const float RiseSeconds = 0.7f;                       // speed and height ease in over this as she rises
+    private const float RisePush = 0.45f, RisePushSeconds = 0.4f; // hips forward off the seat as she stands
     private const float TurnSeconds = 0.6f;                       // the turn to the door once her steps are done
     private float turnStart = -1f;
     private const float StandY = 1.18f;                           // player pivot height when standing on the cabin floor
@@ -197,7 +198,10 @@ public class Intro : MonoBehaviour
                 float since = t - (cut + StandAfter);
                 bool walking = walked < StepsForward;
                 if (walking) walked = Mathf.Min(StepsForward, walked + StepSpeed * Ease(since / RiseSeconds) * Time.deltaTime);
-                Vector3 pos = ChairSpot + ChairFacing * walked;
+                // Standing up carries the hips forward off the seat before the first step lands,
+                // so her legs come out of the cushion rather than through it.
+                float push = RisePush * Ease(since / RisePushSeconds);
+                Vector3 pos = ChairSpot + ChairFacing * (walked + push);
                 pos.y = Mathf.Lerp(ChairSpot.y, StandY, Ease(since / RiseSeconds));
                 player.position = pos;
                 if (playerAnim != null) playerAnim.SetFloat(SpeedHash, walking ? 1f : 0f, 0.1f, Time.deltaTime);

@@ -11,7 +11,7 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class Stalker : MonoBehaviour
 {
-    public enum State { Dormant, Hunting, Retreating, Stunned, Grabbing }
+    public enum State { Dormant, Hunting, Retreating, Stunned, Grabbing, Striking }
 
     /// <summary>Every live stalker in the scene.</summary>
     public static readonly System.Collections.Generic.List<Stalker> All = new System.Collections.Generic.List<Stalker>();
@@ -52,6 +52,14 @@ public class Stalker : MonoBehaviour
 
     private float grabUntil;
     private PlayerMovement grabbedMovement;
+
+    [Header("Strike")]
+    [Tooltip("Seconds from the swing starting to it landing. A hit in this window saves the survivor.")]
+    [SerializeField] private float strikeWindup = 0.55f;
+    [Tooltip("The survivor must still be this close when the swing lands.")]
+    [SerializeField] private float strikeReach = 2.3f;
+    private Survivor strikeTarget;
+    private float strikeAt;
 
     [Header("Animation (optional)")]
     [SerializeField] private Animator animator;
@@ -181,6 +189,27 @@ public class Stalker : MonoBehaviour
                 if (Time.time >= stunUntil) CurrentState = State.Hunting;
                 break;
 
+            case State.Striking:
+            {
+                if (strikeTarget == null || strikeTarget.CurrentState == Survivor.State.Dead) { CurrentState = State.Hunting; break; }
+                Vector3 toS = strikeTarget.transform.position - transform.position; toS.y = 0f;
+                if (toS.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(toS.normalized, Vector3.up);
+                if (Time.time >= strikeAt)
+                {
+                    if (toS.magnitude <= strikeReach)
+                    {
+                        strikeTarget.Taken();
+                        retreatDir = transform.position - player.position; retreatDir.y = 0f;
+                        retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+                        retreatUntil = Time.time + retreatSeconds;
+                        CurrentState = State.Retreating;
+                    }
+                    else CurrentState = State.Hunting;     // they got clear of the swing
+                    strikeTarget = null;
+                }
+                break;
+            }
+
             case State.Grabbing:
             {
                 // Holding her. Face her; if the time runs out she is taken.
@@ -275,12 +304,11 @@ public class Stalker : MonoBehaviour
         Survivor s = target.GetComponent<Survivor>();
         if (s != null)
         {
-            s.Taken();
-            retreatDir = transform.position - player.position;
-            retreatDir.y = 0f;
-            retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
-            retreatUntil = Time.time + retreatSeconds;
-            CurrentState = State.Retreating;
+            // The swing takes a moment to land. If the survivor is still in reach when it does,
+            // they go down; a round in the stalker before then breaks it off.
+            strikeTarget = s;
+            strikeAt = Time.time + strikeWindup;
+            CurrentState = State.Striking;
             return;
         }
 
