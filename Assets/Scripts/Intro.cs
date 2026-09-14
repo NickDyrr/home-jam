@@ -110,6 +110,22 @@ public class Intro : MonoBehaviour
         bool anyVoice = false;
         for (int i = 0; i < Lines.Length; i++) { voice[i] = Resources.Load<AudioClip>("Audio/Intro" + (i + 1)); anyVoice |= voice[i] != null; }
         if (anyVoice) { voiceSource = gameObject.AddComponent<AudioSource>(); voiceSource.spatialBlend = 0f; voiceSource.playOnAwake = false; }
+        // In the browser the clips decode after the scene loads, and an undecoded clip reports no
+        // length. Ask for them now; the timeline is laid out once they are in (see Update).
+        foreach (var c in voice) if (c != null && c.loadState == AudioDataLoadState.Unloaded) c.LoadAudioData();
+    }
+
+    private bool timelineReady;
+
+    private bool VoiceLoaded()
+    {
+        foreach (var c in voice) if (c != null && c.loadState == AudioDataLoadState.Loading) return false;
+        return true;
+    }
+
+    private void LayOutTimeline()
+    {
+        timelineReady = true;
         float tt = 1f;
         for (int i = 0; i < Lines.Length; i++)
         {
@@ -141,6 +157,12 @@ public class Intro : MonoBehaviour
     private void Update()
     {
         if (done) return;
+        if (!timelineReady)
+        {
+            // Hold on black until the voice clips have decoded (or a few seconds, whichever first).
+            if (VoiceLoaded() || Time.timeSinceLevelLoad > 8f) LayOutTimeline();
+            else return;
+        }
         t += Time.deltaTime;
 
         bool press = (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) ||
