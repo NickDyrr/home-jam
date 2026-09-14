@@ -62,6 +62,11 @@ public class Trails : MonoBehaviour
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
+        // The landmarks, so every trail runs right past whatever stands on its way.
+        var landmarks = new System.Collections.Generic.List<Vector3>();
+        var lmRoot = GameObject.Find("Landmarks");
+        if (lmRoot != null) foreach (Transform c in lmRoot.transform) { Vector3 p = c.position; p.y = 0f; landmarks.Add(p); }
+
         foreach (var s in Survivor.All)
         {
             if (s.CurrentState != Survivor.State.Waiting) continue;
@@ -70,16 +75,37 @@ public class Trails : MonoBehaviour
             toHome /= dist;
             Vector3 side = Vector3.Cross(Vector3.up, toHome);
 
+            // Anything standing near the straight line between camp and home is a waypoint: the
+            // trail begins beyond the farthest one and passes each on its way in.
+            var vias = new System.Collections.Generic.List<(float along, Vector3 pos)>();
+            foreach (var l in landmarks)
+            {
+                Vector3 d = l - camp; float along = Vector3.Dot(d, toHome), lat = Vector3.Dot(d, side);
+                if (along > 12f && along < dist - 20f && Mathf.Abs(lat) < 18f) vias.Add((along, l));
+            }
+            vias.Sort((a, b) => b.along.CompareTo(a.along));   // farthest from the camp first
+
             // Start on the home side, off the straight line, but never inside the yard.
             float length = Mathf.Min(Mathf.Lerp(minLength, maxLength, (float)rng.NextDouble()), dist - 16f);
+            if (vias.Count > 0) length = Mathf.Min(vias[0].along + 12f, dist - 16f);
             if (length < 12f) continue;
-            float lateral = ((float)rng.NextDouble() * 2f - 1f) * 15f;
+            float lateral = vias.Count > 0 ? Vector3.Dot(vias[0].pos - camp, side) + ((float)rng.NextDouble() * 2f - 1f) * 4f
+                                           : ((float)rng.NextDouble() * 2f - 1f) * 15f;
             Vector3 start = camp + toHome * length + side * lateral;
             for (int guard = 0; guard < 10 && Home.Instance != null && Home.Instance.InYard(start, -3f); guard++)
                 start = camp + toHome * (length -= 5f) + side * lateral;
 
             starts[s] = start;
-            LayTrail(fm, rng, start, camp, 2.2f);
+            Vector3 from = start;
+            foreach (var v in vias)
+            {
+                // Pass beside it, not through it: three metres to the side nearer the line.
+                float lat = Vector3.Dot(v.pos - camp, side);
+                Vector3 pass = v.pos - side * Mathf.Sign(lat == 0f ? 1f : lat) * 3.5f;
+                LayTrail(fm, rng, from, pass, 0f);
+                from = pass;
+            }
+            LayTrail(fm, rng, from, camp, 2.2f);
         }
     }
 
