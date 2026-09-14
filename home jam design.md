@@ -273,3 +273,5 @@ Each survivor speaks one line when reached (HomeBonuses.Greeting), and one when 
 Line 5 is now "I'll find them. And bring them home." All five lines are voiced again (Intro1-5, plus Intro3b); the old takes are in Assets/Audio/IntroOld.
 
 **Item bar, second look (Sep 14).** Drawn with rounded rectangles (GUI.DrawTexture with border radii on a white texel): a dark tray with a thin bone edge, inset slots that lighten under the mouse, a gold frame and warm fill on the weapon in hand, a hairline between weapons and items, counts in a small pill bottom-right, key letters in a badge top-left, and a hover card above the tray with the name and the one-line use. Twenty generated icons live in Resources/Icons (gpt-image-1-5 through Unity's asset generation); the drawn ones remain as fallbacks.
+
+**Blanket and lantern cut (Sep 14).** The girl at camp three is Hurt now instead of Skittish, so the medkit is the one item that fixes a survivor (two medkits on the map: ruined shack, Site6). The hunter's lantern pickup is gone; she has her lantern from the start and it no longer grows. Both kinds stay in the enum for index stability, unused.

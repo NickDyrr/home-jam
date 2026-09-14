@@ -180,7 +180,6 @@ public class Survivor : MonoBehaviour
                 SetHiding(!StalkerDirector.IsNight);
                 bool near = !hiding && toPlayer.magnitude <= noticeRadius;
                 // What she carries for them, used the moment she reaches them.
-                if (near && trait == Trait.Skittish && Inventory.Take(ItemKind.Blanket)) Cure("You wrap her in the blanket. She'll stay with you now.");
                 if (near && trait == Trait.Hurt && Inventory.Take(ItemKind.Medkit)) Cure("You bind his leg. He can keep up.");
                 if (near && trait == Trait.Skittish && StalkerNear(skittishRadius, true))
                 {

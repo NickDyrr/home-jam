@@ -42,7 +42,7 @@ public static class Inventory
     }
 
     /// <summary>The kinds shown in the bar, in this order. Pages and scraps count too.</summary>
-    public static readonly ItemKind[] BarOrder = { ItemKind.MapScrap, ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Blanket, ItemKind.Scrap, ItemKind.Lantern };
+    public static readonly ItemKind[] BarOrder = { ItemKind.MapScrap, ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Scrap };
 }
 
 /// <summary>Names and one-line hints for the bar.</summary>
@@ -114,10 +114,8 @@ public static class ItemInfo
             case ItemKind.Trap: return "V  set it at your feet. Holds the first one that steps in it.";
             case ItemKind.MapScrap: return "M  or click: marks the nearest camp you have not reached on the compass, until you get there.";
             case ItemKind.Page: return "In the notebook.";
-            case ItemKind.Medkit: return "Used on the hurt one when you reach him.";
-            case ItemKind.Blanket: return "Used on the frightened one when you reach her.";
+            case ItemKind.Medkit: return "Used by itself on a hurt survivor the moment you reach them.";
             case ItemKind.Scrap: return "For the workbench.";
-            case ItemKind.Lantern: return "Your light reaches further.";
         }
         return "";
     }
