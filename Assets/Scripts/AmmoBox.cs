@@ -26,7 +26,10 @@ public class AmmoBox : MonoBehaviour
     private Light glow;
     private float phase;
 
-    private void Awake()
+    private void Awake() { Setup(); }
+
+    /// <summary>Own materials with emission on, and the glow light. Redone if a script reload wiped it.</summary>
+    private void Setup()
     {
         var p = GameObject.FindWithTag("Player");
         if (p != null) player = p.transform;
@@ -34,6 +37,7 @@ public class AmmoBox : MonoBehaviour
         renderers = GetComponentsInChildren<Renderer>();
         foreach (var r in renderers)
         {
+            if (r == null || r.sharedMaterial == null) continue;
             // Own material so the emission keyword is on without touching the shared asset.
             var m = r.material;
             m.EnableKeyword("_EMISSION");
@@ -41,10 +45,11 @@ public class AmmoBox : MonoBehaviour
         }
         block = new MaterialPropertyBlock();
 
-        var lightGo = new GameObject("Glow");
+        var existing = transform.Find("Glow");
+        var lightGo = existing != null ? existing.gameObject : new GameObject("Glow");
         lightGo.transform.SetParent(transform, false);
         lightGo.transform.localPosition = Vector3.up * 0.9f;
-        glow = lightGo.AddComponent<Light>();
+        glow = lightGo.GetComponent<Light>(); if (glow == null) glow = lightGo.AddComponent<Light>();
         glow.type = LightType.Point; glow.color = gold; glow.range = 3.2f; glow.intensity = 0f; glow.shadows = LightShadows.None;
         phase = Random.value;   // the boxes don't all breathe together
     }
@@ -52,6 +57,7 @@ public class AmmoBox : MonoBehaviour
     private void Update()
     {
         if (taken) return;
+        if (block == null || renderers == null) Setup();
 
         // The breath: 0 to 1 and back, once per pulse.
         float t = 0.5f - 0.5f * Mathf.Cos((Time.time / Mathf.Max(0.1f, pulseSeconds) + phase) * Mathf.PI * 2f);

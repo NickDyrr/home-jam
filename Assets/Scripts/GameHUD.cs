@@ -167,8 +167,93 @@ public class GameHUD : MonoBehaviour
         }
 
         DrawFireGlow();
+        if (!Paused && !(Home.Instance != null && Home.Instance.Ended)) DrawCompass();
         DrawEnd();
         DrawPause();
+    }
+
+    private Texture2D ring;
+    private GUIStyle compassLetter, compassNorth;
+
+    /// <summary>
+    /// Top left: a compass rose laid out the way the world sits on screen, with north marked,
+    /// and a small needle that always points home.
+    /// </summary>
+    private void DrawCompass()
+    {
+        var cam = Camera.main; var p = GameObject.FindWithTag("Player");
+        if (cam == null || p == null) return;
+        if (ring == null)
+        {
+            const int n = 96;
+            ring = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), new Vector2(n * 0.5f - 0.5f, n * 0.5f - 0.5f)) / (n * 0.5f);
+                float a = d > 0.84f && d < 0.97f ? 1f : 0f;
+                if (d >= 0.80f && d <= 0.84f) a = (d - 0.80f) / 0.04f;
+                if (d >= 0.97f && d <= 1f) a = (1f - d) / 0.03f;
+                ring.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            ring.Apply();
+            compassLetter = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(compassLetter, new Color(1f, 1f, 1f, 0.85f));
+            compassNorth = new GUIStyle(compassLetter) { fontSize = 16 };
+            Intro.SetTextColor(compassNorth, new Color(1f, 0.55f, 0.4f));
+        }
+
+        float size = 92f, radius = size * 0.5f;
+        Vector2 c = new Vector2(16f + radius, 16f + radius);
+        Vector3 pp = p.transform.position;
+
+        // Which way a world direction runs on screen, from the camera's own view.
+        Vector2 OnScreen(Vector3 dir)
+        {
+            Vector3 a = cam.WorldToScreenPoint(pp), b = cam.WorldToScreenPoint(pp + dir);
+            Vector2 v = new Vector2(b.x - a.x, -(b.y - a.y));
+            return v.sqrMagnitude > 0.0001f ? v.normalized : Vector2.up;
+        }
+
+        // Soft dark disc, then the ring.
+        GUI.color = new Color(0f, 0f, 0f, 0.45f);
+        GUI.DrawTexture(new Rect(c.x - radius * 1.25f, c.y - radius * 1.25f, size * 1.25f, size * 1.25f), glow);
+        GUI.color = new Color(1f, 1f, 1f, 0.55f);
+        GUI.DrawTexture(new Rect(c.x - radius, c.y - radius, size, size), ring);
+        GUI.color = Color.white;
+
+        // The four points, where they actually lie on screen.
+        float r = radius * 0.68f;
+        Vector2 north = OnScreen(Vector3.forward);
+        DrawAt(c + north * r, "N", compassNorth);
+        DrawAt(c + OnScreen(Vector3.right) * r, "E", compassLetter);
+        DrawAt(c + OnScreen(Vector3.back) * r, "S", compassLetter);
+        DrawAt(c + OnScreen(Vector3.left) * r, "W", compassLetter);
+
+        // The needle: home, when she is away from it.
+        if (Home.Instance != null && !(HomeZone.Instance != null && HomeZone.Instance.PlayerIsHome))
+        {
+            Vector3 toHome = Home.Instance.transform.position - pp; toHome.y = 0f;
+            if (toHome.sqrMagnitude > 4f)
+            {
+                Vector2 v = OnScreen(toHome.normalized);
+                float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg;
+                Matrix4x4 m = GUI.matrix;
+                GUIUtility.RotateAroundPivot(ang, c);
+                GUI.color = new Color(1f, 0.85f, 0.45f, 0.95f);
+                GUI.DrawTexture(new Rect(c.x + 4f, c.y - 1.5f, radius * 0.5f, 3f), white);
+                GUI.DrawTexture(new Rect(c.x + radius * 0.5f, c.y - 3.5f, 5f, 7f), white);
+                GUI.color = Color.white;
+                GUI.matrix = m;
+            }
+        }
+        GUI.color = new Color(1f, 1f, 1f, 0.9f);
+        GUI.DrawTexture(new Rect(c.x - 2f, c.y - 2f, 4f, 4f), white);
+        GUI.color = Color.white;
+    }
+
+    private static void DrawAt(Vector2 at, string text, GUIStyle style)
+    {
+        GUI.Label(new Rect(at.x - 12f, at.y - 11f, 24f, 22f), text, style);
     }
 
     /// <summary>Warm glow at the screen edge toward each burning fire that is near but off screen.</summary>
