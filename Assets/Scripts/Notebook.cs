@@ -2,36 +2,41 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Her notebook, left on the box by the front door. Stand near it and press E
-/// to read: a page of the things she has worked out, which is to say the
-/// rules of the game. Any key closes it. Movement is held while it is open.
+/// Her notebook, left on the box by the front door. A floating prompt shows
+/// while she is near (like the workbench); E opens a page of the things she
+/// has worked out, which is to say the rules of the game. Any key closes it.
+/// Movement is held while it is open.
 /// </summary>
 public class Notebook : MonoBehaviour
 {
     [SerializeField] private float readRadius = 2.0f;
+    [SerializeField] private TextMesh prompt;
 
     public static readonly string[] Page =
     {
         "Things I know.",
         "",
-        "They only come after dark, and they stop at the fence. I don't know why.",
-        "The others hide by day. After dark they light their fires. Follow the tracks in the snow.",
+        "They only come after dark, and they stop at the fence.",
+        "The others hide by day. After dark they light their fires.",
         "Bullets don't kill them. Each one slows them down. I have twelve. Everyone I bring back has a few to spare.",
-        "Running is loud, and loud brings them. Walk, and they have to stumble into me.",
-        "Two people home and I can build out the house at the table. Four, and again.",
-        "If they take me, whoever is with me is gone. The house keeps everyone already inside.",
+        "Running is loud, and loud brings them. Walking is much safer.",
+        "The more people I bring home, the more we can expand.",
     };
 
     private Transform player;
     private PlayerMovement movement;
+    private Transform cam;
     private bool open;
-    private GUIStyle title, body, prompt;
+    private GUIStyle title, body, close;
     private Texture2D black;
 
     private void Awake()
     {
         var p = GameObject.FindWithTag("Player");
         if (p != null) { player = p.transform; movement = p.GetComponent<PlayerMovement>(); }
+        if (Camera.main != null) cam = Camera.main.transform;
+        if (prompt == null) prompt = GetComponentInChildren<TextMesh>(true);
+        if (prompt != null) { prompt.text = "E   Read"; prompt.gameObject.SetActive(false); }
     }
 
     private bool Near
@@ -46,6 +51,13 @@ public class Notebook : MonoBehaviour
 
     private void Update()
     {
+        bool near = Near && !Intro.Playing && !open;
+        if (prompt != null)
+        {
+            prompt.gameObject.SetActive(near);
+            if (near && cam != null) prompt.transform.rotation = cam.rotation;
+        }
+
         var kb = Keyboard.current;
         if (kb == null || Intro.Playing || GameHUD.Paused) return;
         if (open)
@@ -66,37 +78,28 @@ public class Notebook : MonoBehaviour
 
     private void OnGUI()
     {
-        if (Intro.Playing) return;
+        if (!open) return;
         if (title == null)
         {
             title = new GUIStyle(GUI.skin.label) { fontSize = 34, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             Intro.SetTextColor(title, new Color(0.97f, 0.96f, 0.93f));
             body = new GUIStyle(GUI.skin.label) { fontSize = 21, fontStyle = FontStyle.Bold, alignment = TextAnchor.UpperLeft, wordWrap = true };
             Intro.SetTextColor(body, new Color(0.97f, 0.96f, 0.93f));
-            prompt = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            Intro.SetTextColor(prompt, new Color(0.97f, 0.96f, 0.93f));
+            close = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(close, new Color(0.97f, 0.96f, 0.93f));
             black = new Texture2D(1, 1); black.SetPixel(0, 0, Color.black); black.Apply();
         }
-
-        if (open)
+        GUI.color = new Color(0f, 0f, 0f, 0.78f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), black);
+        GUI.color = Color.white;
+        float w = Mathf.Min(820f, Screen.width - 80f), x = (Screen.width - w) * 0.5f, y = Screen.height * 0.16f;
+        GUI.Label(new Rect(x, y, w, 50), Page[0], title); y += 70f;
+        for (int i = 1; i < Page.Length; i++)
         {
-            GUI.color = new Color(0f, 0f, 0f, 0.78f);
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), black);
-            GUI.color = Color.white;
-            float w = Mathf.Min(820f, Screen.width - 80f), x = (Screen.width - w) * 0.5f, y = Screen.height * 0.14f;
-            GUI.Label(new Rect(x, y, w, 50), Page[0], title); y += 70f;
-            for (int i = 1; i < Page.Length; i++)
-            {
-                if (Page[i].Length == 0) { y += 8f; continue; }
-                float h = body.CalcHeight(new GUIContent(Page[i]), w);
-                GUI.Label(new Rect(x, y, w, h), Page[i], body); y += h + 14f;
-            }
-            GUI.Label(new Rect(x, Screen.height - 70f, w, 40), "any key to close", prompt);
+            if (Page[i].Length == 0) { y += 8f; continue; }
+            float h = body.CalcHeight(new GUIContent(Page[i]), w);
+            GUI.Label(new Rect(x, y, w, h), Page[i], body); y += h + 14f;
         }
-        else if (Near && !GameHUD.Paused)
-        {
-            float w = 300f;
-            Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, Screen.height - 50f, w, 34), "E   read the notebook", prompt, 0.9f);
-        }
+        GUI.Label(new Rect(x, Screen.height - 70f, w, 40), "any key to close", close);
     }
 }

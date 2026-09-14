@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Almost nothing on screen: a warm glow at the screen edge toward any
-/// burning fire nearby, a one-time hint on the first night, the wait-for-dark
+/// burning fire nearby, the wait-for-dark
 /// prompt when it applies, the pause screen with the controls, and the end
 /// screen with a restart. Plain OnGUI, like the ammo counter.
 /// </summary>
@@ -14,7 +14,6 @@ public class GameHUD : MonoBehaviour
 
     private GUIStyle label, small, warn, big, mid;
     private Texture2D white, glow;
-    private float hintShownAt = -1f;
     private bool restarting;
 
     private void Build()
@@ -125,9 +124,8 @@ public class GameHUD : MonoBehaviour
 
     private void OnGUI()
     {
-        if (Intro.Playing) { hintShownAt = -1f; return; }
+        if (Intro.Playing) return;
         if (label == null) Build();
-        if (hintShownAt < 0f) hintShownAt = Time.time;
 
         // The only standing prompt: waiting for dark, when it applies.
         var dn = DayNightCycle.Instance;
@@ -140,7 +138,6 @@ public class GameHUD : MonoBehaviour
         }
 
         DrawFireGlow();
-        DrawHint();
         DrawEnd();
         DrawPause();
     }
@@ -175,16 +172,6 @@ public class GameHUD : MonoBehaviour
         GUI.color = Color.white;
     }
 
-    private void DrawHint()
-    {
-        float age = Time.time - hintShownAt;
-        const float show = 16f;
-        if (age > show) return;
-        float a = age < 0.6f ? age / 0.6f : age > show - 1f ? show - age : 1f;
-        float w = Mathf.Min(1000f, Screen.width - 80f);
-        Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, Screen.height * 0.6f, w, 80),
-            "Follow the tracks in the snow. Their fires burn only after dark.", mid, a);
-    }
 
     private void DrawEnd()
     {
