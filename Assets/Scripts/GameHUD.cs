@@ -213,12 +213,14 @@ public class GameHUD : MonoBehaviour
     {
         if (countStyle == null)
         {
-            countStyle = new GUIStyle(GUI.skin.label) { fontSize = 15, fontStyle = FontStyle.Bold, alignment = TextAnchor.LowerRight };
+            countStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             Intro.SetTextColor(countStyle, new Color(0.97f, 0.96f, 0.93f));
-            keyStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.UpperLeft };
+            keyStyle = new GUIStyle(GUI.skin.label) { fontSize = 11, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             Intro.SetTextColor(keyStyle, new Color(1f, 0.85f, 0.45f));
-            nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter };
-            Intro.SetTextColor(nameStyle, new Color(0.97f, 0.96f, 0.93f, 0.85f));
+            nameStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(nameStyle, new Color(0.97f, 0.96f, 0.93f));
+            hintStyle2 = new GUIStyle(GUI.skin.label) { fontSize = 13, alignment = TextAnchor.MiddleCenter };
+            Intro.SetTextColor(hintStyle2, new Color(0.97f, 0.96f, 0.93f, 0.8f));
         }
         // Weapons first (the pistol always, the others once found), then only what she has.
         var shown = new System.Collections.Generic.List<ItemKind>();
@@ -226,75 +228,126 @@ public class GameHUD : MonoBehaviour
         if (guns != null)
             foreach (WeaponKind wk in System.Enum.GetValues(typeof(WeaponKind)))
                 if (guns.Owns(wk)) shown.Add(Pistol.WeaponItem(wk));
+        int weaponCount = shown.Count;
         foreach (var k in Inventory.BarOrder) if (Inventory.Count(k) > 0) shown.Add(k);
         if (shown.Count == 0) { barRect = Rect.zero; return; }
 
-        const float slot = 54f, gap = 8f, pad = 6f;
-        float total = shown.Count * slot + (shown.Count - 1) * gap;
-        float x0 = (Screen.width - total) * 0.5f, y0 = Screen.height - slot - 14f;
-        // Hover shows the name and how it is used.
+        const float slot = 58f, gap = 6f, pad = 10f, divide = 14f;
+        bool hasBoth = weaponCount > 0 && shown.Count > weaponCount;
+        float total = shown.Count * slot + (shown.Count - 1) * gap + (hasBoth ? divide : 0f);
+        float x0 = (Screen.width - total) * 0.5f, y0 = Screen.height - slot - 18f;
         Vector2 mouse = Event.current.mousePosition;
-        string hover = null;
+        string hoverName = null, hoverHint = null;
         bool click = Event.current.type == EventType.MouseDown && Event.current.button == 0;
 
-        barRect = new Rect(x0 - pad - 4f, y0 - pad, total + (pad + 4f) * 2f, slot + pad * 2f);
-        GUI.color = new Color(0f, 0f, 0f, 0.45f);
-        GUI.DrawTexture(barRect, white);
+        // The tray: a dark rounded panel with a thin bone edge.
+        barRect = new Rect(x0 - pad, y0 - pad, total + pad * 2f, slot + pad * 2f);
+        Rounded(barRect, new Color(0.04f, 0.05f, 0.07f, 0.82f), 10f);
+        Frame(barRect, new Color(0.85f, 0.8f, 0.7f, 0.22f), 10f, 1f);
+
+        float x = x0;
         for (int i = 0; i < shown.Count; i++)
         {
             var k = shown[i];
-            var r = new Rect(x0 + i * (slot + gap), y0, slot, slot);
-            if (click && r.Contains(mouse))
+            if (i == weaponCount && hasBoth)
             {
-                // A click on a slot uses it (or does nothing); the gun never sees this click.
-                if (ItemUse.Instance != null) ItemUse.Instance.UseFromBar(k);
-                Event.current.Use();
+                // A hairline between the guns and the rest.
+                GUI.color = new Color(0.85f, 0.8f, 0.7f, 0.18f);
+                GUI.DrawTexture(new Rect(x + divide * 0.5f - 0.5f, y0 + 6f, 1f, slot - 12f), white);
+                GUI.color = Color.white;
+                x += divide;
             }
+            var r = new Rect(x, y0, slot, slot);
+            x += slot + gap;
+
             bool weapon = Pistol.IsWeaponItem(k);
             WeaponKind wk = Pistol.KindOf(k);
             bool inHand = weapon && guns != null && guns.Current == wk;
-            if (click && weapon && r.Contains(mouse) && guns != null) { guns.Equip(wk); Event.current.Use(); }
-            if (weapon)
+            bool hover = r.Contains(mouse);
+            if (click && hover)
             {
-                // The one in her hand gets a gold frame; the others a dim one.
-                GUI.color = inHand ? new Color(1f, 0.82f, 0.4f, 0.9f) : new Color(1f, 1f, 1f, 0.25f);
-                GUI.DrawTexture(new Rect(r.x - 2f, r.y - 2f, slot + 4f, slot + 4f), white);
-                GUI.color = new Color(0.08f, 0.08f, 0.1f, 1f);
-                GUI.DrawTexture(r, white);
+                // A click on a slot equips a weapon or uses an item (or does nothing); the gun never sees this click.
+                if (weapon && guns != null) guns.Equip(wk);
+                else if (ItemUse.Instance != null) ItemUse.Instance.UseFromBar(k);
+                Event.current.Use();
             }
-            else
+
+            // The slot: a soft inset, warmer when it is the weapon in hand, a touch lighter under the mouse.
+            Rounded(r, inHand ? new Color(0.22f, 0.17f, 0.08f, 0.95f) : new Color(1f, 1f, 1f, hover ? 0.12f : 0.06f), 7f);
+            if (inHand)
             {
-                GUI.color = new Color(1f, 1f, 1f, 0.08f);
-                GUI.DrawTexture(r, white);
+                Frame(r, new Color(1f, 0.82f, 0.4f, 0.95f), 7f, 2f);
+                Rounded(new Rect(r.x + 2f, r.y + 2f, r.width - 4f, r.height - 4f), new Color(1f, 0.75f, 0.3f, 0.08f), 6f);
             }
-            GUI.color = Color.white;
+            else Frame(r, new Color(0.85f, 0.8f, 0.7f, hover ? 0.35f : 0.14f), 7f, 1f);
+
             var icon = ItemIcons.Get(k);
-            if (icon != null) GUI.DrawTexture(new Rect(r.x + 5f, r.y + 5f, slot - 10f, slot - 10f), icon, ScaleMode.ScaleToFit, true);
+            if (icon != null)
+            {
+                GUI.color = weapon && !inHand ? new Color(1f, 1f, 1f, 0.8f) : Color.white;
+                GUI.DrawTexture(new Rect(r.x + 6f, r.y + 6f, slot - 12f, slot - 12f), icon, ScaleMode.ScaleToFit, true);
+                GUI.color = Color.white;
+            }
+
+            // The count, in a small pill at the bottom right.
+            string count = null;
             if (weapon)
             {
                 if (guns.UsesAmmo(wk))
                 {
                     bool single = wk == WeaponKind.Bow || wk == WeaponKind.FlareGun;
-                    string ammo = single ? (guns.LoadedOf(wk) + guns.ReserveOf(wk)).ToString() : guns.LoadedOf(wk) + "|" + guns.ReserveOf(wk);
-                    Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), ammo, countStyle, 1f);
+                    count = single ? (guns.LoadedOf(wk) + guns.ReserveOf(wk)).ToString() : guns.LoadedOf(wk) + "|" + guns.ReserveOf(wk);
                 }
             }
             else
             {
                 int n = Inventory.Count(k);
-                if (n > 1 || k == ItemKind.Scrap || k == ItemKind.MapScrap)
-                    Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), n.ToString(), countStyle, 1f);
+                if (n > 1 || k == ItemKind.Scrap || k == ItemKind.MapScrap) count = n.ToString();
             }
+            if (count != null)
+            {
+                float pw = Mathf.Max(22f, countStyle.CalcSize(new GUIContent(count)).x + 10f);
+                var pill = new Rect(r.xMax - pw - 3f, r.yMax - 19f, pw, 16f);
+                Rounded(pill, new Color(0.02f, 0.02f, 0.03f, 0.9f), 8f);
+                GUI.Label(pill, count, countStyle);
+            }
+            // The key, in a small badge at the top left.
             string key = ItemInfo.Key(k);
-            if (key.Length > 0) Intro.DrawLegible(new Rect(r.x + 4f, r.y + 2f, 20f, 16f), key, keyStyle, 1f);
-            if (r.Contains(mouse)) hover = ItemInfo.Name(k) + ".  " + ItemInfo.Hint(k);
+            if (key.Length > 0)
+            {
+                var badge = new Rect(r.x + 3f, r.y + 3f, 18f, 16f);
+                Rounded(badge, new Color(0.02f, 0.02f, 0.03f, 0.9f), 5f);
+                GUI.Label(badge, key, keyStyle);
+            }
+            if (hover) { hoverName = ItemInfo.Name(k); hoverHint = ItemInfo.Hint(k); }
         }
         GUI.color = Color.white;
-        if (hover != null)
+
+        // Hover: the name, and how it is used, in a small card above the tray.
+        if (hoverName != null)
         {
-            float w = Mathf.Min(700f, Screen.width - 60f);
-            Intro.DrawLegible(new Rect((Screen.width - w) * 0.5f, y0 - 30f, w, 24f), hover, nameStyle, 1f);
+            float w = Mathf.Min(640f, Screen.width - 60f);
+            float h = 22f + (string.IsNullOrEmpty(hoverHint) ? 0f : hintStyle2.CalcHeight(new GUIContent(hoverHint), w - 24f) + 4f);
+            var card = new Rect((Screen.width - w) * 0.5f, barRect.y - h - 20f, w, h + 12f);
+            Rounded(card, new Color(0.04f, 0.05f, 0.07f, 0.85f), 8f);
+            Frame(card, new Color(0.85f, 0.8f, 0.7f, 0.2f), 8f, 1f);
+            GUI.Label(new Rect(card.x, card.y + 4f, card.width, 22f), hoverName, nameStyle);
+            if (!string.IsNullOrEmpty(hoverHint)) GUI.Label(new Rect(card.x + 12f, card.y + 26f, card.width - 24f, h - 22f), hoverHint, hintStyle2);
         }
+    }
+
+    private GUIStyle hintStyle2;
+
+    /// <summary>A filled rounded rectangle.</summary>
+    private void Rounded(Rect r, Color c, float radius)
+    {
+        GUI.DrawTexture(r, white, ScaleMode.StretchToFill, true, 0f, c, Vector4.zero, Vector4.one * radius);
+    }
+
+    /// <summary>A rounded outline.</summary>
+    private void Frame(Rect r, Color c, float radius, float width)
+    {
+        GUI.DrawTexture(r, white, ScaleMode.StretchToFill, true, 0f, c, Vector4.one * width, Vector4.one * radius);
     }
 
     private Texture2D rose, needle;
