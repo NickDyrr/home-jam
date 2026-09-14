@@ -13,8 +13,8 @@ public class AmmoBox : MonoBehaviour
     [Tooltip("Seconds for one breath of the gold glow, up and back out.")]
     [SerializeField] private float pulseSeconds = 2f;
     [SerializeField] private Color gold = new Color(1f, 0.78f, 0.25f);
-    [SerializeField] private float emissionPeak = 2.6f;
-    [SerializeField] private float lightPeak = 2.2f;
+    [SerializeField] private float emissionPeak = 0.6f;
+    [SerializeField] private float lightPeak = 0.5f;
     [Tooltip("The glow light only runs when she is within this distance.")]
     [SerializeField] private float lightRange = 45f;
 
@@ -56,7 +56,7 @@ public class AmmoBox : MonoBehaviour
         lightGo.transform.SetParent(transform, false);
         lightGo.transform.localPosition = Vector3.up * 0.9f;
         glow = lightGo.GetComponent<Light>(); if (glow == null) glow = lightGo.AddComponent<Light>();
-        glow.type = LightType.Point; glow.color = gold; glow.range = 3.2f; glow.intensity = 0f; glow.shadows = LightShadows.None;
+        glow.type = LightType.Point; glow.color = gold; glow.range = 2.4f; glow.intensity = 0f; glow.shadows = LightShadows.None;
         phase = Random.value;   // the boxes don't all breathe together
     }
 

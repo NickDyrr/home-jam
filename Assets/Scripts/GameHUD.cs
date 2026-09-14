@@ -353,7 +353,7 @@ public class GameHUD : MonoBehaviour
         foreach (var b in AmmoBox.All)
         {
             if (b == null) continue;
-            EdgeGlow(cam, pp, b.Position, CrateGlowRange, new Color(1f, 0.8f, 0.3f), 90f, 170f, 0.7f);
+            EdgeGlow(cam, pp, b.Position, CrateGlowRange, new Color(1f, 0.8f, 0.3f), 70f, 130f, 0.35f);
         }
         GUI.color = Color.white;
     }
