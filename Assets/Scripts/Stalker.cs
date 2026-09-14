@@ -4,7 +4,7 @@ using UnityEngine;
 /// The thing outside. Stands dormant in the dark until the player or an
 /// escorted survivor comes within aggroRadius, then hunts whichever of them
 /// is nearest. Gives up and goes dormant again if the nearest one gets past
-/// loseRadius. Speed ramps with time spent outside.
+/// loseRadius. It gets faster the longer a chase lasts, and slower for every bullet it takes.
 /// A pistol hit staggers it, knocks it back and slows it for good; it never dies.
 /// Never seen clearly; it is a silhouette with a cold glow.
 /// </summary>
@@ -22,8 +22,10 @@ public class Stalker : MonoBehaviour
 
     [Header("Movement")]
     [SerializeField] private float baseSpeed = 4f;
-    [SerializeField] private float speedPerSecondOutside = 0.06f;
-    [SerializeField] private float maxSpeed = 6.5f;
+    [Tooltip("Once it has her, it gains this much speed for every second of the chase. Running only buys time; a bullet buys distance.")]
+    [SerializeField] private float huntAccel = 0.45f;
+    [SerializeField] private float maxSpeed = 8.5f;
+    private float huntStart = -1f;
     [SerializeField] private float turnSpeed = 360f;
     [SerializeField] private float catchRadius = 1.3f;
     [SerializeField] private float retreatSeconds = 2.5f;
@@ -133,7 +135,7 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 if (t == null || dist > loseRadius * HomeBonuses.StalkerLoseMultiplier)
                 {
-                    CurrentState = State.Dormant;
+                    CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
                     break;
                 }
 
@@ -145,8 +147,9 @@ public class Stalker : MonoBehaviour
 
                 Vector3 to = t.position - transform.position;
                 to.y = 0f;
-                float outside = StalkerDirector.Instance != null ? StalkerDirector.Instance.TimeOutside : 0f;
-                float speed = Mathf.Min(maxSpeed, baseSpeed + outside * speedPerSecondOutside) * SpeedFactor;
+                if (huntStart < 0f) huntStart = Time.time;
+                float chase = Time.time - huntStart;
+                float speed = Mathf.Min(maxSpeed, baseSpeed + chase * huntAccel) * SpeedFactor;
                 move = to.normalized * speed;
                 break;
             }
@@ -170,7 +173,7 @@ public class Stalker : MonoBehaviour
                 if (Time.time >= grabUntil)
                 {
                     ReleasePlayer();
-                    CurrentState = State.Dormant;
+                    CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
                     if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
                 }
                 break;

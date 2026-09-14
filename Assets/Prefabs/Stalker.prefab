@@ -75,8 +75,8 @@ MonoBehaviour:
   aggroRadius: 14
   loseRadius: 22
   baseSpeed: 4
-  speedPerSecondOutside: 0.06
-  maxSpeed: 6.5
+  huntAccel: 0.45
+  maxSpeed: 8.5
   turnSpeed: 360
   catchRadius: 1.3
   retreatSeconds: 2.5
