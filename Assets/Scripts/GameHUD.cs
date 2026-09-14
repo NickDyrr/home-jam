@@ -91,8 +91,8 @@ public class GameHUD : MonoBehaviour
         "W A S D   move",
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
-        "F   throw a flare      G   throw a can      V   set a trap",
-        "1 2 3   pistol, rifle, bow (once found)",
+        "G   throw a can      V   set a trap",
+        "1 to 7   pistol, rifle, bow, shotgun, flare gun, auto rifle, sniper (once found)",
         "T   wait for dark (at home, by day)",
         "B   ring the bell (second house level, from the yard)",
         "Esc   pause / resume",
@@ -224,11 +224,8 @@ public class GameHUD : MonoBehaviour
         var shown = new System.Collections.Generic.List<ItemKind>();
         var guns = Pistol.Instance;
         if (guns != null)
-        {
-            shown.Add(ItemKind.Pistol);
-            if (guns.Owns(WeaponKind.Rifle)) shown.Add(ItemKind.Rifle);
-            if (guns.Owns(WeaponKind.Bow)) shown.Add(ItemKind.Bow);
-        }
+            foreach (WeaponKind wk in System.Enum.GetValues(typeof(WeaponKind)))
+                if (guns.Owns(wk)) shown.Add(Pistol.WeaponItem(wk));
         foreach (var k in Inventory.BarOrder) if (Inventory.Count(k) > 0) shown.Add(k);
         if (shown.Count == 0) { barRect = Rect.zero; return; }
 
@@ -253,8 +250,8 @@ public class GameHUD : MonoBehaviour
                 if (ItemUse.Instance != null) ItemUse.Instance.UseFromBar(k);
                 Event.current.Use();
             }
-            bool weapon = k == ItemKind.Pistol || k == ItemKind.Rifle || k == ItemKind.Bow;
-            WeaponKind wk = k == ItemKind.Rifle ? WeaponKind.Rifle : k == ItemKind.Bow ? WeaponKind.Bow : WeaponKind.Pistol;
+            bool weapon = Pistol.IsWeaponItem(k);
+            WeaponKind wk = Pistol.KindOf(k);
             bool inHand = weapon && guns != null && guns.Current == wk;
             if (click && weapon && r.Contains(mouse) && guns != null) { guns.Equip(wk); Event.current.Use(); }
             if (weapon)
@@ -275,8 +272,12 @@ public class GameHUD : MonoBehaviour
             if (icon != null) GUI.DrawTexture(new Rect(r.x + 5f, r.y + 5f, slot - 10f, slot - 10f), icon, ScaleMode.ScaleToFit, true);
             if (weapon)
             {
-                string ammo = wk == WeaponKind.Bow ? (guns.LoadedOf(wk) + guns.ReserveOf(wk)).ToString() : guns.LoadedOf(wk) + "|" + guns.ReserveOf(wk);
-                Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), ammo, countStyle, 1f);
+                if (guns.UsesAmmo(wk))
+                {
+                    bool single = wk == WeaponKind.Bow || wk == WeaponKind.FlareGun;
+                    string ammo = single ? (guns.LoadedOf(wk) + guns.ReserveOf(wk)).ToString() : guns.LoadedOf(wk) + "|" + guns.ReserveOf(wk);
+                    Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), ammo, countStyle, 1f);
+                }
             }
             else
             {

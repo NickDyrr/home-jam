@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>Everything she can pick up and carry. Ammo stays with the pistol; these are the rest.</summary>
-public enum ItemKind { Flare, Noisemaker, Trap, MapScrap, Page, Medkit, Blanket, Scrap, Lantern, Backpack, Pistol, Rifle, Bow, RifleAmmo, Arrow }
+public enum ItemKind { Flare, Noisemaker, Trap, MapScrap, Page, Medkit, Blanket, Scrap, Lantern, Backpack, Pistol, Rifle, Bow, RifleAmmo, Arrow, Shotgun, FlareGun, Shells, AutoRifle, Sniper, AutoAmmo, SniperAmmo }
 
 /// <summary>What she is carrying. Static so the HUD and the world can both read it; reset on boot.</summary>
 public static class Inventory
@@ -42,7 +42,7 @@ public static class Inventory
     }
 
     /// <summary>The kinds shown in the bar, in this order. Pages and scraps count too.</summary>
-    public static readonly ItemKind[] BarOrder = { ItemKind.Flare, ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Blanket, ItemKind.Scrap, ItemKind.MapScrap, ItemKind.Page, ItemKind.Lantern };
+    public static readonly ItemKind[] BarOrder = { ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Blanket, ItemKind.Scrap, ItemKind.MapScrap, ItemKind.Page, ItemKind.Lantern };
 }
 
 /// <summary>Names and one-line hints for the bar.</summary>
@@ -52,7 +52,11 @@ public static class ItemInfo
     {
         switch (k)
         {
-            case ItemKind.Flare: return "Flare";
+            case ItemKind.Flare: return "Flares";
+            case ItemKind.AutoRifle: return "Auto rifle";
+            case ItemKind.Sniper: return "Sniper rifle";
+            case ItemKind.AutoAmmo: return "Auto rounds";
+            case ItemKind.SniperAmmo: return "Sniper rounds";
             case ItemKind.Noisemaker: return "Tin can";
             case ItemKind.Trap: return "Bear trap";
             case ItemKind.MapScrap: return "Map scrap";
@@ -67,6 +71,9 @@ public static class ItemInfo
             case ItemKind.Bow: return "Bow";
             case ItemKind.RifleAmmo: return "Rifle rounds";
             case ItemKind.Arrow: return "Arrows";
+            case ItemKind.Shotgun: return "Shotgun";
+            case ItemKind.FlareGun: return "Flare gun";
+            case ItemKind.Shells: return "Shells";
         }
         return k.ToString();
     }
@@ -76,12 +83,15 @@ public static class ItemInfo
     {
         switch (k)
         {
-            case ItemKind.Flare: return "F";
             case ItemKind.Noisemaker: return "G";
             case ItemKind.Trap: return "V";
             case ItemKind.Pistol: return "1";
             case ItemKind.Rifle: return "2";
             case ItemKind.Bow: return "3";
+            case ItemKind.Shotgun: return "4";
+            case ItemKind.FlareGun: return "5";
+            case ItemKind.AutoRifle: return "6";
+            case ItemKind.Sniper: return "7";
         }
         return "";
     }
@@ -93,7 +103,11 @@ public static class ItemInfo
             case ItemKind.Pistol: return "Left click to shoot, R to reload. Bullets slow them; a hit sends one running.";
             case ItemKind.Rifle: return "Left click to shoot, R to reload. Loud, long reach, hits for two.";
             case ItemKind.Bow: return "Left click to loose, R to nock. Silent. Arrows in the snow can be picked back up.";
-            case ItemKind.Flare: return "F  throw. Burns twenty seconds. They will not come into its light.";
+            case ItemKind.Shotgun: return "Left click, R to reload. Two shells, short reach, a wide spread, and the loudest thing you own.";
+            case ItemKind.FlareGun: return "Left click to put a flare thirty metres out. Burns twenty seconds; they will not come into its light.";
+            case ItemKind.AutoRifle: return "Hold to fire. Thirty rounds, a wide spray, a hit every few. Loud.";
+            case ItemKind.Sniper: return "Left click, R to reload. Three rounds, seventy metres, one hit sends anything running. Louder than anything.";
+            case ItemKind.Flare: return "Rounds for the flare gun.";
             case ItemKind.Noisemaker: return "G  throw. Every one of them nearby goes to see what made the noise.";
             case ItemKind.Trap: return "V  set it at your feet. Holds the first one that steps in it.";
             case ItemKind.MapScrap: return "Marks a camp on the compass.";
@@ -322,6 +336,88 @@ public static class ItemIcons
                     Fill(p => Seg(Rot(p - o, 35f), new Vector2(-0.7f, 0f), new Vector2(0.7f, 0f), 0.035f), shaft);
                     Fill(p => Mathf.Min(Seg(Rot(p - o, 35f), new Vector2(0.72f, 0f), new Vector2(0.56f, 0.09f), 0.03f), Seg(Rot(p - o, 35f), new Vector2(0.72f, 0f), new Vector2(0.56f, -0.09f), 0.03f)), head);
                     Fill(p => Box(Rot(p - o, 35f), new Vector2(-0.6f, 0f), new Vector2(0.12f, 0.07f)), feather);
+                }
+                break;
+            }
+            case ItemKind.Shotgun:
+            {
+                Color steel = new Color(0.2f, 0.21f, 0.25f), wood = new Color(0.45f, 0.28f, 0.15f);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.12f), new Vector2(0.7f, 0.05f)) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.12f), new Vector2(0.7f, 0.05f)), steel);          // top barrel
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.02f), new Vector2(0.7f, 0.05f)) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.02f), new Vector2(0.7f, 0.05f)), steel);          // bottom barrel
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.4f, -0.05f), new Vector2(0.32f, 0.11f), 0.04f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.4f, -0.05f), new Vector2(0.32f, 0.11f), 0.04f), wood);  // stock
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.66f, -0.2f), new Vector2(0.13f, 0.2f), 0.05f), wood);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, -0.08f), new Vector2(0.28f, 0.05f), 0.02f), wood);  // forend
+                break;
+            }
+            case ItemKind.AutoRifle:
+            {
+                Color steel = new Color(0.18f, 0.19f, 0.22f), dark = new Color(0.1f, 0.1f, 0.12f), edge = new Color(0.6f, 0.62f, 0.68f);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.1f), new Vector2(0.72f, 0.06f)) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.15f, 0.1f), new Vector2(0.72f, 0.06f)), steel);          // barrel
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.3f, 0f), new Vector2(0.4f, 0.11f), 0.03f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.3f, 0f), new Vector2(0.4f, 0.11f), 0.03f), dark);       // receiver
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.7f, -0.12f), new Vector2(0.14f, 0.12f), 0.03f), steel);  // stock
+                Fill(p => Box(Rot(p, 15f), new Vector2(-0.12f, -0.36f), new Vector2(0.08f, 0.24f), 0.03f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, 15f), new Vector2(-0.12f, -0.36f), new Vector2(0.08f, 0.24f), 0.03f), dark);    // curved magazine
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.05f, 0.22f), new Vector2(0.14f, 0.04f)), edge);           // carry rail
+                break;
+            }
+            case ItemKind.FlareGun:
+            {
+                Color orange = new Color(0.9f, 0.4f, 0.12f), dark = new Color(0.25f, 0.12f, 0.06f);
+                Fill(p => Box(p, new Vector2(0.05f, 0.2f), new Vector2(0.55f, 0.2f), 0.08f) + 0.03f, ink);
+                Fill(p => Box(p, new Vector2(0.05f, 0.2f), new Vector2(0.55f, 0.2f), 0.08f), orange);              // fat barrel
+                Fill(p => Circle(p, new Vector2(0.6f, 0.2f), 0.12f), dark);                                        // muzzle
+                Fill(p => Box(Rot(p - new Vector2(-0.3f, -0.25f), 18f), Vector2.zero, new Vector2(0.14f, 0.32f), 0.05f) + 0.03f, ink);
+                Fill(p => Box(Rot(p - new Vector2(-0.3f, -0.25f), 18f), Vector2.zero, new Vector2(0.14f, 0.32f), 0.05f), dark);
+                Fill(p => Mathf.Abs(Circle(p, new Vector2(0f, -0.12f), 0.13f)) - 0.03f, dark);
+                break;
+            }
+            case ItemKind.Sniper:
+            {
+                Color steel = new Color(0.2f, 0.21f, 0.25f), wood = new Color(0.32f, 0.22f, 0.13f), glass = new Color(0.5f, 0.75f, 0.9f);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.2f, 0.06f), new Vector2(0.78f, 0.045f)) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(0.2f, 0.06f), new Vector2(0.78f, 0.045f)), steel);         // long barrel
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.35f, -0.04f), new Vector2(0.42f, 0.09f), 0.03f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.35f, -0.04f), new Vector2(0.42f, 0.09f), 0.03f), wood);  // stock
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.7f, -0.2f), new Vector2(0.13f, 0.18f), 0.05f), wood);
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.15f, 0.24f), new Vector2(0.28f, 0.07f), 0.05f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, -20f), new Vector2(-0.15f, 0.24f), new Vector2(0.28f, 0.07f), 0.05f), steel);  // scope
+                Fill(p => Circle(Rot(p, -20f), new Vector2(0.12f, 0.24f), 0.05f), glass);
+                break;
+            }
+            case ItemKind.Shells:
+            {
+                Color red = new Color(0.8f, 0.15f, 0.1f), brass = new Color(0.8f, 0.62f, 0.25f);
+                for (int i = -1; i <= 1; i++)
+                {
+                    float x = i * 0.34f;
+                    Fill(p => Box(p, new Vector2(x, 0f), new Vector2(0.13f, 0.5f), 0.04f) + 0.03f, ink);
+                    Fill(p => Box(p, new Vector2(x, 0.08f), new Vector2(0.13f, 0.42f), 0.04f), red);
+                    Fill(p => Box(p, new Vector2(x, -0.36f), new Vector2(0.14f, 0.14f), 0.03f), brass);
+                }
+                break;
+            }
+            case ItemKind.AutoAmmo:
+            {
+                Color brass = new Color(0.8f, 0.62f, 0.25f), dark = new Color(0.12f, 0.12f, 0.14f);
+                Fill(p => Box(Rot(p, 15f), new Vector2(0f, -0.05f), new Vector2(0.2f, 0.62f), 0.05f) + 0.03f, ink);
+                Fill(p => Box(Rot(p, 15f), new Vector2(0f, -0.05f), new Vector2(0.2f, 0.62f), 0.05f), dark);       // a magazine
+                for (int i = 0; i < 4; i++) { float y = 0.45f - i * 0.22f; Fill(p => Box(Rot(p, 15f), new Vector2(0f, y), new Vector2(0.13f, 0.045f), 0.02f), brass); }
+                break;
+            }
+            case ItemKind.SniperAmmo:
+            {
+                Color brass = new Color(0.8f, 0.62f, 0.25f), tip = new Color(0.55f, 0.45f, 0.4f);
+                for (int i = -1; i <= 0; i++)
+                {
+                    float x = i * 0.36f + 0.18f;
+                    Fill(p => Box(p, new Vector2(x, -0.18f), new Vector2(0.09f, 0.5f), 0.04f) + 0.03f, ink);
+                    Fill(p => Box(p, new Vector2(x, -0.18f), new Vector2(0.09f, 0.5f), 0.04f), brass);
+                    Fill(p => Box(p, new Vector2(x, 0.48f), new Vector2(0.06f, 0.2f), 0.06f), tip);
                 }
                 break;
             }

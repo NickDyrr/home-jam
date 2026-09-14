@@ -37,6 +37,8 @@ public class Flare : MonoBehaviour
     public float BurnsUntil { get; private set; }
     public bool Lit => Time.time < BurnsUntil;
     public Vector3 Position => transform.position;
+    /// <summary>How far its light holds them off.</summary>
+    public float Radius { get; private set; } = LightRadius;
 
     private Light light_;
     private Renderer body;
@@ -71,7 +73,7 @@ public class Flare : MonoBehaviour
         {
             if (light_ != null) light_.enabled = false;
             if (body != null) body.enabled = false;
-            if (left < -60f) Destroy(gameObject);   // the spent stick stays a while
+            if (left < -60f) Destroy(gameObject);   // the spent stick, or the scorch, stays a while
             return;
         }
         // Sputter, and gutter out over the last three seconds.
@@ -83,10 +85,10 @@ public class Flare : MonoBehaviour
     /// <summary>True within a burning flare's light.</summary>
     public static bool Shelters(Vector3 p, float margin)
     {
-        float reach = LightRadius - margin;
         foreach (var f in All)
         {
             if (f == null || !f.Lit) continue;
+            float reach = f.Radius - margin;
             Vector3 d = f.transform.position - p; d.y = 0f;
             if (d.sqrMagnitude <= reach * reach) return true;
         }
@@ -201,7 +203,6 @@ public class ItemUse : MonoBehaviour
     {
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb == null || !CanAct()) return;
-        if (kb.fKey.wasPressedThisFrame) Use(ItemKind.Flare, AimPoint(throwRange));
         if (kb.gKey.wasPressedThisFrame) Use(ItemKind.Noisemaker, AimPoint(throwRange * 1.5f));
         if (kb.vKey.wasPressedThisFrame) Use(ItemKind.Trap, transform.position);
     }
@@ -212,7 +213,6 @@ public class ItemUse : MonoBehaviour
         if (!CanAct()) return;
         switch (kind)
         {
-            case ItemKind.Flare: Use(kind, transform.position + transform.forward * throwRange * 0.6f); break;
             case ItemKind.Noisemaker: Use(kind, transform.position + transform.forward * throwRange); break;
             case ItemKind.Trap: Use(kind, transform.position); break;
         }
@@ -225,16 +225,6 @@ public class ItemUse : MonoBehaviour
         Vector3 from = transform.position + Vector3.up * 1.1f + transform.forward * 0.4f;
         switch (kind)
         {
-            case ItemKind.Flare:
-            {
-                var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
-                vis.transform.localScale = new Vector3(0.05f, 0.16f, 0.05f);
-                var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.25f)); vis.GetComponent<Renderer>().sharedMaterial = m;
-                float secs = flareSeconds;
-                Thrown.Launch(vis, from, new Vector3(target.x, 0.05f, target.z), 0.6f, p => Flare.Ignite(p, secs));
-                FacePoint(target);
-                return true;
-            }
             case ItemKind.Noisemaker:
             {
                 var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());

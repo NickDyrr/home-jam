@@ -139,6 +139,43 @@ public class Pickup : MonoBehaviour
                     Part(PrimitiveType.Cylinder, new Vector3(i * 0.05f - 0.05f, 0.02f, 0f), new Vector3(0.018f, 0.36f, 0.018f), lay * Quaternion.Euler(0f, 0f, i * 6f), Lit(new Color(0.55f, 0.42f, 0.25f), 0.3f));
                 break;
             }
+            case ItemKind.Shotgun:
+            {
+                Quaternion lay = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.04f, 0.15f), new Vector3(0.06f, 0.04f, 0.5f), lay, Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f));
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.035f, -0.22f), new Vector3(0.05f, 0.08f, 0.3f), lay, Lit(new Color(0.45f, 0.28f, 0.15f), 0.3f));
+                break;
+            }
+            case ItemKind.FlareGun:
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.05f, 0f), new Vector3(0.09f, 0.08f, 0.24f), Quaternion.Euler(0f, Random.Range(0f, 360f), 90f), Lit(new Color(0.9f, 0.4f, 0.12f), 0.4f));
+                break;
+            case ItemKind.AutoRifle:
+            {
+                Quaternion lay = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.04f, 0.18f), new Vector3(0.035f, 0.04f, 0.55f), lay, Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f));
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.04f, -0.15f), new Vector3(0.05f, 0.07f, 0.35f), lay, Lit(new Color(0.1f, 0.1f, 0.12f), 0.4f, 0.6f));
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.09f, -0.02f), new Vector3(0.04f, 0.12f, 0.06f), lay * Quaternion.Euler(15f, 0f, 0f), Lit(new Color(0.1f, 0.1f, 0.12f), 0.4f, 0.6f));   // magazine, sticking up as it lies
+                break;
+            }
+            case ItemKind.Sniper:
+            {
+                Quaternion lay = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.035f, 0.3f), new Vector3(0.03f, 0.03f, 0.8f), lay, Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f));
+                Part(PrimitiveType.Cube, lay * new Vector3(0f, 0.035f, -0.25f), new Vector3(0.045f, 0.07f, 0.4f), lay, Lit(new Color(0.32f, 0.22f, 0.13f), 0.3f));
+                Part(PrimitiveType.Cylinder, lay * new Vector3(0f, 0.09f, -0.05f), new Vector3(0.035f, 0.12f, 0.035f), lay * Quaternion.Euler(90f, 0f, 0f), Lit(new Color(0.2f, 0.21f, 0.25f), 0.5f, 0.8f));   // scope
+                break;
+            }
+            case ItemKind.Shells:
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.05f, 0f), new Vector3(0.16f, 0.1f, 0.12f), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Lit(new Color(0.55f, 0.15f, 0.12f), 0.2f));
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.105f, 0f), new Vector3(0.1f, 0.004f, 0.06f), Quaternion.identity, Lit(new Color(0.8f, 0.62f, 0.25f), 0.5f, 0.8f));
+                break;
+            case ItemKind.AutoAmmo:
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.06f, 0f), new Vector3(0.08f, 0.12f, 0.2f), Quaternion.Euler(0f, Random.Range(0f, 360f), 75f), Lit(new Color(0.12f, 0.12f, 0.14f), 0.4f, 0.6f));
+                break;
+            case ItemKind.SniperAmmo:
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.04f, 0f), new Vector3(0.12f, 0.08f, 0.1f), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Lit(new Color(0.3f, 0.26f, 0.2f), 0.2f));
+                Part(PrimitiveType.Cube, new Vector3(0f, 0.085f, 0f), new Vector3(0.08f, 0.004f, 0.05f), Quaternion.identity, Lit(new Color(0.8f, 0.62f, 0.25f), 0.5f, 0.8f));
+                break;
             case ItemKind.Backpack:
                 Part(PrimitiveType.Cube, new Vector3(0f, 0.18f, 0f), new Vector3(0.36f, 0.36f, 0.26f), Quaternion.Euler(Random.Range(-15f, 15f), Random.Range(0f, 360f), 70f), Lit(new Color(0.42f, 0.38f, 0.28f), 0.05f));
                 Part(PrimitiveType.Cube, new Vector3(0.1f, 0.12f, 0.1f), new Vector3(0.22f, 0.18f, 0.12f), Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), Lit(new Color(0.32f, 0.28f, 0.2f), 0.05f));
@@ -219,6 +256,35 @@ public class Pickup : MonoBehaviour
             case ItemKind.Arrow:
                 if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.Bow, amount);
                 FloatingText.Show(at, "+" + amount + (amount == 1 ? " arrow" : " arrows"), 2f);
+                break;
+            case ItemKind.Shotgun:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.Shotgun, Mathf.Max(amount, 1));
+                FloatingText.Show(at, "A shotgun, and " + Mathf.Max(amount, 1) + " shells. Loud as anything.", 3f);
+                break;
+            case ItemKind.FlareGun:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.FlareGun, 0);
+                Inventory.Add(ItemKind.Flare, Mathf.Max(amount, 0));
+                FloatingText.Show(at, "A flare gun" + (amount > 0 ? ", and " + amount + " flares." : "."), 3f);
+                break;
+            case ItemKind.AutoRifle:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.AutoRifle, Mathf.Max(amount, 1));
+                FloatingText.Show(at, "An auto rifle, and " + Mathf.Max(amount, 1) + " rounds. Hold to fire.", 3f);
+                break;
+            case ItemKind.Sniper:
+                if (Pistol.Instance != null) Pistol.Instance.Give(WeaponKind.Sniper, Mathf.Max(amount, 1));
+                FloatingText.Show(at, "A sniper rifle, and " + Mathf.Max(amount, 1) + " rounds.", 3f);
+                break;
+            case ItemKind.Shells:
+                if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.Shotgun, amount);
+                FloatingText.Show(at, "+" + amount + " shells", 2.5f);
+                break;
+            case ItemKind.AutoAmmo:
+                if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.AutoRifle, amount);
+                FloatingText.Show(at, "+" + amount + " auto rounds", 2.5f);
+                break;
+            case ItemKind.SniperAmmo:
+                if (Pistol.Instance != null) Pistol.Instance.AddAmmo(WeaponKind.Sniper, amount);
+                FloatingText.Show(at, "+" + amount + " sniper rounds", 2.5f);
                 break;
             default:
                 Inventory.Add(kind, amount);

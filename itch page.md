@@ -21,7 +21,7 @@ When it came, the others ran for the trees. They're still out there. By day they
 - Sprinting is loud. Walking is quiet. They have to stumble into you.
 - Losses are permanent. Their fire goes out for good. They go for the person you are escorting first. If one gets you, the run is over.
 - Rounds are scarce: twelve to start, three for each survivor home, and crates out at the camps and landmarks.
-- Scavenge. Flares they will not cross, tin cans that pull them off the trail, bear traps, a medkit for the hurt one, a blanket for the frightened one, map scraps that mark a camp on the compass, journal pages from the ones who did not make it, and scrap for the workbench.
+- Scavenge. A flare gun and flares for a light they will not cross, tin cans that pull them off the trail, bear traps, a medkit for the hurt one, a blanket for the frightened one, map scraps that mark a camp on the compass, journal pages from the ones who did not make it, and scrap for the workbench.
 - The house grows with the people in it: a porch lantern that pushes them back, then a bell that pulls every one of them to the fence while you make a run.
 
 ## Controls
@@ -32,8 +32,8 @@ When it came, the others ran for the trees. They're still out there. By day they
 | Shift | Sprint (loud) |
 | Mouse / Left click | Aim / Shoot |
 | R | Reload |
-| F / G / V | Throw a flare / throw a can / set a bear trap |
-| 1 / 2 / 3 | Pistol / rifle / bow, once you have found them |
+| G / V | Throw a can / set a bear trap |
+| 1 to 7 | Pistol, rifle, bow, shotgun, flare gun, auto rifle, sniper, once you have found them |
 | E | Read the notebook, build at the workbench |
 | T | Wait for dark (at home, by day) |
 | B | Ring the bell (second house level, from the yard) |

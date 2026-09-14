@@ -2,20 +2,23 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>What she can shoot with. The pistol is hers from the start; the others are found.</summary>
-public enum WeaponKind { Pistol, Rifle, Bow }
+/// <summary>What she can shoot with. The pistol is hers from the start; the rest are found.</summary>
+public enum WeaponKind { Pistol, Rifle, Bow, Shotgun, FlareGun, AutoRifle, Sniper }
 
 /// <summary>
-/// Her weapons. Started as the one pistol and kept the name: this component now holds the
-/// pistol, the rifle and the bow, with their own ammo, and whichever is in hand fires toward
-/// the mouse. A hit slows a stalker and, once it has taken enough this chase, sends it off;
-/// nothing here kills. The rifle hits for two and is loud; the bow is quiet and its arrows
-/// can be picked back up.
+/// Her weapons. Started as the one pistol and kept the name: this component now holds every
+/// weapon with its own ammo, and whichever is in hand fires toward the mouse. A hit slows a
+/// stalker and, once it has taken enough this chase, sends it off; nothing here kills.
 ///
-/// Animation: a shot fires the "Shoot" trigger (upper-body aim pose for the weapon in hand,
-/// chosen by the "Weapon" float) and marks her Armed; the base locomotion blends to the
-/// weapon's stance on "Weapon" and "Armed". Recoil is done on the bones in LateUpdate, and
-/// the pistol's reload is posed there too; the rifle has a reload clip.
+/// Rifle: hits for two, loud, a real reload clip. Bow: silent, one arrow at a time, arrows
+/// that miss can be picked back up. Shotgun: two shells, short and wide. Flare gun: puts a
+/// flare thirty metres out. Auto rifle: hold to fire, a spray. Sniper: three rounds, seventy
+/// metres, one hit sends anything running.
+///
+/// Animation: a shot fires the "Shoot" trigger (upper-body aim pose for the stance, chosen by
+/// the "Weapon" float: 0 pistol, 1 rifle, 2 bow) and marks her Armed; the base locomotion
+/// blends to the stance on "Weapon" and "Armed". Recoil is done on the bones in LateUpdate,
+/// and the pistol's reload is posed there too; the rifles share the rifle reload clip.
 /// </summary>
 public class Pistol : MonoBehaviour
 {
@@ -37,12 +40,24 @@ public class Pistol : MonoBehaviour
         public float volume = 0.45f, pitch = 1f;
         public float kickScale = 1f;
         public bool flash = true;
+        [Tooltip("Which animator stance it uses: 0 pistol, 1 rifle, 2 bow.")]
+        public int stance = 0;
+        [Tooltip("Degrees of scatter on each shot.")]
+        public float spread = 0f;
+        [Tooltip("Keeps firing while the button is held.")]
+        public bool automatic = false;
     }
+
+    private const int Kinds = 7;
 
     [Header("Weapons")]
     [SerializeField] private WeaponStats pistol = new WeaponStats();
-    [SerializeField] private WeaponStats rifle = new WeaponStats { magazine = 5, fireCooldown = 1.1f, reloadSeconds = 2.7f, range = 40f, shotRadius = 0.35f, knockback = 11f, hitWeight = 2, noiseRadius = 48f, volume = 0.6f, pitch = 0.8f, kickScale = 1.6f };
-    [SerializeField] private WeaponStats bow = new WeaponStats { magazine = 1, fireCooldown = 0.9f, reloadSeconds = 1.0f, range = 30f, shotRadius = 0.3f, knockback = 4f, hitWeight = 1, noiseRadius = 0f, volume = 0f, pitch = 1f, kickScale = 0.5f, flash = false };
+    [SerializeField] private WeaponStats rifle = new WeaponStats { magazine = 5, fireCooldown = 1.1f, reloadSeconds = 2.7f, range = 40f, shotRadius = 0.35f, knockback = 11f, hitWeight = 2, noiseRadius = 48f, volume = 0.6f, pitch = 0.8f, kickScale = 1.6f, stance = 1 };
+    [SerializeField] private WeaponStats bow = new WeaponStats { magazine = 1, fireCooldown = 0.9f, reloadSeconds = 1.0f, range = 30f, shotRadius = 0.3f, knockback = 4f, hitWeight = 1, noiseRadius = 0f, volume = 0f, pitch = 1f, kickScale = 0.5f, flash = false, stance = 2 };
+    [SerializeField] private WeaponStats shotgun = new WeaponStats { magazine = 2, fireCooldown = 0.8f, reloadSeconds = 2.2f, range = 12f, shotRadius = 1.4f, knockback = 15f, hitWeight = 2, noiseRadius = 60f, volume = 0.8f, pitch = 0.65f, kickScale = 2.2f, stance = 1 };
+    [SerializeField] private WeaponStats flareGun = new WeaponStats { magazine = 1, fireCooldown = 0.6f, reloadSeconds = 1.6f, range = 30f, shotRadius = 0f, knockback = 0f, hitWeight = 0, noiseRadius = 14f, volume = 0.3f, pitch = 1.3f, kickScale = 0.8f, stance = 0 };
+    [SerializeField] private WeaponStats autoRifle = new WeaponStats { magazine = 30, fireCooldown = 0.1f, reloadSeconds = 2.5f, range = 30f, shotRadius = 0.3f, knockback = 4f, hitWeight = 1, noiseRadius = 45f, volume = 0.4f, pitch = 1.15f, kickScale = 0.6f, stance = 1, spread = 4f, automatic = true };
+    [SerializeField] private WeaponStats sniper = new WeaponStats { magazine = 3, fireCooldown = 1.6f, reloadSeconds = 3.2f, range = 70f, shotRadius = 0.25f, knockback = 18f, hitWeight = 3, noiseRadius = 70f, volume = 0.7f, pitch = 0.6f, kickScale = 2.5f, stance = 1 };
     [SerializeField] private int startReserve = 6;
 
     [Header("Rig")]
@@ -72,16 +87,46 @@ public class Pistol : MonoBehaviour
 
     // ---- state ----
     public WeaponKind Current { get; private set; } = WeaponKind.Pistol;
-    private readonly int[] loaded = new int[3], reserve = new int[3];
-    private readonly bool[] owned = { true, false, false };
+    private readonly int[] loaded = new int[Kinds];
+    // Spare ammo pools: 0 pistol rounds, 1 rifle rounds, 2 arrows, 3 shells, 4 auto rounds, 5 sniper rounds. The flare gun fires the flares she carries.
+    private readonly int[] pool = new int[6];
+    private readonly bool[] owned = { true, false, false, false, false, false, false };
 
-    public int Loaded => loaded[(int)Current];
-    public int Reserve => reserve[(int)Current];
-    public int LoadedOf(WeaponKind k) => loaded[(int)k];
-    public int ReserveOf(WeaponKind k) => reserve[(int)k];
+    private static int Pool(WeaponKind k)
+    {
+        switch (k)
+        {
+            case WeaponKind.Pistol: return 0;
+            case WeaponKind.Rifle: return 1;
+            case WeaponKind.Bow: return 2;
+            case WeaponKind.Shotgun: return 3;
+            case WeaponKind.AutoRifle: return 4;
+            case WeaponKind.Sniper: return 5;
+        }
+        return -1;
+    }
+
+    public int Loaded => LoadedOf(Current);
+    public int Reserve => ReserveOf(Current);
+    public int LoadedOf(WeaponKind k) => k == WeaponKind.FlareGun ? Mathf.Min(1, Inventory.Count(ItemKind.Flare)) : loaded[(int)k];
+    public int ReserveOf(WeaponKind k) { int p = Pool(k); return k == WeaponKind.FlareGun ? Mathf.Max(0, Inventory.Count(ItemKind.Flare) - 1) : p < 0 ? 0 : pool[p]; }
     public bool Owns(WeaponKind k) => owned[(int)k];
     public bool IsReloading { get; private set; }
-    private WeaponStats Stats => Current == WeaponKind.Rifle ? rifle : Current == WeaponKind.Bow ? bow : pistol;
+    private WeaponStats StatsOf(WeaponKind k)
+    {
+        switch (k)
+        {
+            case WeaponKind.Rifle: return rifle;
+            case WeaponKind.Bow: return bow;
+            case WeaponKind.Shotgun: return shotgun;
+            case WeaponKind.FlareGun: return flareGun;
+            case WeaponKind.AutoRifle: return autoRifle;
+            case WeaponKind.Sniper: return sniper;
+        }
+        return pistol;
+    }
+    private WeaponStats Stats => StatsOf(Current);
+    public bool UsesAmmo(WeaponKind k) => true;
 
     /// <summary>True for a short window after the last shot; movement uses it to forbid running.</summary>
     public bool IsArmed => Time.time - lastShotTime < armedSeconds;
@@ -103,15 +148,16 @@ public class Pistol : MonoBehaviour
     private Quaternion socketBaseRot;
     private Vector3 socketBasePos;
     private Transform rUpperArm, lUpperArm, rLowerArm, lLowerArm, chest;
-    private GameObject pistolModel, rifleModel, bowModel;
-    private Transform rifleMuzzle, bowMuzzle;
+    private GameObject pistolModel;
+    private readonly GameObject[] models = new GameObject[Kinds];
+    private readonly Transform[] muzzles = new Transform[Kinds];
 
     private void Awake()
     {
         Instance = this;
         movement = GetComponent<PlayerMovement>();
         cam = Camera.main;
-        loaded[0] = pistol.magazine; reserve[0] = startReserve;
+        loaded[0] = pistol.magazine; pool[0] = startReserve;
 
         if (animator == null) animator = GetComponentInChildren<Animator>();
         if (animator != null)
@@ -137,6 +183,7 @@ public class Pistol : MonoBehaviour
             socketBasePos = gunSocket.localPosition;
             if (gunSocket.childCount > 0) pistolModel = gunSocket.GetChild(0).gameObject;
         }
+        models[0] = pistolModel; muzzles[0] = muzzle;
         SetFlash(false);
         ShowWeapon();
     }
@@ -152,11 +199,16 @@ public class Pistol : MonoBehaviour
     public void Give(WeaponKind k, int ammo)
     {
         owned[(int)k] = true;
-        AddAmmo(k, ammo);
+        if (ammo > 0) AddAmmo(k, ammo);
         Equip(k);
     }
 
-    public void AddAmmo(WeaponKind k, int n) { reserve[(int)k] += n; if (k == WeaponKind.Bow && loaded[2] == 0 && reserve[2] > 0) { loaded[2] = 1; reserve[2]--; } }
+    public void AddAmmo(WeaponKind k, int n)
+    {
+        int p = Pool(k); if (p < 0) return;
+        pool[p] += n;
+        if (k == WeaponKind.Bow && loaded[(int)k] == 0 && pool[p] > 0) { loaded[(int)k] = 1; pool[p]--; }   // one nocked straight away
+    }
 
     /// <summary>Rounds earned at home: pistol rounds. Only called when a survivor is through the door.</summary>
     public void AddReserve(int rounds) { AddAmmo(WeaponKind.Pistol, rounds); }
@@ -167,12 +219,40 @@ public class Pistol : MonoBehaviour
         if (Current == k) return true;
         Current = k;
         ShowWeapon();
-        if (animator != null) animator.SetFloat(WeaponHash, (int)k);
+        if (animator != null) animator.SetFloat(WeaponHash, Stats.stance);
         FloatingText.Show(transform.position + Vector3.up * 1.6f, ItemInfo.Name(WeaponItem(k)), 1.2f);
         return true;
     }
 
-    public static ItemKind WeaponItem(WeaponKind k) => k == WeaponKind.Rifle ? ItemKind.Rifle : k == WeaponKind.Bow ? ItemKind.Bow : ItemKind.Pistol;
+    public static ItemKind WeaponItem(WeaponKind k)
+    {
+        switch (k)
+        {
+            case WeaponKind.Rifle: return ItemKind.Rifle;
+            case WeaponKind.Bow: return ItemKind.Bow;
+            case WeaponKind.Shotgun: return ItemKind.Shotgun;
+            case WeaponKind.FlareGun: return ItemKind.FlareGun;
+            case WeaponKind.AutoRifle: return ItemKind.AutoRifle;
+            case WeaponKind.Sniper: return ItemKind.Sniper;
+        }
+        return ItemKind.Pistol;
+    }
+
+    public static WeaponKind KindOf(ItemKind i)
+    {
+        switch (i)
+        {
+            case ItemKind.Rifle: return WeaponKind.Rifle;
+            case ItemKind.Bow: return WeaponKind.Bow;
+            case ItemKind.Shotgun: return WeaponKind.Shotgun;
+            case ItemKind.FlareGun: return WeaponKind.FlareGun;
+            case ItemKind.AutoRifle: return WeaponKind.AutoRifle;
+            case ItemKind.Sniper: return WeaponKind.Sniper;
+        }
+        return WeaponKind.Pistol;
+    }
+
+    public static bool IsWeaponItem(ItemKind i) => i == ItemKind.Pistol || i == ItemKind.Rifle || i == ItemKind.Bow || i == ItemKind.Shotgun || i == ItemKind.FlareGun || i == ItemKind.AutoRifle || i == ItemKind.Sniper;
 
     private static Material Lit(Color c, float smooth = 0.35f, float metal = 0.2f)
     {
@@ -189,24 +269,68 @@ public class Pistol : MonoBehaviour
         return g;
     }
 
-    /// <summary>The rifle and bow have no models yet: they are built from primitives in the pistol's frame, in metres.</summary>
-    private void BuildModels()
+    /// <summary>A model root in the pistol's frame on the gun socket, scaled so one unit is one metre.</summary>
+    private GameObject InPistolFrame(string name)
     {
-        if (rifleModel != null || gunSocket == null || pistolModel == null) return;
-        // The pistol's barrel axis, in socket space, and a scale that makes one unit one metre.
         Vector3 fwd = muzzle != null ? gunSocket.InverseTransformDirection((muzzle.position - pistolModel.transform.position).normalized) : Vector3.forward;
         float k = 1f / Mathf.Max(0.0001f, gunSocket.lossyScale.x);
-        Quaternion along = Quaternion.LookRotation(fwd, gunSocket.InverseTransformDirection(Vector3.up));
-        Vector3 basePos = pistolModel.transform.localPosition;
+        var go = new GameObject(name); go.transform.SetParent(gunSocket, false);
+        go.transform.localPosition = pistolModel.transform.localPosition;
+        go.transform.localRotation = Quaternion.LookRotation(fwd, gunSocket.InverseTransformDirection(Vector3.up));
+        go.transform.localScale = Vector3.one * k;
+        return go;
+    }
 
-        var rm = new GameObject("RifleModel"); rm.transform.SetParent(gunSocket, false); rm.transform.localPosition = basePos; rm.transform.localRotation = along; rm.transform.localScale = Vector3.one * k;
-        var dark = Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f); var wood = Lit(new Color(0.36f, 0.24f, 0.14f), 0.3f, 0f);
-        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.28f), new Vector3(0.035f, 0.04f, 0.62f), Quaternion.identity, dark);        // barrel and receiver
-        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.005f, 0.22f), new Vector3(0.045f, 0.05f, 0.34f), Quaternion.identity, wood);      // forestock
-        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.16f), new Vector3(0.04f, 0.09f, 0.24f), Quaternion.Euler(-12f, 0f, 0f), wood); // stock
-        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.06f, 0.1f), new Vector3(0.02f, 0.03f, 0.1f), Quaternion.identity, dark);          // sight
-        rifleMuzzle = new GameObject("RifleMuzzle").transform; rifleMuzzle.SetParent(rm.transform, false); rifleMuzzle.localPosition = new Vector3(0f, 0.02f, 0.6f);
-        rifleModel = rm;
+    private Transform MuzzleAt(GameObject model, Vector3 local)
+    {
+        var t = new GameObject("Muzzle").transform; t.SetParent(model.transform, false); t.localPosition = local; return t;
+    }
+
+    /// <summary>The found weapons have no models yet: they are built from primitives, in metres. Real models can replace any.</summary>
+    private void BuildModels()
+    {
+        if (models[1] != null || gunSocket == null || pistolModel == null) return;
+        var dark = Lit(new Color(0.16f, 0.16f, 0.18f), 0.5f, 0.8f); var black = Lit(new Color(0.1f, 0.1f, 0.12f), 0.4f, 0.6f);
+        var wood = Lit(new Color(0.36f, 0.24f, 0.14f), 0.3f, 0f); var darkWood = Lit(new Color(0.3f, 0.2f, 0.12f), 0.3f, 0f);
+
+        // Rifle.
+        var rm = InPistolFrame("RifleModel");
+        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.28f), new Vector3(0.035f, 0.04f, 0.62f), Quaternion.identity, dark);
+        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.005f, 0.22f), new Vector3(0.045f, 0.05f, 0.34f), Quaternion.identity, wood);
+        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.16f), new Vector3(0.04f, 0.09f, 0.24f), Quaternion.Euler(-12f, 0f, 0f), wood);
+        Part(rm.transform, PrimitiveType.Cube, new Vector3(0f, 0.06f, 0.1f), new Vector3(0.02f, 0.03f, 0.1f), Quaternion.identity, dark);
+        models[(int)WeaponKind.Rifle] = rm; muzzles[(int)WeaponKind.Rifle] = MuzzleAt(rm, new Vector3(0f, 0.02f, 0.6f));
+
+        // Shotgun: shorter, two barrels side by side, fat stock.
+        var sg = InPistolFrame("ShotgunModel");
+        Part(sg.transform, PrimitiveType.Cube, new Vector3(-0.02f, 0.02f, 0.22f), new Vector3(0.035f, 0.035f, 0.5f), Quaternion.identity, dark);
+        Part(sg.transform, PrimitiveType.Cube, new Vector3(0.02f, 0.02f, 0.22f), new Vector3(0.035f, 0.035f, 0.5f), Quaternion.identity, dark);
+        Part(sg.transform, PrimitiveType.Cube, new Vector3(0f, -0.01f, 0.16f), new Vector3(0.075f, 0.05f, 0.24f), Quaternion.identity, wood);
+        Part(sg.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.15f), new Vector3(0.05f, 0.1f, 0.26f), Quaternion.Euler(-12f, 0f, 0f), wood);
+        models[(int)WeaponKind.Shotgun] = sg; muzzles[(int)WeaponKind.Shotgun] = MuzzleAt(sg, new Vector3(0f, 0.02f, 0.48f));
+
+        // Flare gun: a stubby orange pistol.
+        var fg = InPistolFrame("FlareGunModel");
+        Part(fg.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.08f), new Vector3(0.05f, 0.06f, 0.2f), Quaternion.identity, Lit(new Color(0.9f, 0.4f, 0.12f), 0.4f, 0f));
+        Part(fg.transform, PrimitiveType.Cube, new Vector3(0f, -0.06f, -0.03f), new Vector3(0.035f, 0.1f, 0.05f), Quaternion.Euler(15f, 0f, 0f), Lit(new Color(0.25f, 0.12f, 0.06f), 0.3f, 0f));
+        models[(int)WeaponKind.FlareGun] = fg; muzzles[(int)WeaponKind.FlareGun] = MuzzleAt(fg, new Vector3(0f, 0.02f, 0.2f));
+
+        // Auto rifle: black, boxy, a curved magazine hanging under it.
+        var ar = InPistolFrame("AutoRifleModel");
+        Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.26f), new Vector3(0.035f, 0.04f, 0.5f), Quaternion.identity, dark);
+        Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.01f, -0.02f), new Vector3(0.05f, 0.07f, 0.34f), Quaternion.identity, black);
+        Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, -0.09f, 0.02f), new Vector3(0.035f, 0.14f, 0.06f), Quaternion.Euler(15f, 0f, 0f), black);
+        Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, -0.03f, -0.24f), new Vector3(0.035f, 0.06f, 0.16f), Quaternion.identity, dark);
+        Part(ar.transform, PrimitiveType.Cube, new Vector3(0f, 0.065f, 0f), new Vector3(0.02f, 0.02f, 0.2f), Quaternion.identity, dark);
+        models[(int)WeaponKind.AutoRifle] = ar; muzzles[(int)WeaponKind.AutoRifle] = MuzzleAt(ar, new Vector3(0f, 0.02f, 0.52f));
+
+        // Sniper: a long barrel, dark stock, a scope on top.
+        var sn = InPistolFrame("SniperModel");
+        Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, 0.02f, 0.38f), new Vector3(0.03f, 0.03f, 0.84f), Quaternion.identity, dark);
+        Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, -0.005f, 0.14f), new Vector3(0.045f, 0.05f, 0.44f), Quaternion.identity, darkWood);
+        Part(sn.transform, PrimitiveType.Cube, new Vector3(0f, -0.05f, -0.2f), new Vector3(0.04f, 0.09f, 0.26f), Quaternion.Euler(-12f, 0f, 0f), darkWood);
+        Part(sn.transform, PrimitiveType.Cylinder, new Vector3(0f, 0.075f, 0.02f), new Vector3(0.035f, 0.11f, 0.035f), Quaternion.Euler(90f, 0f, 0f), dark);
+        models[(int)WeaponKind.Sniper] = sn; muzzles[(int)WeaponKind.Sniper] = MuzzleAt(sn, new Vector3(0f, 0.02f, 0.8f));
 
         // The bow sits in her left hand, a tall arc with a string.
         Transform hand = lHand != null ? lHand : gunSocket;
@@ -229,19 +353,16 @@ public class Pistol : MonoBehaviour
         }
         Vector3 top = new Vector3(0f, Mathf.Sin(half) * R, Mathf.Cos(half) * R - R * 0.75f), bot = new Vector3(0f, -Mathf.Sin(half) * R, Mathf.Cos(half) * R - R * 0.75f);
         Part(bm.transform, PrimitiveType.Cylinder, (top + bot) * 0.5f, new Vector3(0.006f, (top - bot).magnitude * 0.5f, 0.006f), Quaternion.FromToRotation(Vector3.up, (top - bot).normalized), str);
-        bowMuzzle = new GameObject("BowMuzzle").transform; bowMuzzle.SetParent(bm.transform, false); bowMuzzle.localPosition = new Vector3(0f, 0f, 0.1f);
-        bowModel = bm;
+        models[(int)WeaponKind.Bow] = bm; muzzles[(int)WeaponKind.Bow] = MuzzleAt(bm, new Vector3(0f, 0f, 0.1f));
     }
 
     private void ShowWeapon()
     {
         BuildModels();
-        if (pistolModel != null) pistolModel.SetActive(Current == WeaponKind.Pistol);
-        if (rifleModel != null) rifleModel.SetActive(Current == WeaponKind.Rifle);
-        if (bowModel != null) bowModel.SetActive(Current == WeaponKind.Bow);
+        for (int i = 0; i < Kinds; i++) if (models[i] != null) models[i].SetActive(i == (int)Current);
     }
 
-    private Transform MuzzleNow => Current == WeaponKind.Rifle && rifleMuzzle != null ? rifleMuzzle : Current == WeaponKind.Bow && bowMuzzle != null ? bowMuzzle : muzzle;
+    private Transform MuzzleNow => muzzles[(int)Current] != null ? muzzles[(int)Current] : muzzle;
 
     private void Update()
     {
@@ -253,8 +374,13 @@ public class Pistol : MonoBehaviour
             if (kb.digit1Key.wasPressedThisFrame) Equip(WeaponKind.Pistol);
             if (kb.digit2Key.wasPressedThisFrame) Equip(WeaponKind.Rifle);
             if (kb.digit3Key.wasPressedThisFrame) Equip(WeaponKind.Bow);
+            if (kb.digit4Key.wasPressedThisFrame) Equip(WeaponKind.Shotgun);
+            if (kb.digit5Key.wasPressedThisFrame) Equip(WeaponKind.FlareGun);
+            if (kb.digit6Key.wasPressedThisFrame) Equip(WeaponKind.AutoRifle);
+            if (kb.digit7Key.wasPressedThisFrame) Equip(WeaponKind.Sniper);
         }
-        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil && !GameHUD.MouseOverBar()) TryFire();
+        bool trigger = mouse != null && (Stats.automatic ? mouse.leftButton.isPressed : mouse.leftButton.wasPressedThisFrame);
+        if (trigger && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil && !GameHUD.MouseOverBar()) TryFire();
         if (kb != null && kb.rKey.wasPressedThisFrame) TryReload();
 
         // Face the cursor for a moment after a shot so the pose reads.
@@ -329,18 +455,16 @@ public class Pistol : MonoBehaviour
     {
         if (lHand == null && animator != null && animator.isHuman) lHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
         bool pistolReload = IsReloading && Current == WeaponKind.Pistol;
-        // The old one leaves her hand at the bottom of the swing.
         if (pistolReload && !magDropped && p >= 0.3f)
         {
             magDropped = true;
             Vector3 from = lHand != null ? lHand.position : transform.position + Vector3.up * 0.8f;
             var dropped = MakeMag();
-            dropped.transform.localScale = MagSize * 2.1f;   // her rig is scaled up; the one on the snow matches what was in her hand
+            dropped.transform.localScale = MagSize * 2.1f;
             dropped.transform.position = from;
             dropped.transform.rotation = Random.rotation;
             dropped.AddComponent<DroppedMag>();
         }
-        // The fresh one is in her hand while the arm comes back up.
         bool holding = pistolReload && p >= 0.4f && p < 0.85f && lHand != null;
         if (holding && heldMag == null)
         {
@@ -358,10 +482,11 @@ public class Pistol : MonoBehaviour
         kick = Mathf.Lerp(kick, 0f, 1f - Mathf.Exp(-kickRecover * Time.deltaTime));
         if (kick < 0.001f) kick = 0f;
 
-        // Pistol reload: the left arm drops away from the gun and comes back with the next magazine.
+        // Reloads posed by hand: the pistol's magazine swap, and the same left-arm pull for the shotgun and flare gun.
         float phase = ReloadPhase;
         ReloadProps(phase);
-        float down = IsReloading && Current == WeaponKind.Pistol ? ArmDown(phase) : 0f;
+        bool posedReload = IsReloading && (Current == WeaponKind.Pistol || Current == WeaponKind.Shotgun || Current == WeaponKind.FlareGun);
+        float down = posedReload ? ArmDown(phase) : 0f;
         if (down > 0f)
         {
             Vector3 axis = transform.right;
@@ -400,25 +525,44 @@ public class Pistol : MonoBehaviour
 
         if (Loaded <= 0)
         {
-            if (Current == WeaponKind.Bow && Reserve > 0) { TryReload(); return; }   // nock one
+            if ((Current == WeaponKind.Bow && Reserve > 0) || (Current != WeaponKind.Bow && Current != WeaponKind.FlareGun && Reserve > 0 && w.automatic)) { TryReload(); return; }
+            if (Current == WeaponKind.Bow && Reserve > 0) { TryReload(); return; }
             Debug.Log("Click. Empty.");
             nextFireTime = Time.time + 0.2f;
             return;
         }
 
-        loaded[(int)Current]--;
+        if (Current == WeaponKind.FlareGun) { if (!Inventory.Take(ItemKind.Flare)) return; }
+        else loaded[(int)Current]--;
         nextFireTime = Time.time + w.fireCooldown;
         kick = 1f;
-        if (Current == WeaponKind.Bow)
+        bool quiet = Current == WeaponKind.Bow;
+        if (quiet)
         {
             if (AudioManager.Instance != null && AudioManager.Instance.Bell != null) AudioManager.Instance.Play(AudioManager.Instance.Bell, transform.position, 0.12f, 20f, 3.2f);   // the string, near enough
         }
-        else if (AudioManager.Instance != null) AudioManager.Instance.Play(AudioManager.Instance.Gunshot, transform.position, w.volume, 200f, w.pitch * Random.Range(0.95f, 1.05f));
+        else if (AudioManager.Instance != null && w.volume > 0f) AudioManager.Instance.Play(AudioManager.Instance.Gunshot, transform.position, w.volume, 200f, w.pitch * Random.Range(0.95f, 1.05f));
         if (w.noiseRadius > 0f) Stalker.Noise(transform.position, w.noiseRadius);   // a shot carries: the far ones come. Only the one it hits runs (Stalker.Hit).
         if (w.flash) { flashUntil = Time.time + flashSeconds; SetFlash(true); }
 
+        Transform mz = MuzzleNow;
         Vector3 origin = transform.position + Vector3.up * 0.9f + aimDir * 0.7f;
-        RaycastHit[] hits = Physics.SphereCastAll(origin, w.shotRadius, aimDir, w.range, ~0, QueryTriggerInteraction.Ignore);
+
+        if (Current == WeaponKind.FlareGun)
+        {
+            // A flare, fired: it arcs out to where she aimed and burns there twenty seconds.
+            Vector3 to = AimPointClamped(w.range);
+            var vis = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(vis.GetComponent<Collider>());
+            vis.transform.localScale = new Vector3(0.05f, 0.16f, 0.05f);
+            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.25f)); vis.GetComponent<Renderer>().sharedMaterial = m;
+            Thrown.Launch(vis, mz != null ? mz.position : origin, new Vector3(to.x, 0.05f, to.z), 0.5f, p => Flare.Ignite(p, 20f));
+            return;
+        }
+
+        // Scatter, if the weapon has any.
+        Vector3 dir = w.spread > 0f ? Quaternion.Euler(0f, Random.Range(-w.spread, w.spread), 0f) * aimDir : aimDir;
+
+        RaycastHit[] hits = Physics.SphereCastAll(origin, w.shotRadius, dir, w.range, ~0, QueryTriggerInteraction.Ignore);
         float best = float.MaxValue;
         Stalker target = null;
         foreach (RaycastHit h in hits)
@@ -426,30 +570,37 @@ public class Pistol : MonoBehaviour
             if (h.transform.root == transform.root) continue;
             Stalker s = h.collider.GetComponentInParent<Stalker>();
             if (s == null) continue;
+            if (Current == WeaponKind.Shotgun) { s.Hit(dir * w.knockback, w.hitWeight); if (h.distance < best) { best = h.distance; target = s; } continue; }   // the spread takes everything in it
             if (h.distance < best) { best = h.distance; target = s; }
         }
-        if (target != null) target.Hit(aimDir * w.knockback, w.hitWeight);
+        if (target != null && Current != WeaponKind.Shotgun) target.Hit(dir * w.knockback, w.hitWeight);
 
         // Where it stopped: the stalker, a tree, the snow, or the end of its reach.
-        Vector3 stop = origin + aimDir * w.range; float stopAt = w.range; bool hitSomething = target != null;
-        foreach (RaycastHit h in Physics.RaycastAll(origin, aimDir, w.range, ~0, QueryTriggerInteraction.Ignore))
+        Vector3 stop = origin + dir * w.range; float stopAt = w.range; bool hitSomething = target != null;
+        foreach (RaycastHit h in Physics.RaycastAll(origin, dir, w.range, ~0, QueryTriggerInteraction.Ignore))
         {
             if (h.transform.root == transform.root || h.collider.GetComponentInParent<Stalker>() != null) continue;
             if (h.distance < stopAt) { stopAt = h.distance; stop = h.point; }
         }
-        if (target != null && best < stopAt) { stop = origin + aimDir * best; stopAt = best; }
-        Transform mz = MuzzleNow;
-        if (Current == WeaponKind.Bow)
+        if (target != null && best < stopAt) { stop = origin + dir * best; stopAt = best; }
+        Vector3 from = mz != null ? mz.position : origin;
+        if (quiet) Arrow.Loose(from, stop, dir, target == null || Random.value < 0.5f);
+        else if (Current == WeaponKind.Shotgun)
         {
-            // The arrow flies and sticks; one that misses can be picked back up.
-            Arrow.Loose(mz != null ? mz.position : origin, stop, aimDir, target == null || Random.value < 0.5f);
+            for (int i = 0; i < 5; i++)
+            {
+                Vector3 d = Quaternion.Euler(Random.Range(-3f, 3f), Random.Range(-9f, 9f), 0f) * dir;
+                Tracer.Spawn(from, origin + d * Mathf.Min(stopAt, w.range) * Random.Range(0.7f, 1f), hitSomething);
+            }
         }
-        else Tracer.Spawn(mz != null ? mz.position : origin, stop, hitSomething);
+        else if (Current == WeaponKind.Sniper) { Tracer.Spawn(from, stop, hitSomething); Tracer.Spawn(from, stop, hitSomething); }   // a brighter line
+        else Tracer.Spawn(from, stop, hitSomething);
     }
 
     private void TryReload()
     {
-        if (IsReloading || Reserve <= 0 || Loaded >= Stats.magazine) return;
+        if (IsReloading || Current == WeaponKind.FlareGun) return;   // the flare gun takes the next flare by itself
+        if (Reserve <= 0 || Loaded >= Stats.magazine) return;
         StartCoroutine(Reload());
     }
 
@@ -458,13 +609,17 @@ public class Pistol : MonoBehaviour
         IsReloading = true;
         reloadStart = Time.time; reloadDuration = Stats.reloadSeconds * HomeBonuses.ReloadMultiplier; magDropped = false;
         lastShotTime = Time.time;   // arms up for it, as if she had just fired
-        if (animator != null && Current == WeaponKind.Rifle && HasParameter(animator, "Reload")) animator.SetTrigger("Reload");
+        bool rifleClip = Current == WeaponKind.Rifle || Current == WeaponKind.AutoRifle || Current == WeaponKind.Sniper;
+        if (animator != null && rifleClip && HasParameter(animator, "Reload")) animator.SetTrigger("Reload");
         yield return new WaitForSeconds(reloadDuration);
-        int i = (int)Current;
-        int need = Stats.magazine - loaded[i];
-        int take = Mathf.Min(need, reserve[i]);
-        loaded[i] += take;
-        reserve[i] -= take;
+        int i = (int)Current, p = Pool(Current);
+        if (p >= 0)
+        {
+            int need = Stats.magazine - loaded[i];
+            int take = Mathf.Min(need, pool[p]);
+            loaded[i] += take;
+            pool[p] -= take;
+        }
         IsReloading = false;
     }
 
@@ -477,9 +632,9 @@ public class Pistol : MonoBehaviour
     /// <summary>Rounds dropped in the snow when she is taken. Spare first, then what is loaded. Returns how many went.</summary>
     public int LoseRounds(int rounds)
     {
-        int i = (int)Current;
-        int fromReserve = Mathf.Min(rounds, reserve[i]);
-        reserve[i] -= fromReserve;
+        int i = (int)Current, p = Pool(Current); if (p < 0) return 0;
+        int fromReserve = Mathf.Min(rounds, pool[p]);
+        pool[p] -= fromReserve;
         int fromLoaded = Mathf.Min(rounds - fromReserve, loaded[i]);
         loaded[i] -= fromLoaded;
         return fromReserve + fromLoaded;
@@ -497,6 +652,18 @@ public class Pistol : MonoBehaviour
         Vector3 dir = ray.GetPoint(enter) - transform.position;
         dir.y = 0f;
         return dir.sqrMagnitude > 0.01f ? dir.normalized : fallback;
+    }
+
+    private Vector3 AimPointClamped(float maxRange)
+    {
+        Vector3 fallback = transform.position + aimDir * maxRange * 0.6f;
+        if (cam == null || Mouse.current == null) return fallback;
+        Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
+        Plane ground = new Plane(Vector3.up, new Vector3(0f, transform.position.y, 0f));
+        if (!ground.Raycast(ray, out float enter)) return fallback;
+        Vector3 d = ray.GetPoint(enter) - transform.position; d.y = 0f;
+        if (d.magnitude > maxRange) d = d.normalized * maxRange;
+        return transform.position + d;
     }
 
     private void SetFlash(bool on)
@@ -531,7 +698,6 @@ public class Arrow : MonoBehaviour
         t += Time.deltaTime / 0.12f;
         if (t < 1f) { transform.position = Vector3.Lerp(from, to, t); return; }
         transform.position = to;
-        // Stuck. On the snow it can be taken back; in something else it is spent.
         if (recoverable)
         {
             var p = Pickup.Spawn(ItemKind.Arrow, new Vector3(to.x, 0f, to.z), 1);
