@@ -30,6 +30,9 @@ public class Stalker : MonoBehaviour
     [SerializeField] private float catchRadius = 1.3f;
     [SerializeField] private float retreatSeconds = 2.5f;
     [SerializeField] private float retreatSpeed = 5f;
+    [Tooltip("How long it walks back into the trees once she reaches the fence, before going dormant out there.")]
+    [SerializeField] private float yardRetreatSeconds = 6f;
+    private bool retreatToDormant;
 
     [Header("Hit")]
     [Tooltip("Brief stagger on a hit. The lasting effect is the slow below.")]
@@ -125,6 +128,7 @@ public class Stalker : MonoBehaviour
                 Transform t = Nearest(out float dist);
                 float reach = aggroRadius;
                 if (t == player) reach *= (PlayerMovement.Instance != null && PlayerMovement.Instance.IsRunning) ? 1.2f : 0.5f;
+                if (t == player && Home.Instance != null && Home.Instance.InYard(player.position, 0f)) break;   // inside the fence she is nothing to them
                 if (t != null && dist <= reach)
                     Wake();
                 break;
@@ -136,6 +140,18 @@ public class Stalker : MonoBehaviour
                 if (t == null || dist > loseRadius * HomeBonuses.StalkerLoseMultiplier)
                 {
                     CurrentState = State.Dormant; huntStart = -1f;   // lost her: the chase clock resets
+                    break;
+                }
+                if (t == player && Home.Instance != null && Home.Instance.InYard(player.position, 0f))
+                {
+                    // She made the fence. Whatever it is, it will not follow her in: it turns and
+                    // walks back into the trees, and goes quiet out there.
+                    Vector3 home = Home.Instance.transform.position; home.y = 0f;
+                    retreatDir = transform.position - home; retreatDir.y = 0f;
+                    retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
+                    retreatUntil = Time.time + yardRetreatSeconds;
+                    retreatToDormant = true;
+                    CurrentState = State.Retreating;
                     break;
                 }
 
@@ -155,7 +171,7 @@ public class Stalker : MonoBehaviour
             }
 
             case State.Retreating:
-                if (Time.time >= retreatUntil) CurrentState = State.Hunting;
+                if (Time.time >= retreatUntil) { CurrentState = retreatToDormant ? State.Dormant : State.Hunting; if (retreatToDormant) huntStart = -1f; retreatToDormant = false; }
                 else move = retreatDir * retreatSpeed * SpeedFactor;
                 break;
 

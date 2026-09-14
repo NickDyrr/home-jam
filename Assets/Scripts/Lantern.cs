@@ -1,12 +1,12 @@
 using UnityEngine;
 
 /// <summary>
-/// The player's light. Always lit: it is how she sees, and how they see her.
+/// The player's light. Lit after dark, out by day: it is how she sees, and how they see her.
 /// Range grows when the Firekeeper is home.
 /// </summary>
 public class Lantern : MonoBehaviour
 {
-    /// <summary>Kept for the systems that read it; the lantern no longer switches off.</summary>
+    /// <summary>True while the lantern is burning (night).</summary>
     public static bool IsOn { get; private set; } = true;
 
     [SerializeField] private Light lantern;
@@ -25,9 +25,18 @@ public class Lantern : MonoBehaviour
         DayNightCycle.AmbientScale = 1f;
     }
 
+    private float baseIntensity, lit = 1f;
+
     private void Update()
     {
-        if (lantern != null)
-            lantern.range = Mathf.Lerp(lantern.range, baseRange * HomeBonuses.LanternRangeMultiplier, 1f - Mathf.Exp(-2f * Time.deltaTime));
+        if (lantern == null) return;
+        if (baseIntensity <= 0f) baseIntensity = lantern.intensity;
+        // Lit once the light goes, dark by day. Eases over a couple of seconds either way.
+        bool wantLit = DayNightCycle.Instance == null || DayNightCycle.Instance.Daylight < 0.55f;
+        lit = Mathf.MoveTowards(lit, wantLit ? 1f : 0f, Time.deltaTime * 0.6f);
+        IsOn = lit > 0.5f;
+        lantern.enabled = lit > 0.02f;
+        lantern.intensity = baseIntensity * lit;
+        lantern.range = Mathf.Lerp(lantern.range, baseRange * HomeBonuses.LanternRangeMultiplier, 1f - Mathf.Exp(-2f * Time.deltaTime));
     }
 }
