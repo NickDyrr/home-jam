@@ -77,10 +77,10 @@ MonoBehaviour:
   fleeWindup: 0.7
   hitStagger: 0.25
   aggroRadius: 14
-  loseRadius: 22
+  loseRadius: 32
   baseSpeed: 4
-  huntAccel: 0.45
-  maxSpeed: 8.5
+  huntAccel: 1.1
+  maxSpeed: 9.5
   turnSpeed: 360
   catchRadius: 1.3
   retreatSeconds: 2.5
@@ -93,6 +93,9 @@ MonoBehaviour:
   grabSeconds: 0.8
   strikeWindup: 0.55
   strikeReach: 2.3
+  swipeDodgeSpeed: 0.5
+  swingWindupSpeed: 1.25
+  swingRecoverSpeed: 3
   animator: {fileID: 6553954678496869733}
   glow: {fileID: 0}
   dormantGlow: 0.35
@@ -119,8 +122,6 @@ MonoBehaviour:
   printMaterial: {fileID: 2100000, guid: 8e5b441304f0b8c4ea3e5fb876aab79b, type: 2}
   stepVolume: 0.45
   runPitch: 1.3
-  loopUseFraction: 0.5
-  loopHead: 0.5
 --- !u!1001 &837325004488048884
 PrefabInstance:
   m_ObjectHideFlags: 0
