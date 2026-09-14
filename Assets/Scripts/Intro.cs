@@ -17,7 +17,7 @@ public class Intro : MonoBehaviour
     {
         "The snow came early this year. Something came down with it.",
         "They come as far as my fence. They don't like the light.",
-        "Bullets won't kill them. A hit slows one down, and sends it running.",
+        "Bullets won't kill them. A hit slows one down, and sends it running. But it'll come back.",
         "Those stuck out in the woods move by day, and keep their fires at night.",
         "I'll find them. And bring them home.",
     };
