@@ -42,7 +42,7 @@ public static class Inventory
     }
 
     /// <summary>The kinds shown in the bar, in this order. Pages and scraps count too.</summary>
-    public static readonly ItemKind[] BarOrder = { ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Blanket, ItemKind.Scrap, ItemKind.MapScrap, ItemKind.Page, ItemKind.Lantern };
+    public static readonly ItemKind[] BarOrder = { ItemKind.MapScrap, ItemKind.Noisemaker, ItemKind.Trap, ItemKind.Medkit, ItemKind.Blanket, ItemKind.Scrap, ItemKind.Lantern };
 }
 
 /// <summary>Names and one-line hints for the bar.</summary>
@@ -60,7 +60,8 @@ public static class ItemInfo
             case ItemKind.Noisemaker: return "Tin can";
             case ItemKind.Trap: return "Bear trap";
             case ItemKind.MapScrap: return "Map scrap";
-            case ItemKind.Page: return "Journal page";
+            case ItemKind.Page: return "Page";
+
             case ItemKind.Medkit: return "Medkit";
             case ItemKind.Blanket: return "Blanket";
             case ItemKind.Scrap: return "Scrap";
@@ -85,6 +86,7 @@ public static class ItemInfo
         {
             case ItemKind.Noisemaker: return "G";
             case ItemKind.Trap: return "V";
+            case ItemKind.MapScrap: return "M";
             case ItemKind.Pistol: return "1";
             case ItemKind.Rifle: return "2";
             case ItemKind.Bow: return "3";
@@ -110,7 +112,7 @@ public static class ItemInfo
             case ItemKind.Flare: return "Rounds for the flare gun.";
             case ItemKind.Noisemaker: return "G  throw. Every one of them nearby goes to see what made the noise.";
             case ItemKind.Trap: return "V  set it at your feet. Holds the first one that steps in it.";
-            case ItemKind.MapScrap: return "Marks a camp on the compass.";
+            case ItemKind.MapScrap: return "M  or click: marks the nearest camp you have not reached on the compass, until you get there.";
             case ItemKind.Page: return "In the notebook.";
             case ItemKind.Medkit: return "Used on the hurt one when you reach him.";
             case ItemKind.Blanket: return "Used on the frightened one when you reach her.";

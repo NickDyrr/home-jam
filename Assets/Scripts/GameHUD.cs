@@ -91,7 +91,7 @@ public class GameHUD : MonoBehaviour
         "W A S D   move",
         "Shift   sprint (loud)",
         "Mouse   aim      Left click   shoot      R   reload",
-        "G   throw a can      V   set a trap",
+        "G   throw a can      V   set a trap      M   read a map scrap",
         "1 to 7   pistol, rifle, bow, shotgun, flare gun, auto rifle, sniper (once found)",
         "T   wait for dark (at home, by day)",
         "B   ring the bell (second house level, from the yard)",
@@ -282,7 +282,7 @@ public class GameHUD : MonoBehaviour
             else
             {
                 int n = Inventory.Count(k);
-                if (n > 1 || k == ItemKind.Scrap || k == ItemKind.Page || k == ItemKind.MapScrap)
+                if (n > 1 || k == ItemKind.Scrap || k == ItemKind.MapScrap)
                     Intro.DrawLegible(new Rect(r.x, r.y, slot - 4f, slot - 2f), n.ToString(), countStyle, 1f);
             }
             string key = ItemInfo.Key(k);

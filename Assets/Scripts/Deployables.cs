@@ -205,6 +205,7 @@ public class ItemUse : MonoBehaviour
         if (kb == null || !CanAct()) return;
         if (kb.gKey.wasPressedThisFrame) Use(ItemKind.Noisemaker, AimPoint(throwRange * 1.5f));
         if (kb.vKey.wasPressedThisFrame) Use(ItemKind.Trap, transform.position);
+        if (kb.mKey.wasPressedThisFrame) Use(ItemKind.MapScrap, transform.position);
     }
 
     /// <summary>A click on the item bar: throwables go the way she is facing; anything else does nothing.</summary>
@@ -215,6 +216,7 @@ public class ItemUse : MonoBehaviour
         {
             case ItemKind.Noisemaker: Use(kind, transform.position + transform.forward * throwRange); break;
             case ItemKind.Trap: Use(kind, transform.position); break;
+            case ItemKind.MapScrap: Use(kind, transform.position); break;
         }
     }
 
@@ -238,6 +240,21 @@ public class ItemUse : MonoBehaviour
                 BearTrap.Set(transform.position + transform.forward * 0.9f);
                 FloatingText.Show(transform.position + Vector3.up * 1.6f, "Trap set.", 1.5f);
                 return true;
+            case ItemKind.MapScrap:
+            {
+                // Read it: the nearest camp she has not reached goes on the compass until she gets there.
+                Survivor pick = null; float best = float.MaxValue;
+                foreach (var s in Survivor.All)
+                {
+                    if (s.CurrentState != Survivor.State.Waiting || Inventory.Revealed.Contains(s)) continue;
+                    float dd = (s.transform.position - transform.position).sqrMagnitude;
+                    if (dd < best) { best = dd; pick = s; }
+                }
+                if (pick == null) { Inventory.Add(kind); FloatingText.Show(transform.position + Vector3.up * 1.6f, "Nothing on it you don't already know.", 2.5f); return false; }
+                Inventory.Revealed.Add(pick);
+                FloatingText.Show(transform.position + Vector3.up * 1.6f, "A camp. It's on the compass.", 2.5f);
+                return true;
+            }
         }
         Inventory.Add(kind);   // not something she uses by hand: put it back
         return false;

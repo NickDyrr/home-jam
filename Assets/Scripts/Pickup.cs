@@ -213,29 +213,16 @@ public class Pickup : MonoBehaviour
         switch (kind)
         {
             case ItemKind.Page:
-                Inventory.Add(ItemKind.Page);
-                if (!string.IsNullOrEmpty(pageText)) { Inventory.Pages.Add(pageText); GameHUD.Toast(pageText, 7f); }
-                FloatingText.Show(at, "A page. It's in the notebook.", 2.5f);
-                break;
+                break;   // pages are gone from the game; any left in a scene just vanish
             case ItemKind.MapScrap:
-            {
                 Inventory.Add(ItemKind.MapScrap);
-                Survivor pick = null; float best = float.MaxValue;
-                foreach (var s in Survivor.All)
-                {
-                    if (s.CurrentState != Survivor.State.Waiting || Inventory.Revealed.Contains(s)) continue;
-                    float dd = (s.transform.position - transform.position).sqrMagnitude;   // the nearest camp not yet marked
-                    if (dd < best) { best = dd; pick = s; }
-                }
-                if (pick != null) { Inventory.Revealed.Add(pick); FloatingText.Show(at, "A torn map. A camp is marked on the compass.", 3f); }
-                else FloatingText.Show(at, "A torn map. Nothing new on it.", 2.5f);
+                FloatingText.Show(at, "A torn map. Use it to mark a camp.", 2.5f);
                 break;
-            }
             case ItemKind.Backpack:
                 if (Pistol.Instance != null) Pistol.Instance.AddReserve(3);
                 Inventory.Add(ItemKind.Flare);
-                if (!string.IsNullOrEmpty(pageText)) { Inventory.Add(ItemKind.Page); Inventory.Pages.Add(pageText); GameHUD.Toast(pageText, 7f); }
-                FloatingText.Show(at, "Their pack. 3 rounds, a flare" + (string.IsNullOrEmpty(pageText) ? "." : ", a page."), 3f);
+                Inventory.Add(ItemKind.MapScrap);
+                FloatingText.Show(at, "Their pack. 3 rounds, a flare, a torn map.", 3f);
                 break;
             case ItemKind.Lantern:
                 Inventory.BetterLantern = true; Inventory.Add(ItemKind.Lantern);
