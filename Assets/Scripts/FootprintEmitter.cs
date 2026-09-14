@@ -41,11 +41,19 @@ public class FootprintEmitter : MonoBehaviour
         if (stepLoop != null) stepLoop.volume = 0f;
     }
 
+    [Tooltip("Only this much of a long step recording is used, from its start; the rest is never played.")]
+    [SerializeField] private float loopUseFraction = 0.5f;
+    [Tooltip("Skip this many seconds at the head of the recording when wrapping.")]
+    [SerializeField] private float loopHead = 0.5f;
+
     /// <summary>
     /// A recording of someone walking (longer than a second or two) is looped while this walker
     /// moves, pitched up at a run. A short clip is played once per print instead.
     /// </summary>
     private bool UseLoop(AudioClip clip) => clip != null && clip.length > 1.5f;
+
+    /// <summary>Where the usable part of the recording ends.</summary>
+    private float LoopEnd(AudioClip clip) => Mathf.Max(loopHead + 2f, clip.length * Mathf.Clamp01(loopUseFraction));
 
     private void LateUpdate()
     {
@@ -73,9 +81,11 @@ public class FootprintEmitter : MonoBehaviour
                     // looped sources hold a fixed level).
                     stepLoop = gameObject.AddComponent<AudioSource>();
                     stepLoop.clip = clip; stepLoop.loop = true; stepLoop.spatialBlend = 0f; stepLoop.playOnAwake = false; stepLoop.volume = 0f;
-                    stepLoop.time = Random.Range(0f, clip.length);
+                    stepLoop.time = Random.Range(loopHead, LoopEnd(clip));
                     stepLoop.Play();
                 }
+                // Stay in the good part of the recording: wrap before the back half.
+                if (stepLoop.time >= LoopEnd(clip)) stepLoop.time = loopHead;
                 bool moving = speed > 0.4f;
                 // Fade with distance from the player, the way the manager's one-shots do.
                 float dist = PlayerMovement.Instance != null ? Vector3.Distance(PlayerMovement.Instance.transform.position, pos) : 0f;
