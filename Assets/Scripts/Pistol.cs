@@ -121,7 +121,7 @@ public class Pistol : MonoBehaviour
         Mouse mouse = Mouse.current;
         Keyboard kb = Keyboard.current;
 
-        if (mouse != null && mouse.leftButton.wasPressedThisFrame) TryFire();
+        if (mouse != null && mouse.leftButton.wasPressedThisFrame && !Encounter.Active && Time.time >= Encounter.SuppressFireUntil) TryFire();
         if (kb != null && kb.rKey.wasPressedThisFrame) TryReload();
 
         // Face the cursor for a moment after a shot so the pose reads.
@@ -291,6 +291,16 @@ public class Pistol : MonoBehaviour
             if (h.distance < best) { best = h.distance; target = s; }
         }
         if (target != null) target.Hit(aimDir * knockback);
+
+        // The round itself: a streak to wherever it stopped (the stalker, a tree, the snow, or the end of its reach).
+        Vector3 stop = origin + aimDir * range; float stopAt = range; bool hitSomething = target != null;
+        foreach (RaycastHit h in Physics.RaycastAll(origin, aimDir, range, ~0, QueryTriggerInteraction.Ignore))
+        {
+            if (h.transform.root == transform.root || h.collider.GetComponentInParent<Stalker>() != null) continue;
+            if (h.distance < stopAt) { stopAt = h.distance; stop = h.point; }
+        }
+        if (target != null && best < stopAt) { stop = origin + aimDir * best; stopAt = best; }
+        Tracer.Spawn(muzzle != null ? muzzle.position : origin, stop, hitSomething);
     }
 
     private void TryReload()

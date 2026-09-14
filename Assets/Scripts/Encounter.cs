@@ -1,3 +1,4 @@
+using UnityEngine.InputSystem;
 using UnityEngine;
 
 /// <summary>
@@ -80,11 +81,21 @@ public class Encounter : MonoBehaviour
         active = true;
     }
 
+    /// <summary>True while the meeting plays. The pistol holds fire, and a click or Space ends it early.</summary>
+    public static bool Active => Instance != null && Instance.active;
+    /// <summary>The click that ends a meeting must not also fire the gun.</summary>
+    public static float SuppressFireUntil { get; private set; }
+
     private void Update()
     {
         if (!active) return;
         t += Time.deltaTime;
         if (survivor == null || player == null || cam == null) { End(); return; }
+
+        // Click or Space: zoom back out now (the ease-out still plays).
+        bool skip = (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) ||
+                    (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame);
+        if (skip && t < duration - easeOut) t = duration - easeOut;
 
         Vector3 mid = (player.position + survivor.transform.position) * 0.5f; mid.y = 0f;
         float k;
@@ -102,6 +113,7 @@ public class Encounter : MonoBehaviour
     private void End()
     {
         active = false;
+        SuppressFireUntil = Time.time + 0.35f;
         if (movement != null) movement.CutsceneLocked = false;
         if (follow != null) follow.enabled = true;
         survivor = null;
