@@ -72,6 +72,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bcbbf7732488b842bf86c327d46306e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Survivor
+  job: 0
+  trait: 0
+  hurtSpeedFactor: 0.62
+  skittishRadius: 10
+  stubbornSeconds: 3
   noticeRadius: 2.5
   followDistance: 1.6
   moveSpeed: 3.5
@@ -79,6 +84,12 @@ MonoBehaviour:
   runCatchUpDistance: 4
   turnSpeed: 540
   settleTolerance: 0.25
+  panicRadius: 8
+  calmRadius: 2.2
+  calmSeconds: 0.5
+  panicCooldown: 5
+  screamRadius: 18
+  screamSeconds: 1
   animator: {fileID: 0}
 --- !u!114 &1604775445106696476
 MonoBehaviour:
@@ -97,6 +108,9 @@ MonoBehaviour:
   printSize: 0.34
   tint: {r: 0.42, g: 0.49, b: 0.64, a: 1}
   teleportThreshold: 3
+  printMaterial: {fileID: 0}
+  stepVolume: 0.45
+  runPitch: 1.3
 --- !u!1001 &3960741294412345901
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -123,7 +137,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4b7cf7afd7dc1db40bf95b477ac56f63, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.82642156
+      value: -1.02
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 4b7cf7afd7dc1db40bf95b477ac56f63, type: 3}
       propertyPath: m_LocalPosition.z

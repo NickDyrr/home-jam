@@ -391,6 +391,7 @@ public class Stalker : MonoBehaviour
                     bool lands = toS.magnitude <= strikeReach && (phase == Phase.Grab || !IsMoving(strikeTransform));
                     if (lands && strikeTarget != null)
                     {
+                        FaceMe(strikeTarget.transform);   // the blow comes from the front, so the body flies away from it
                         strikeTarget.Taken();
                         retreatDir = transform.position - player.position; retreatDir.y = 0f;
                         retreatDir = retreatDir.sqrMagnitude > 0.01f ? retreatDir.normalized : -transform.forward;
@@ -413,6 +414,7 @@ public class Stalker : MonoBehaviour
                 {
                     SwingLanded();
                     ReleasePlayer();
+                    FaceMe(player);   // she goes down away from it, not through it
                     if (StalkerDirector.Instance != null) StalkerDirector.Instance.PlayerCaught();
                     // Done with her. It backs off into the dark and leaves her where she fell.
                     retreatDir = transform.position - player.position; retreatDir.y = 0f;
@@ -538,6 +540,14 @@ public class Stalker : MonoBehaviour
             return;
         }
         GrabPlayer(true);   // grab phase, and it is her: it has her, running or not
+    }
+
+    /// <summary>Turns a victim to face this stalker, flat, so the flying-back death carries them away from it.</summary>
+    private void FaceMe(Transform victim)
+    {
+        if (victim == null) return;
+        Vector3 to = transform.position - victim.position; to.y = 0f;
+        if (to.sqrMagnitude > 0.01f) victim.rotation = Quaternion.LookRotation(to.normalized, Vector3.up);
     }
 
     /// <summary>Faster than a shuffle, flat.</summary>
